@@ -9,11 +9,11 @@ export interface DevToolsCapabilities {
 }
 
 /**
- * Framework-neutral node context — RPC + diagnostics + agent + the
- * view-host (HTTP file-serving). Hub-level subsystems (docks,
- * terminals, messages, commands) are not part of this surface; they are
- * added by `@vitejs/devtools-kit`'s `createKitContext` when the devtool
- * is mounted into a multi-integration hub.
+ * Framework- and build-tool-agnostic node context — RPC + diagnostics +
+ * agent + the view-host (HTTP file-serving). Host adapters can wrap this
+ * to add their own surfaces; for example, `@vitejs/devtools-kit`'s
+ * `createKitContext` adds `docks`, `terminals`, `messages`, and
+ * `commands` when mounted into Vite DevTools.
  */
 export interface DevToolsNodeContext {
   readonly workspaceRoot: string

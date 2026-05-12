@@ -35,7 +35,7 @@ export interface CreateDevServerOptions {
    * `def.cli?.distDir` is set, the dev server runs in **bridge mode** —
    * only `__connection.json` and the WS endpoint are mounted; the SPA
    * is expected to be hosted elsewhere (e.g. by a parent Vite/Nuxt
-   * dev server via `createVitePlugin({ devMiddleware })`).
+   * dev server via `viteDevBridge({ devMiddleware })`).
    */
   distDir?: string
   /**
@@ -104,7 +104,7 @@ export async function resolveDevServerPort(
  * server runs in **bridge mode**: only `__connection.json` and the WS
  * endpoint are mounted, with no SPA mount. The SPA is expected to be
  * hosted elsewhere (e.g. by a parent Vite/Nuxt dev server) — see
- * `createVitePlugin({ devMiddleware })`.
+ * `viteDevBridge({ devMiddleware })`.
  *
  * Returns the underlying {@link StartedServer} handle so callers can
  * close it gracefully (SIGINT, hot-reload, test teardown).

@@ -89,7 +89,7 @@ const ok = await rpc.requestTrustWithToken('another-token')
 
 ### Broadcast-channel sync
 
-`connectDevframe` listens on `BroadcastChannel('vite-devtools-auth')` for `auth-update` messages. When an auth page in another tab announces a new token, every open client requests trust with it automatically — no reload required.
+`connectDevframe` listens on a shared `BroadcastChannel` (named `vite-devtools-auth` for cross-tab handshake interop with Vite DevTools' auth page) for `auth-update` messages. When an auth page in another tab announces a new token, every open client requests trust with it automatically — no reload required.
 
 ## Calling functions
 
@@ -183,7 +183,7 @@ await connectDevframe({
 
 ## Remote docks
 
-Remote docks are a kit-side feature (see [Vite DevTools Kit → Remote Client](https://devtools.vite.dev/kit/remote-client)). The kit injects a connection descriptor into the iframe URL; on the hosted page, `connectDevframe` auto-detects the descriptor from the URL fragment / query string — call it as usual:
+Remote docks are a host-side feature — hosts that support them (Vite DevTools is one; see [its remote-client docs](https://devtools.vite.dev/kit/remote-client) for that implementation) inject a connection descriptor into the iframe URL. On the hosted page, `connectDevframe` auto-detects the descriptor from the URL fragment / query string — call it as usual:
 
 ```ts
 import { connectDevframe } from 'devframe/client'

@@ -25,7 +25,7 @@ A **channel** owns a wire namespace. Each call to `channel.start()` produces an 
 
 ## Defining a channel
 
-Create the channel once in `setup`. Channels are framework-neutral, so the same code works under every adapter (`cli`, `vite`, `kit`, `embedded`):
+Create the channel once in `setup`. Channels are framework-neutral, so the same code works under every adapter (`cli`, `vite`, `embedded`):
 
 ```ts
 import { defineDevframe, defineRpcFunction } from 'devframe'

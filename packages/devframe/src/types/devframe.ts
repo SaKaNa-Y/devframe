@@ -2,12 +2,12 @@ import type { CAC } from 'cac'
 import type { CliFlagsSchema } from '../adapters/flags'
 import type { DevToolsNodeContext } from './context'
 
-export type DevframeRuntime = 'cli' | 'build' | 'spa' | 'vite' | 'kit' | 'embedded'
+export type DevframeRuntime = 'cli' | 'build' | 'spa' | 'vite' | 'embedded'
 
 /**
  * Classification of how a devframe is being deployed. Hosted adapters
- * (`vite`, `kit`, `embedded`) share their origin with a host app and
- * must namespace their mount path under `/__<id>/`. Standalone adapters
+ * (`vite`, `embedded`) share their origin with a host app and must
+ * namespace their mount path under `/__<id>/`. Standalone adapters
  * (`cli`, `spa`, `build`) own the origin and default to `/`.
  */
 export type DevframeDeploymentKind = 'standalone' | 'hosted'
@@ -111,7 +111,7 @@ export interface DevframeDefinition {
   /**
    * Mount path override. Defaults depend on the adapter:
    * `/` for standalone (`cli` / `spa` / `build`), `/__<id>/` for hosted
-   * (`vite` / `kit` / `embedded`).
+   * (`vite` / `embedded`).
    */
   basePath?: string
   capabilities?: {

@@ -22,13 +22,12 @@ export interface CreateHostContextOptions {
 }
 
 /**
- * Framework-neutral core of the DevTools node context. Wires the RPC
- * host, view (HTTP file-serving) host, diagnostics, and agent
- * subsystems. Hub-level subsystems (`docks`, `terminals`, `messages`,
- * `commands`, `createJsonRenderer`) are owned by
- * `@vitejs/devtools-kit` — its `createKitContext` wraps this and
- * attaches them when the devframe is mounted into a multi-integration
- * hub.
+ * Framework- and build-tool-agnostic core of the DevTools node context.
+ * Wires the RPC host, view (HTTP file-serving) host, diagnostics, and
+ * agent subsystems. Host adapters can wrap this to augment `ctx` with
+ * extra surfaces — for example, `@vitejs/devtools-kit`'s
+ * `createKitContext` attaches `docks`, `terminals`, `messages`,
+ * `commands`, and `createJsonRenderer` when mounted into Vite DevTools.
  */
 export async function createHostContext(options: CreateHostContextOptions): Promise<DevToolsNodeContext> {
   const { cwd, workspaceRoot = cwd, mode, host, builtinRpcDeclarations = [] } = options

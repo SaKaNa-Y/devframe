@@ -1,12 +1,12 @@
 import type { DevframeDefinition } from '../types/devframe'
 import { resolve } from 'pathe'
+import { resolveBasePath } from '../adapters/_shared'
+import { createDevServer, resolveDevServerPort } from '../adapters/dev'
 import { DEVTOOLS_CONNECTION_META_FILENAME } from '../constants'
 import { logger } from '../node/diagnostics'
 import { serveStaticNodeMiddleware } from '../utils/serve-static'
-import { resolveBasePath } from './_shared'
-import { createDevServer, resolveDevServerPort } from './dev'
 
-export interface CreateVitePluginOptions {
+export interface ViteDevBridgeOptions {
   /**
    * Mount base. Defaults to `def.basePath ?? '/__<id>/'` for this hosted
    * adapter — the devframe shares the origin with the host Vite app.
@@ -49,9 +49,8 @@ export interface DevframeVitePlugin {
 }
 
 /**
- * Vite plugin for hosting a devframe inside a Vite dev server.
- *
- * Two modes, picked via `options.devMiddleware`:
+ * Bridge a devframe into an existing Vite dev server. Returns a Vite
+ * plugin with two modes, picked via `options.devMiddleware`:
  *
  *   - **static-mount mode** (default) — mounts `def.cli.distDir` at
  *     `options.base` with SPA fallback enabled. No RPC server is started.
@@ -67,7 +66,7 @@ export interface DevframeVitePlugin {
  * (Nuxt, Astro, SolidStart, plain Vite apps). For the all-in-one
  * `dev` / `build` / `mcp` shell, reach for {@link createCli} instead.
  */
-export function createVitePlugin(d: DevframeDefinition, options: CreateVitePluginOptions = {}): DevframeVitePlugin {
+export function viteDevBridge(d: DevframeDefinition, options: ViteDevBridgeOptions = {}): DevframeVitePlugin {
   const base = normalizeMountBase(options.base ?? resolveBasePath(d, 'hosted'))
 
   if (!options.devMiddleware) {

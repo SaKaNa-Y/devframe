@@ -44,8 +44,7 @@ await createCli(devframe).parse()
 |---------|----------|
 | `cli` | Standalone CLI tool with `dev` / `build` / `mcp` subcommands. |
 | `build` | Generates a static, self-contained SPA snapshot. |
-| `vite` | Runs as a Vite plugin alongside the host app's dev server. |
-| `kit` | Mounts into a DevTools Kit aggregator (e.g. `@vitejs/devtools-kit`). |
+| `vite` | Mounts the devframe into Vite DevTools (or any compatible host) via `@vitejs/devtools-kit`. |
 | `embedded` | Overlays inside another devframe's UI. |
 | `mcp` | Surfaces the devframe's RPC to coding agents over MCP. |
 

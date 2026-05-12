@@ -14,9 +14,8 @@ Every adapter factory has the shape `createXxx(devframeDef, options?)`.
 |---------|-------|---------|----------|
 | [`cli`](#cli) | `devframe/adapters/cli` | `createCli(def, options?)` | Standalone tools run via `node ./my-tool.js` |
 | [`dev`](#dev) | `devframe/adapters/dev` | `createDevServer(def, options?)` | Run the dev server programmatically — drive it from any CLI framework |
-| [`vite`](#vite) | `devframe/adapters/vite` | `createVitePlugin(def, options?)` | Mount a tool's UI inside an existing Vite dev server |
 | [`build`](#build) | `devframe/adapters/build` | `createBuild(def, options?)` | Offline reports, CI artifacts, deployable SPA snapshots |
-| [`kit`](#kit) | `@vitejs/devtools-kit/node` | `createPluginFromDevframe(def, options?)` | Integrating into Vite DevTools Kit |
+| [`vite`](#vite) | `@vitejs/devtools-kit/node` | `createPluginFromDevframe(def, options?)` | Mount the definition into Vite DevTools (or any compatible host) |
 | [`embedded`](#embedded) | `devframe/adapters/embedded` | `createEmbedded(def, { ctx })` | Runtime registration into an already-running host |
 | [`mcp`](#mcp) | `devframe/adapters/mcp` | `createMcpServer(def, options?)` | Exposing a devframe to coding agents |
 
@@ -180,7 +179,7 @@ A devframe's SPA basePath depends on which adapter is running it:
 | Adapter kind | Default basePath | Reason |
 |--------------|------------------|--------|
 | `cli`, `spa`, `build` (standalone) | `/` | The devframe owns the origin. |
-| `vite`, `kit`, `embedded` (hosted) | `/__<id>/` | The devframe shares the origin with a host app and namespaces itself. |
+| `vite`, `embedded` (hosted) | `/__<id>/` | The devframe shares the origin with a host app and namespaces itself. |
 
 Override either side explicitly with `DevframeDefinition.basePath`:
 
@@ -193,26 +192,6 @@ defineDevframe({
 ```
 
 SPA authors should build with relative asset paths (`vite.base: './'`); the client resolves its connection descriptor relative to the page at runtime. See [Client](./client#runtime-basepath-discovery) for the discovery rules.
-
-## Vite
-
-A thin Vite plugin that mounts a devframe's SPA into an existing Vite dev server as a *hosted* adapter — the mount path defaults to `/__<id>/` to namespace away from the app. The plugin mounts the SPA only; for RPC, use `kit` or `cli`.
-
-```ts
-import { createVitePlugin } from 'devframe/adapters/vite'
-import { defineConfig } from 'vite'
-import devframe from './devframe'
-
-export default defineConfig({
-  plugins: [createVitePlugin(devframe)],
-})
-```
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `base` | `def.basePath ?? '/__<id>/'` | Mount path inside the Vite dev server. |
-
-Use this adapter when a devframe's UI is purely static and you want to surface it during Vite `serve` without shipping a separate dev server. Set `DevframeDefinition.basePath` on the definition for a custom path that stays consistent across adapters.
 
 ## Build
 
@@ -252,9 +231,9 @@ When `def.spa` is set on the definition, `createBuild` also writes `spa-loader.j
 
 Deployed SPAs that use `setupBrowser` ship their own client entry that registers the handlers.
 
-## Kit
+## Vite
 
-Wraps a `DevframeDefinition` so Vite DevTools Kit's plugin-scan picks it up. The factory lives in `@vitejs/devtools-kit/node` — kit owns docking and process management while devframe stays portable.
+The Vite-DevTools adapter — wraps a `DevframeDefinition` so Vite DevTools' kit plugin-scan picks it up. The factory lives in `@vitejs/devtools-kit/node` so devframe itself stays free of any Vite or `@vitejs/*` dependency. The pattern (`definition → host plugin → mount`) is general; other hosts can implement equivalent bridges.
 
 ```ts
 import { createPluginFromDevframe } from '@vitejs/devtools-kit/node'
@@ -265,18 +244,18 @@ export default function myVitePlugin() {
 }
 ```
 
-The returned object has the shape `{ name, devtools: { setup, capabilities } }`. Use this adapter when your devframe should live inside the Vite DevTools dock alongside other integrations. Kit synthesises an iframe dock entry from the definition's `id` / `name` / `icon` / `basePath`; for richer kit-specific behaviour (extra terminals, commands, dock overrides) pass `options.setup`. See the [DevTools Kit → DevTools Plugin](https://devtools.vite.dev/kit/devtools-plugin) page for the Vite-specific guide.
+The returned object has the shape `{ name, devtools: { setup, capabilities } }`. Use this adapter when your devframe should live inside the Vite DevTools dock alongside other integrations. The kit synthesises an iframe dock entry from the definition's `id` / `name` / `icon` / `basePath`; for richer host-side behaviour (extra terminals, commands, dock overrides) pass `options.setup`. See the [DevTools Kit → DevTools Plugin](https://devtools.vite.dev/kit/devtools-plugin) page for the Vite-specific guide.
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `name` | `devframe:<id>` | Override the Vite plugin name. |
 | `base` | `def.basePath ?? /.${id}/` | Mount path override. |
 | `dock` | `{}` | Overrides for the synthesized iframe dock entry (category, icon, when). |
-| `setup` | — | Additional kit-only setup hook; receives the kit-augmented context. |
+| `setup` | — | Additional host-only setup hook; receives the kit-augmented context (Vite DevTools' `docks`, `terminals`, `messages`, `commands`). |
 
 ## Embedded
 
-Register a devframe into an already-running context at runtime. Mirrors Kit's internal plugin-scan, but for callers that need dynamic, post-startup registration. The host decides the mount path; `embedded` is a hosted adapter and inherits the `/__<id>/` default when one is needed.
+Register a devframe into an already-running context at runtime. Mirrors the `vite` adapter's plugin-scan, but for callers that need dynamic, post-startup registration. The host decides the mount path; `embedded` is a hosted adapter and inherits the `/__<id>/` default when one is needed.
 
 ```ts
 import { createEmbedded } from 'devframe/adapters/embedded'
@@ -308,3 +287,29 @@ await createMcpServer(devframe, { transport: 'stdio' })
 `@modelcontextprotocol/sdk` is a peer dependency — install it when shipping MCP support. The current transport is `stdio`.
 
 See the [Agent-Native](./agent-native) page for the full API, safety model, and Claude Desktop integration example.
+
+## Helpers
+
+These are not adapters — they're small utilities for integrating devframe into specific runtimes outside the adapter list.
+
+### `devframe/helpers/vite`
+
+A thin Vite plugin for mounting a devframe inside an existing Vite dev server, used by `@devframes/nuxt` and available for any Vite-based host (Astro, SolidStart, plain Vite apps). Two modes:
+
+- **Static mount** (default) — mounts `def.cli.distDir` at `options.base` (`/__<id>/` by default). No RPC server.
+- **Bridge mode** (`devMiddleware: true | {…}`) — skips the static mount; the host app owns the SPA. Devframe spawns a separate RPC + WS server and registers Vite middleware at `<base>__connection.json` so the host-served SPA can discover the WS endpoint.
+
+```ts
+import { viteDevBridge } from 'devframe/helpers/vite'
+import { defineConfig } from 'vite'
+import devframe from './devframe'
+
+export default defineConfig({
+  plugins: [viteDevBridge(devframe)],
+})
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `base` | `def.basePath ?? '/__<id>/'` | Mount path inside the Vite dev server. |
+| `devMiddleware` | `false` | `true` or `{ port?, host?, flags? }` to enable bridge mode. |

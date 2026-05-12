@@ -1,6 +1,6 @@
 // Devframe with setupBrowser + SPA query-loader — deployable as a static site.
-// When mounted into Vite DevTools via `createPluginFromDevframe`, the kit
-// auto-derives an iframe dock from `id` / `name` / `icon`.
+// Host adapters (e.g. the `vite` adapter for Vite DevTools) auto-derive their
+// mount entry from `id` / `name` / `icon`.
 import { defineDevframe, defineRpcFunction } from 'devframe'
 import * as v from 'valibot'
 

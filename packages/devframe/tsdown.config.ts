@@ -29,7 +29,7 @@ export default defineConfig({
     'adapters/cli': 'src/adapters/cli.ts',
     'adapters/dev': 'src/adapters/dev.ts',
     'adapters/build': 'src/adapters/build.ts',
-    'adapters/vite': 'src/adapters/vite.ts',
+    'helpers/vite': 'src/helpers/vite.ts',
     'adapters/embedded': 'src/adapters/embedded.ts',
     'adapters/mcp': 'src/adapters/mcp.ts',
     'client/index': 'src/client/index.ts',

@@ -59,7 +59,7 @@ export const diagnostics = defineDiagnostics({
     DF0033: {
       message: (p: { id: string, reason: string }) =>
         `Failed to start dev RPC bridge for "${p.id}": ${p.reason}`,
-      hint: 'Verify the bridge port is free and the devframe setup function does not throw. Pin a port via `cli.port` / `cli.portRange` on the definition, or via `devMiddleware.port` on `createVitePlugin`.',
+      hint: 'Verify the bridge port is free and the devframe setup function does not throw. Pin a port via `cli.port` / `cli.portRange` on the definition, or via `devMiddleware.port` on `viteDevBridge`.',
       level: 'warn',
     },
   },

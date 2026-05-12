@@ -114,7 +114,7 @@ export function createWsRpcClientMode(
       trustedPromise.promise.then(clear),
       new Promise((resolve, reject) => {
         const id = setTimeout(() => {
-          reject(new Error('[Vite DevTools] Timeout waiting for rpc to be trusted'))
+          reject(new Error('[devframe] Timeout waiting for rpc to be trusted'))
         }, timeout)
         clear = () => clearTimeout(id)
       }),

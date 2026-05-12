@@ -173,8 +173,8 @@ export async function getDevToolsRpcClient(
 ): Promise<DevToolsRpcClient> {
   // Default to a relative base — the SPA owns its mount path at runtime,
   // so the connection meta and dump shards live alongside `index.html`.
-  // Embedded surfaces that run inside a host page (e.g. the Vite DevTools
-  // webcomponent inject) must pass an explicit `baseURL` because their
+  // Embedded surfaces that run inside a host page (e.g. a webcomponent
+  // injected by a host) must pass an explicit `baseURL` because their
   // `document.baseURI` points at the host app, not the devtool's mount.
   const {
     baseURL = './',
@@ -313,7 +313,8 @@ export async function getDevToolsRpcClient(
   context.rpc = rpc
   void mode.requestTrust()
 
-  // Listen for auth updates from other tabs (e.g., auth URL page)
+  // Listen for auth updates from other tabs (e.g., auth URL page).
+  // Channel name kept for cross-tab interop with the Vite DevTools auth page.
   try {
     const bc = new BroadcastChannel('vite-devtools-auth')
     bc.onmessage = (event) => {

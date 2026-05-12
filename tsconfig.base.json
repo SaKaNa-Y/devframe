@@ -87,8 +87,8 @@
       "devframe/adapters/build": [
         "./packages/devframe/src/adapters/build.ts"
       ],
-      "devframe/adapters/vite": [
-        "./packages/devframe/src/adapters/vite.ts"
+      "devframe/helpers/vite": [
+        "./packages/devframe/src/helpers/vite.ts"
       ],
       "devframe/adapters/embedded": [
         "./packages/devframe/src/adapters/embedded.ts"

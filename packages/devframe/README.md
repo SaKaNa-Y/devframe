@@ -1,8 +1,8 @@
 # devframe
 
-Framework-neutral foundation for building generic DevTools. Describe one devframe — its RPC, its data, its SPA, its CLI shape — and deploy the same definition through any of seven adapters.
+Framework- and build-tool-agnostic foundation for building generic DevTools. Define your devtool once — its RPC, its data, its SPA, its CLI shape — and deploy the same definition anywhere through a set of pluggable adapters.
 
-Part of the [Vite DevTools](https://devtools.vite.dev) monorepo. Full documentation: [https://devfra.me/](https://devfra.me/).
+Full documentation: [https://devfra.me/](https://devfra.me/).
 
 ## Install
 
@@ -38,8 +38,7 @@ await createCli(devframe).parse()
 |---------|----------|
 | `cli` | Standalone CLI tool with `dev` / `build` / `mcp` subcommands. |
 | `build` | Generates a static, self-contained SPA snapshot. |
-| `vite` | Runs as a Vite plugin alongside the host app's dev server. |
-| `kit` | Mounts into the DevTools Kit aggregator. |
+| `vite` | Mounts the devframe into Vite DevTools (or any compatible host) via `@vitejs/devtools-kit`. |
 | `embedded` | Overlays inside another devtool's UI. |
 | `mcp` | Surfaces the devframe's RPC to coding agents over MCP. |
 

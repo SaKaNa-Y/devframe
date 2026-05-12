@@ -1,6 +1,6 @@
 import type { DevframeDefinition } from 'devframe/types'
 import { addPlugin, addVitePlugin, createResolver, defineNuxtModule } from '@nuxt/kit'
-import { createVitePlugin } from 'devframe/adapters/vite'
+import { viteDevBridge } from 'devframe/helpers/vite'
 
 export interface DevframeNuxtModuleOptions {
   /**
@@ -26,8 +26,8 @@ export interface DevframeNuxtModuleOptions {
    */
   devframe?: DevframeDefinition
   /**
-   * Dev-time middleware mode. Mirrors `createVitePlugin`'s option of the
-   * same name.
+   * Dev-time middleware mode. Mirrors `viteDevBridge`'s option of
+   * the same name.
    *
    *  - `true` (default) — when `devframe` is set and Nuxt is in dev
    *    mode, start the RPC bridge with all defaults.
@@ -59,7 +59,7 @@ export interface DevframeNuxtModuleOptions {
  *   - Injects a client plugin that calls {@link connectDevframe} once on
  *     page load and exposes the RPC client via `useNuxtApp().$rpc`.
  *   - When `devframe` is provided and Nuxt is in dev mode, registers a
- *     Vite plugin (via `addVitePlugin(createVitePlugin(devframe, {
+ *     Vite plugin (via `addVitePlugin(viteDevBridge(devframe, {
  *     devMiddleware: ... }))`) that starts the RPC + WS bridge and
  *     serves `${baseURL}__connection.json`.
  *
@@ -129,7 +129,7 @@ export default defineNuxtModule<DevframeNuxtModuleOptions>({
         ?? (nuxt.options.devServer as any)?.host
         ?? options.devframe.cli?.host
 
-      addVitePlugin(createVitePlugin(options.devframe, {
+      addVitePlugin(viteDevBridge(options.devframe, {
         base: options.baseURL ?? './',
         devMiddleware: {
           port: mw.port,

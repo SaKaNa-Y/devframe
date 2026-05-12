@@ -4,7 +4,7 @@ outline: deep
 
 # Devframe Definition
 
-Every Devframe tool starts with a single `defineDevframe` call. The returned `DevframeDefinition` is a portable value that any of the [adapters](./adapters) can consume — the same definition runs under `createCli`, `createBuild`, `createMcpServer`, kit's `createPluginFromDevframe`, and so on.
+Every Devframe tool starts with a single `defineDevframe` call. The returned `DevframeDefinition` is a portable value that any of the [adapters](./adapters) can consume — the same definition runs under `createCli`, `createBuild`, `createMcpServer`, the `vite` adapter's `createPluginFromDevframe`, and so on.
 
 ## Minimal definition
 
@@ -28,7 +28,7 @@ export default defineDevframe({
 })
 ```
 
-When mounted into Vite DevTools via [`createPluginFromDevframe`](./adapters#kit), the dock entry and iframe mount are derived from `id`, `name`, `icon`, and `basePath` automatically. Hub-level features (`docks`, `terminals`, `messages`, `commands`) live on the kit-augmented context.
+Host adapters (such as the [`vite` adapter](./adapters#vite) for Vite DevTools) derive their mount entry from `id`, `name`, `icon`, and `basePath` automatically.
 
 ## Definition fields
 
@@ -38,7 +38,7 @@ When mounted into Vite DevTools via [`createPluginFromDevframe`](./adapters#kit)
 | `name` | `string` | **Required.** Display name shown in the dock and agent manifests. |
 | `icon` | `string \| { light, dark }` | Optional Iconify name or URL; supports light/dark pairs. |
 | `version` | `string` | Optional version string surfaced to clients. |
-| `basePath` | `string` | Optional mount path override. Defaults depend on the adapter: `/` for standalone (`cli` / `spa` / `build`), `/.<id>/` for hosted (`vite` / `kit` / `embedded`). |
+| `basePath` | `string` | Optional mount path override. Defaults depend on the adapter: `/` for standalone (`cli` / `spa` / `build`), `/.<id>/` for hosted (`vite` / `embedded`). |
 | `capabilities` | `{ dev?, build?, spa? }` | Per-runtime feature flags. A `boolean` applies to the runtime as a whole; an object enables individual features. |
 | `setup` | `(ctx, info?) => void \| Promise<void>` | **Required.** Server-side entry point. Runs in every runtime. The optional second argument carries runtime metadata — most notably the parsed CLI `flags` when running under `createCli`. |
 | `setupBrowser` | `(ctx) => void \| Promise<void>` | Browser-only entry used by the SPA adapter. |
@@ -84,14 +84,13 @@ interface DevToolsNodeContext {
 }
 ```
 
-Hub-level subsystems — `docks`, `terminals`, `messages`, `commands`, `createJsonRenderer` — live on the kit-augmented context owned by `@vitejs/devtools-kit`. A devframe app that wants to register kit-only behavior does so through the optional `setup` hook on `createPluginFromDevframe`.
+Host adapters can augment `ctx` with additional surfaces. For example, the [`vite` adapter](./adapters#vite) exposes Vite DevTools' dock, command, message, and terminal hosts via an optional `setup` hook on `createPluginFromDevframe` — consult the host's docs for those extras.
 
-Each host has a dedicated page:
+Each devframe-level host has a dedicated page:
 - [RPC](./rpc) — `ctx.rpc`
 - [Shared State](./shared-state) — `ctx.rpc.sharedState`
 - [Diagnostics](./diagnostics) — `ctx.diagnostics`
 - [Agent-Native](./agent-native) — `ctx.agent`
-- Hub-side surfaces — [Dock System](https://devtools.vite.dev/kit/dock-system), [Commands](https://devtools.vite.dev/kit/commands), [Messages](https://devtools.vite.dev/kit/messages), [Terminals](https://devtools.vite.dev/kit/terminals) — live in the [Vite DevTools Kit](https://devtools.vite.dev/kit/) docs.
 
 ## Browser setup
 
@@ -182,15 +181,15 @@ const devframe = defineDevframe({ id: 'my-devframe', name: 'My Devframe', setup(
 // 1. Standalone CLI:
 await createCli(devframe).parse()
 
-// 2. Embedded in a Vite project (from `vite.config.ts`):
-export const myPlugin = () => createPluginFromDevframe(devframe)
-
-// 3. Offline snapshot:
+// 2. Offline snapshot:
 await createBuild(devframe, { outDir: 'dist-static' })
+
+// 3. Mount into a host (Vite DevTools shown — other hosts can implement equivalents):
+export const myPlugin = () => createPluginFromDevframe(devframe)
 ```
 
 ## What's next
 
 - [Adapters](./adapters) — pick a deployment target
 - [RPC](./rpc) — register server functions
-- [Vite DevTools Kit](https://devtools.vite.dev/kit/) — mount your devframe into the multi-integration hub
+- [`vite` adapter](./adapters#vite) — mount your devframe into Vite DevTools or another compatible host
