@@ -20,10 +20,9 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.mjs",
-    "./runtime/plugin.client": "./dist/runtime/plugin.client.mjs",
     "./package.json": "./package.json"
   },
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist"
   ],
@@ -33,11 +32,14 @@
     "prepack": "pnpm run build"
   },
   "peerDependencies": {
-    "@nuxt/kit": "^3.0.0 || ^4.0.0",
+    "@nuxt/kit": "^3.0.0 || ^4.0.0 || ^5.0.0-0",
     "devframe": "workspace:*"
   },
   "devDependencies": {
     "@nuxt/kit": "catalog:build",
+    "@types/node": "catalog:types",
+    "devframe": "workspace:*",
+    "nuxt": "catalog:build",
     "tsdown": "catalog:build"
   }
 }

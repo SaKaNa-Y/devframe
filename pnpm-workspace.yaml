@@ -17,6 +17,7 @@ packages:
   - examples/*
   - docs
 overrides:
+  chokidar: ^5.0.0
   semver: ^7.8.0
 catalogs:
   build:
@@ -24,6 +25,7 @@ catalogs:
     '@nuxt/kit': ^4.4.5
     '@preact/preset-vite': ^2.10.5
     mlly: ^1.8.2
+    nuxt: ^4.4.4
     tsdown: ^0.22.0
     tsx: ^4.21.0
     turbo: ^2.9.12
