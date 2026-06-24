@@ -1,0 +1,82 @@
+{
+  "name": "@devframes/plugin-git",
+  "type": "module",
+  "version": "0.5.2",
+  "description": "Git integration for devframe — a read-only repository dashboard (status, log, branches, diff) with a Next.js + shadcn/ui SPA over type-safe RPC.",
+  "author": "Anthony Fu <anthonyfu117@hotmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/devframes/devframe#readme",
+  "repository": {
+    "directory": "plugins/git",
+    "type": "git",
+    "url": "git+https://github.com/devframes/devframe.git"
+  },
+  "bugs": "https://github.com/devframes/devframe/issues",
+  "keywords": [
+    "devtools",
+    "devframe",
+    "git",
+    "dashboard",
+    "plugin"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.mts",
+  "bin": {
+    "devframe-git": "./bin.mjs"
+  },
+  "files": [
+    "bin.mjs",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown && pnpm run build:spa",
+    "build:spa": "next build src/client && node scripts/build-spa.mjs",
+    "cli:build": "node bin.mjs build --out-dir dist/static",
+    "dev": "node scripts/dev.mjs",
+    "dev:server": "node src/cli.ts",
+    "dev:client": "next dev src/client",
+    "storybook": "storybook dev -p 6006",
+    "storybook:build": "storybook build -o storybook-static",
+    "watch": "tsdown --watch",
+    "typecheck": "tsc --noEmit",
+    "prepack": "pnpm run build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "devframe": "workspace:*",
+    "pathe": "catalog:deps"
+  },
+  "devDependencies": {
+    "@radix-ui/react-scroll-area": "catalog:frontend",
+    "@radix-ui/react-separator": "catalog:frontend",
+    "@radix-ui/react-slot": "catalog:frontend",
+    "@radix-ui/react-tabs": "catalog:frontend",
+    "@storybook/addon-a11y": "catalog:storybook",
+    "@storybook/addon-docs": "catalog:storybook",
+    "@storybook/react-vite": "catalog:storybook",
+    "@tailwindcss/postcss": "catalog:frontend",
+    "@tailwindcss/vite": "catalog:frontend",
+    "@types/react": "catalog:types",
+    "@types/react-dom": "catalog:types",
+    "@vitejs/plugin-react-oxc": "catalog:storybook",
+    "class-variance-authority": "catalog:frontend",
+    "clsx": "catalog:frontend",
+    "get-port-please": "catalog:deps",
+    "h3": "catalog:deps",
+    "lucide-react": "catalog:frontend",
+    "next": "catalog:frontend",
+    "react": "catalog:frontend",
+    "react-dom": "catalog:frontend",
+    "storybook": "catalog:storybook",
+    "tailwind-merge": "catalog:frontend",
+    "tailwindcss": "catalog:frontend",
+    "tsdown": "catalog:build",
+    "tw-animate-css": "catalog:frontend",
+    "vitest": "catalog:testing",
+    "ws": "catalog:deps"
+  }
+}
