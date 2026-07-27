@@ -3,7 +3,6 @@ import { presetAnthonyDesign } from '@antfu/design/unocss'
 import {
   defineConfig,
   presetIcons,
-  presetWebFonts,
   presetWind4,
   transformerDirectives,
   transformerVariantGroup,
@@ -25,7 +24,6 @@ export const designConfig = defineConfig({
     presetAnthonyDesign({ primary: '#3a6a45' }),
     presetWind4(),
     presetIcons({ scale: 1.1 }),
-    presetWebFonts({ provider: 'none', fonts: { sans: 'DM Sans', mono: 'DM Mono' } }),
   ],
   transformers: [transformerDirectives(), transformerVariantGroup()],
   // The shared class-helper builders (`design/design.ts`) assemble their class

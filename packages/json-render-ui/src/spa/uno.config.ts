@@ -2,7 +2,6 @@ import { presetAnthonyDesign } from '@antfu/design/unocss'
 import {
   defineConfig,
   presetIcons,
-  presetWebFonts,
   presetWind4,
   transformerDirectives,
   transformerVariantGroup,
@@ -17,7 +16,6 @@ export default defineConfig({
     presetAnthonyDesign({ primary: '#3a6a45' }),
     presetWind4(),
     presetIcons({ scale: 1.1 }),
-    presetWebFonts({ provider: 'none', fonts: { sans: 'DM Sans', mono: 'DM Mono' } }),
   ],
   transformers: [transformerDirectives(), transformerVariantGroup()],
   preflights: [{ getCSS: () => '*,::before,::after{border-color:#8882}' }],
