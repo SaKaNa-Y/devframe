@@ -8,6 +8,11 @@ A protocol-witness host: roughly 120 lines of Vite plugin code that wire [`@devf
 
 Package: `vite-devframe-hub` · framework: **Vanilla TypeScript (Vite)**
 
+<figure class="screenshot">
+  <img src="/screenshots/hub-1.png" alt="Hub screenshot" />
+  <figcaption>Playground screenshot</figcaption>
+</figure>
+
 ## What it proves
 
 - `createHubContext()` boots a hub without any Vite-specific code path.

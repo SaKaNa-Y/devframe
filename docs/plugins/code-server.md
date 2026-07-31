@@ -8,6 +8,17 @@ Run VS Code in the browser as a devframe panel. The plugin detects a local edito
 
 Package: `@devframes/plugin-code-server` · framework: **Vue**
 
+
+<figure class="screenshot">
+  <img src="/screenshots/plugin-code-server-1.png" alt="Code Server plugin screenshot" />
+  <figcaption>Launcher before Code Server starts</figcaption>
+</figure>
+
+<figure class="screenshot">
+  <img src="/screenshots/plugin-code-server-2.png" alt="Code Server plugin screenshot" />
+  <figcaption>Code Server plugin showing the embedded editor in browser</figcaption>
+</figure>
+
 ## What it does
 
 - **Detection** — on startup it probes the resolved binary with `--version`. When none is found, the launcher renders install instructions instead of a launch button.

@@ -8,6 +8,11 @@ A repository dashboard built as a **Next.js (App Router) + shadcn/ui** SPA over 
 
 Package: `@devframes/plugin-git` · framework: **React (Next.js) + shadcn/ui**
 
+<figure class="screenshot">
+  <img src="/screenshots/plugin-git-1.png" alt="Git plugin screenshot" />
+  <figcaption>Git plugin showing repository status and commit graph in an hub example</figcaption>
+</figure>
+
 ## What it does
 
 Status, a SourceTree-style commit graph, branches, and diffs are read-only. Staging, unstaging, and committing become available when write mode is enabled — and stay gated behind the repository's actual write permission in the UI.

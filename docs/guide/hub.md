@@ -6,6 +6,11 @@ outline: deep
 
 `@devframes/hub` extends devframe with the orchestration features that only make sense when many devtools share a UI: a dock registry, terminal aggregation, message/toast queue, and a command palette. It does not ship UI — each framework kit (e.g. `@vitejs/devtools-kit`) provides its own UI on top of the hub's RPC + shared-state protocol.
 
+<figure class="screenshot">
+  <img src="/screenshots/hub-1.png" alt="Hub screenshot" />
+  <figcaption>Hub allows orchestration of multiple devtools through a unified interface (example from <a href="/examples/vite-devframe-hub.html">A Playground</a>)</figcaption>
+</figure>
+
 ## What the hub adds
 
 A hub-aware node context (`DevframeHubContext`) extends `DevframeNodeContext` with four subsystems:

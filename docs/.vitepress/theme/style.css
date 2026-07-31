@@ -28,3 +28,16 @@
 
   --vp-local-search-highlight-bg: #adc77f;
 }
+
+.screenshot img {
+  transform: scale(1.05);
+}
+
+.screenshot figcaption {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--vp-c-text-3);
+  margin-top: -0.5rem;
+  padding-bottom: 1rem;
+  font-style: italic;
+}

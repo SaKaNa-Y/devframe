@@ -8,6 +8,11 @@ A portable terminal panel built as a **Svelte** SPA on top of [xterm.js](https:/
 
 Package: `@devframes/plugin-terminals` · framework: **Svelte + xterm.js**
 
+<figure class="screenshot">
+  <img src="/screenshots/plugin-terminals-1.png" alt="Terminals screenshot" />
+  <figcaption>Terminals plugin allowing interactive and read-only terminal sessions in the browser</figcaption>
+</figure>
+
 ## What it does
 
 - **Read-only output** — stream the output of a command into a terminal view via devframe's [streaming channels](/guide/streaming).

@@ -8,6 +8,16 @@ An interactive query workbench for live server-side objects, built as a **Vue** 
 
 Package: `@devframes/plugin-data-inspector` · framework: **Vue + Vite**
 
+<figure class="screenshot">
+<img src="/screenshots/plugin-data-inspector-1.png" alt="Data Inspector screenshot" />
+<figcaption>Query workbench with results and data shape panel</figcaption>
+</figure>
+
+<figure class="screenshot">
+  <img src="/screenshots/plugin-data-inspector-2.png" alt="Data Inspector screenshot" />
+  <figcaption>Query data with advanced Jora syntax</figcaption>
+</figure>
+
 ## What it does
 
 - **Query workbench** — a CodeMirror jora editor with syntax highlighting and server-computed autocomplete; queries auto-run as you type, with a client-side syntax gate so malformed input never hits the wire. A toolbar copies the query, and the editor pairs with expand-all / collapse-all and copy-as-JSON controls over the results. Source, query, filters, and the auto-rerun setting persist in the URL hash, so any workbench state is shareable (see [Deep linking](#deep-linking)).

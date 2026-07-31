@@ -8,6 +8,21 @@ A self-inspector for any devframe connection, built as a **Vue** SPA. It browses
 
 Package: `@devframes/plugin-inspect` · framework: **Vue + Vite**
 
+<figure class="screenshot">
+  <img src="/screenshots/plugin-inspect-1.png" alt="Devframe Inspector screenshot" />
+  <figcaption>Devframe Inspector showing rpc functions list</figcaption>
+</figure>
+
+<figure class="screenshot">
+  <img src="/screenshots/plugin-inspect-2.png" alt="Devframe Inspector screenshot" />
+  <figcaption>Devframe Inspector showing agent tools</figcaption>
+</figure>
+
+<figure class="screenshot">
+  <img src="/screenshots/plugin-inspect-3.png" alt="Devframe Inspector screenshot" />
+  <figcaption>Devframe Inspector showing history panels</figcaption>
+</figure>
+
 ## What it does
 
 - **Functions** — every registered RPC function with its type, JSON-serializable / snapshot flags, args and return JSON Schema, and agent exposure. Read-only `query` / `static` functions can be invoked inline and their result envelope inspected.

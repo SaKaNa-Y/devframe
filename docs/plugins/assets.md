@@ -8,6 +8,11 @@ Browse, preview, upload, rename, and delete the files in a directory, built as a
 
 Package: `@devframes/plugin-assets` · framework: **Vue + @antfu/design**
 
+<figure class="screenshot">
+  <img src="/screenshots/plugin-assets-1.png" alt="Assets plugin screenshot" />
+  <figcaption>Assets plugin showing the file browser and details panel</figcaption>
+</figure>
+
 ## What it does
 
 Search by name and filter by type from an inline chip row, switch between a thumbnail grid (grouped by folder) and a file tree, and open a resizable right-hand details panel with a live preview (image, video, audio, font, or text), file metadata, and ready-to-copy usage snippets (`<img>`, CSS `background-image`, `@font-face`, a download link). Upload files with the toolbar button (native file picker) or by dropping them anywhere on the frame, and select multiple assets to delete them together. A live file watcher keeps every connected client's listing in sync with changes made outside the UI.
