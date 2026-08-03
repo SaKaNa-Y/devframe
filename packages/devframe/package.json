@@ -42,6 +42,7 @@
     "./rpc/transports/ws-client": "./dist/rpc/transports/ws-client.mjs",
     "./rpc/transports/ws-server": "./dist/rpc/transports/ws-server.mjs",
     "./types": "./dist/types/index.mjs",
+    "./utils/agent-tool-name": "./dist/utils/agent-tool-name.mjs",
     "./utils/colors": "./dist/utils/colors.mjs",
     "./utils/crypto-token": "./dist/utils/crypto-token.mjs",
     "./utils/events": "./dist/utils/events.mjs",
@@ -60,7 +61,11 @@
     "./package.json": "./package.json"
   },
   "types": "./dist/index.d.mts",
+  "bin": {
+    "devframe": "./bin/devframe.mjs"
+  },
   "files": [
+    "bin",
     "dist",
     "skills"
   ],
@@ -71,10 +76,14 @@
     "prepack": "pnpm build && mkdir -p ./skills && cp -r ../../skills/devframe ./skills/devframe"
   },
   "peerDependencies": {
+    "@modelcontextprotocol/client": "^2.0.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "cac": "^7.0.0"
   },
   "peerDependenciesMeta": {
+    "@modelcontextprotocol/client": {
+      "optional": true
+    },
     "@modelcontextprotocol/server": {
       "optional": true
     },

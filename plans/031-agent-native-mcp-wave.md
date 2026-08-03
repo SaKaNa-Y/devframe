@@ -63,14 +63,15 @@ literal "/_next/mcp" shape on devframe primitives.
    `createMcpFetchHandler(ctx, options)` (web `Request` → `Response`, owns the
    session map + origin gate) and a thin h3 wrapper. Enables non-h3 hosts —
    `@devframes/next`'s host serves via `app.fetch` already.
-6. **Core `read_state` tool** — one built-in MCP tool in
-   `buildMcpServerFromContext`: `read_state(key?)`; no key → key list, with
+6. **Core `devframe:state:read` tool** — one built-in MCP tool in
+   `buildMcpServerFromContext`: `devframe:state:read` (`key?`); no key → key list, with
    key → JSON value. Honors the same `exposeSharedState` filter as the
    resource projection (which stays — many clients only consume tools).
 7. **Hub commands → agent bridge** — opt-in `agent?: { description, safety?,
    args? }` on `DevframeServerCommandInput` (mirrors the RPC convention;
-   description required; optional valibot args schema reusing
-   `valibotArgsToJsonSchema`, zero-arg default). `createHubContext` projects
+   description required; optional valibot args schemas carried through
+   `AgentToolInput.args` — JSON-Schema conversion stays an internal detail of
+   the agent host/MCP adapter; zero-arg default). `createHubContext` projects
    agent-flagged, handler-bearing server commands into `ctx.agent` tools,
    tracking register/update/unregister. `when` clauses evaluate client-side
    only and are **not** enforced for agent calls — documented caveat.
@@ -84,21 +85,25 @@ literal "/_next/mcp" shape on devframe primitives.
 9. **Instance registry** — `registerDevframeInstance(record)` exported from
    `devframe/node`: atomic per-instance JSON at
    `~/.devframe/instances/<pid>-<port>.json`
-   (`{ pid, port, host, basePath, name, id, rootDir, mcp: { path } | null,
-   startedAt }`), removed on close, pruned on read by failed
+   (`{ pid, port, origin, basePath, name, id, rootDir, mcp: { path } | null,
+   startedAt }` — `origin` instead of a bare `host` so records carry a
+   dialable URL), removed on close, pruned on read by failed
    `__connection.json` probes. `createDevServer` registers automatically
    (covers CLI dev, vite bridge, and the Next side-car);
    `createDevframeNextHost` calls it explicitly for the in-process path.
 10. **`devframe` bin + `connect`** — first real bin on the `devframe` package.
-    `devframe connect` runs a stdio MCP server exposing two gateway tools:
-    - `devframe_index` — list live instances (registry read + liveness probe +
-      prune) and each MCP-enabled instance's tools; instances with `mcp: null`
-      carry a funnel hint ("restart with `--mcp`…").
-    - `devframe_call` — invoke one tool on one instance (SDK client over
-      Streamable-HTTP to the instance's advertised `mcp` endpoint).
+    `devframe connect` runs a stdio MCP server exposing two gateway tools
+    (ids `devframe:connect:*`; MCP clients see the auto-derived wire names,
+    `devframe_connect_list-instances` / `devframe_connect_call-tool` — the
+    tool-name convention documented in the agent-native guide):
+    - `devframe:connect:list-instances` — list live instances (registry read +
+      liveness probe + prune) and each MCP-enabled instance's tools; instances
+      with `mcp: null` carry a funnel hint ("restart with `--mcp`…").
+    - `devframe:connect:call-tool` — invoke one tool on one instance (SDK client
+      over Streamable-HTTP to the instance's advertised `mcp` endpoint).
     `--port <n>` probes an explicit port besides the registry. Requires the
-    optional `@modelcontextprotocol/sdk` peer; a missing peer produces a coded
-    diagnostic with install instructions.
+    optional `@modelcontextprotocol/server` peer; a missing peer produces a
+    coded diagnostic with install instructions.
 11. **In-process MCP for `@devframes/next`** — `createDevframeNextHost` gains
     `mountMcp(ctx, base, options?)` built on `createMcpFetchHandler`, so a
     Next app serves MCP from its own origin (the `/_next/mcp` shape). The hub
@@ -106,8 +111,8 @@ literal "/_next/mcp" shape on devframe primitives.
 12. **Proof (CI e2e, both gates)**:
     - `examples/files-inspector`: register one gateway tool; e2e boots
       `dev --mcp`, runs `devframe connect` over stdio (MCP SDK client),
-      asserts `devframe_index` discovers it and `devframe_call` round-trips.
-    - `examples/minimal-next-devframe-hub`: e2e boots the Next dev server,
+      asserts the connector discovers it and a proxied call round-trips.
+    - `examples/next-devframe-hub`: e2e boots the Next dev server,
       asserts the connector discovers the in-process hub endpoint.
 13. **Docs** — `docs/adapters/mcp.md` (+ agent-native guide): `devframe
     connect` client config, the registry contract, `mountMcp` for custom
@@ -123,18 +128,21 @@ literal "/_next/mcp" shape on devframe primitives.
 
 ## Done criteria
 
-- [ ] Phase 1: both bridges forward + advertise MCP; `formatMcpError` emits
+- [x] Phase 1: both bridges forward + advertise MCP; `formatMcpError` emits
       `{ error: { code, message, fix?, docs? } }` for diagnostics; stale
-      comment gone; conventions documented.
-- [ ] Phase 2: `createMcpFetchHandler` public; `read_state` tool live;
+      comment gone; conventions documented. (PR 1)
+- [x] Phase 2: `createMcpFetchHandler` public; `devframe:state:read` tool live;
       agent-flagged hub commands appear as MCP tools; git read-only five are
-      agent-visible with schemas.
-- [ ] Phase 3: instances self-register and prune; `devframe connect` indexes
+      agent-visible with schemas. (PR 2)
+- [x] Phase 3: instances self-register and prune; `devframe connect` indexes
       and calls a live app over stdio; Next host serves in-process MCP; both
-      e2e gates green in CI.
-- [ ] Every phase: full gate green, API snapshots updated deliberately, new
-      node-side errors use coded diagnostics with docs pages.
-- [ ] `plans/README.md` row updated per phase.
+      e2e gates green in CI. (PR 3)
+- [x] Every phase: full gate green, API snapshots updated deliberately, new
+      node-side errors use coded diagnostics with docs pages (`DF0045`–`DF0051`,
+      `DF8404` — note: DF00xx numbers are allocated across
+      packages; check `docs/errors/` for the next free code).
+- [x] `plans/README.md` row updated as phases landed; set to DONE once the
+      wave PR merges.
 
 ## STOP conditions
 

@@ -1,6 +1,7 @@
 import type { GitContext } from '../context.ts'
 import type { FileStatusCode } from './status.ts'
 import { defineRpcFunction } from 'devframe'
+import { s } from 'devframe/utils/simple-schema'
 import { isSafeRevision, splitClean, tryGit, UNIT } from '../../node/git.ts'
 import { getGitContext } from '../context.ts'
 
@@ -49,6 +50,47 @@ export interface CommitDetail {
   /** `true` when `patch` was clipped to {@link PATCH_CHAR_LIMIT}. */
   truncated: boolean
 }
+
+const fileStatusCodeSchema = s.picklist([
+  'modified',
+  'added',
+  'deleted',
+  'renamed',
+  'copied',
+  'type-changed',
+  'unmerged',
+  'unknown',
+])
+
+const commitFileSchema = s.object({
+  path: s.string(),
+  additions: s.number(),
+  deletions: s.number(),
+  binary: s.boolean(),
+  status: fileStatusCodeSchema,
+})
+
+const commitDetailSchema = s.object({
+  isRepo: s.boolean(),
+  found: s.boolean(),
+  hash: s.string(),
+  shortHash: s.string(),
+  author: s.string(),
+  email: s.string(),
+  date: s.number(),
+  committer: s.string(),
+  committerEmail: s.string(),
+  commitDate: s.number(),
+  subject: s.string(),
+  body: s.string(),
+  parents: s.array(s.string()),
+  refs: s.array(s.string()),
+  files: s.array(commitFileSchema),
+  totalAdditions: s.number(),
+  totalDeletions: s.number(),
+  patch: s.nullable(s.string()),
+  truncated: s.boolean(),
+})
 
 export interface ShowArgs {
   /** Commit-ish to inspect (full or short hash). */
@@ -210,10 +252,19 @@ export const show = defineRpcFunction({
   name: 'devframes:plugin:git:show',
   type: 'query',
   jsonSerializable: true,
+  args: [s.object({
+    hash: s.string(),
+    patch: s.optional(s.boolean()),
+  })],
+  returns: commitDetailSchema,
+  agent: {
+    description: 'Full detail of one commit by hash (from the git log tool): metadata, changed files, and the unified patch (pass patch: false to skip it for large commits). Safe to call freely.',
+    title: 'Git show',
+  },
   // Static builds can't run git per click, so bake one record per commit in the
   // same window `devframes:plugin:git:log` snapshots. Patches are omitted from the baked records
   // to keep the bundle bounded — static detail panels show metadata + files.
-  dump: async (ctx, _handler: (args: ShowArgs) => Promise<CommitDetail>) => {
+  dump: async (ctx, _handler: (args: ShowArgs) => CommitDetail | Promise<CommitDetail>) => {
     const git = getGitContext(ctx)
     const root = await git.resolveRoot()
     if (!root)

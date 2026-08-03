@@ -1,3 +1,4 @@
+import type { AgentToolInput, AgentToolProviderHandle } from 'devframe/types'
 import type {
   DevframeCommandHandle,
   DevframeCommandsHost as DevframeCommandsHostType,
@@ -5,6 +6,7 @@ import type {
   DevframeServerCommandInput,
 } from '../types/commands'
 import type { DevframeHubContext } from './context'
+import { coerceAgentPositionalArgs } from 'devframe/node'
 import { createEventEmitter } from 'devframe/utils/events'
 import { diagnostics } from './diagnostics'
 
@@ -54,17 +56,28 @@ export class DevframeCommandsHost implements DevframeCommandsHostType {
   public readonly commands: DevframeCommandsHostType['commands'] = new Map()
   public readonly events: DevframeCommandsHostType['events'] = createEventEmitter()
 
+  /**
+   * Lazy agent projection: `ctx.agent` queries this provider at list/invoke
+   * time, deriving tools from {@link commands} on demand — the commands map
+   * stays the single source of truth, nothing is mirrored or kept in sync.
+   */
+  private readonly agentProvider: AgentToolProviderHandle | undefined
+
   constructor(
     public readonly context: DevframeHubContext,
-  ) {}
+  ) {
+    this.agentProvider = context.agent?.registerToolProvider(() => this.collectAgentTools())
+  }
 
   register(command: DevframeServerCommandInput): DevframeCommandHandle {
     if (this.commands.has(command.id)) {
       throw diagnostics.DF8400({ id: command.id })
     }
     validateCommandIds(this.commands, command)
+    this.validateAgentExposure(command)
     this.commands.set(command.id, command)
     this.events.emit('command:registered', this.toSerializable(command))
+    this.agentProvider?.notifyChanged()
 
     return {
       id: command.id,
@@ -82,8 +95,10 @@ export class DevframeCommandsHost implements DevframeCommandsHostType {
           id: existing.id,
         }
         validateCommandIds(this.commands, next, existing.id)
+        this.validateAgentExposure(next)
         Object.assign(existing, patch)
         this.events.emit('command:registered', this.toSerializable(existing))
+        this.agentProvider?.notifyChanged()
       },
       unregister: () => this.unregister(command.id),
     }
@@ -93,6 +108,7 @@ export class DevframeCommandsHost implements DevframeCommandsHostType {
     const deleted = this.commands.delete(id)
     if (deleted) {
       this.events.emit('command:unregistered', id)
+      this.agentProvider?.notifyChanged()
     }
     return deleted
   }
@@ -129,7 +145,9 @@ export class DevframeCommandsHost implements DevframeCommandsHostType {
   }
 
   private toSerializable(cmd: DevframeServerCommandInput): DevframeServerCommandEntry {
-    const { handler: _, children, ...rest } = cmd
+    // `agent` stays server-side: it carries Standard Schema validators (not wire-safe)
+    // and only concerns the agent projection, not the palette.
+    const { handler: _, agent: __, children, ...rest } = cmd
     return {
       ...rest,
       source: 'server',
@@ -138,5 +156,48 @@ export class DevframeCommandsHost implements DevframeCommandsHostType {
         : {}
       ),
     }
+  }
+
+  /** Reject `agent` on handler-less commands anywhere in the tree, up front. */
+  private validateAgentExposure(command: DevframeServerCommandInput): void {
+    if (command.agent && !command.handler)
+      throw diagnostics.DF8404({ id: command.id })
+    for (const child of command.children ?? [])
+      this.validateAgentExposure(child)
+  }
+
+  /**
+   * Derive the agent-tool projection of the current command trees: every
+   * agent-flagged, handler-bearing command (children included) becomes a
+   * callable tool. Queried lazily by the provider registered in the
+   * constructor. `when` clauses evaluate client-side only and are not
+   * enforced here — opting in a `when`-gated command is a deliberate author
+   * decision (documented on `DevframeCommandAgentOptions`).
+   */
+  private collectAgentTools(): AgentToolInput[] {
+    const tools: AgentToolInput[] = []
+    const walk = (command: DevframeServerCommandInput): void => {
+      const agent = command.agent
+      if (agent && command.handler) {
+        tools.push({
+          id: command.id,
+          title: agent.title ?? command.title,
+          description: agent.description,
+          safety: agent.safety ?? 'action',
+          tags: agent.tags,
+          // The agent host derives the tool's JSON-Schema input from these.
+          args: agent.args,
+          // A command handler's positional parameters come solely from its
+          // declared `agent.args` schemas — undeclared payload is dropped.
+          handler: async (args: unknown) =>
+            this.execute(command.id, ...coerceAgentPositionalArgs(args, agent.args, 'drop')),
+        })
+      }
+      for (const child of command.children ?? [])
+        walk(child)
+    }
+    for (const command of this.commands.values())
+      walk(command)
+    return tools
   }
 }

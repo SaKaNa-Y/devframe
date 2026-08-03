@@ -1,6 +1,9 @@
 import { defineDiagnostics } from 'nostics'
 import { devframeReporter } from '../utils/diagnostics-reporter'
 
+// DF00xx codes are allocated across packages (e.g. @devframes/json-render
+// owns DF0037–DF0041), so this file alone doesn't show the next free
+// number — check `docs/errors/` for the full allocation before adding one.
 export const diagnostics = defineDiagnostics({
   docsBase: 'https://devfra.me/errors',
   reporters: [devframeReporter],
@@ -79,6 +82,35 @@ export const diagnostics = defineDiagnostics({
     DF0042: {
       why: (p: { id: string }) => `"${p.id}" declares \`capabilities.build: false\` — its static export is not meaningful (writes are excluded and any live-served data won't be there).`,
       fix: 'Pass `{ force: true }` to `createBuild()` if the degraded export is still useful to you, or drop `capabilities.build: false` on the definition.',
+    },
+    DF0045: {
+      why: (p: { file: string, reason: string }) => `Failed to update the devframe instance registry at "${p.file}": ${p.reason}`,
+      fix: 'Discovery tooling (`devframe connect`) will not see this instance. Check that the registry directory is writable, point `DEVFRAME_INSTANCES_DIR` at a writable directory, or set `DEVFRAME_DISABLE_INSTANCE_REGISTRY=1` to opt out of registration.',
+    },
+    DF0046: {
+      why: (p: { reason: string }) => `\`devframe connect\` requires the optional peer dependency @modelcontextprotocol/server: ${p.reason}`,
+      fix: 'Install it next to devframe (e.g. `npm install @modelcontextprotocol/server`) and run `devframe connect` again.',
+    },
+    DF0047: {
+      why: (p: { name: string, id: string, existing: string }) =>
+        `Agent tool "${p.id}" is hidden from the MCP surface: its wire name "${p.name}" collides with the tool "${p.existing}".`,
+      fix: 'Wire names derive from tool ids (characters outside [a-zA-Z0-9_-] become "_"). Rename one of the two ids so they sanitize to distinct names.',
+    },
+    DF0048: {
+      why: (p: { key: string }) => `Unknown shared-state key "${p.key}".`,
+      fix: 'Call the devframe_state_read tool without arguments to list the available keys, then retry with one of them.',
+    },
+    DF0049: {
+      why: 'The devframe_connect_call-tool tool requires { port: number, tool: string }.',
+      fix: 'Call devframe_connect_list-instances to get the port and tool names, then retry.',
+    },
+    DF0050: {
+      why: (p: { port: number }) => `No running devframe instance on port ${p.port}.`,
+      fix: 'Call devframe_connect_list-instances for the current instance list — the instance may have stopped or changed port.',
+    },
+    DF0051: {
+      why: (p: { port: number }) => `The devframe instance on port ${p.port} has no MCP endpoint.`,
+      fix: 'Restart the instance with the --mcp flag (or set `cli.mcp: true` on its definition) to expose its tools, then list instances again.',
     },
   },
 })

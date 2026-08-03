@@ -18,7 +18,11 @@ temp
 packages/devframe/skills
 test-results
 playwright-report
+tests/e2e/.registries
 playwright/.cache
 blob-report
 .ecosystem
 storybook-static
+
+# Agent skills from npm packages (managed by skills-npm)
+**/skills/npm-*

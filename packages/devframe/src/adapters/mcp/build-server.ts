@@ -6,6 +6,7 @@ import { homedir } from 'node:os'
 import process from 'node:process'
 import { Server } from '@modelcontextprotocol/server'
 import { createHostContext } from 'devframe/node'
+import { toAgentToolName } from 'devframe/utils/agent-tool-name'
 import { join } from 'pathe'
 import { diagnostics } from '../../node/diagnostics'
 import { formatMcpError, stringifyForMcp } from './stringify'
@@ -63,7 +64,7 @@ export function buildMcpServerFromContext(
     },
   )
 
-  registerToolHandlers(server, ctx)
+  registerToolHandlers(server, ctx, options.exposeSharedState)
   registerResourceHandlers(server, ctx, options.exposeSharedState)
 
   const notify = (method: string): void => {
@@ -146,20 +147,120 @@ export async function createMcpServer(
   }
 }
 
-function registerToolHandlers(server: Server, ctx: DevframeNodeContext): void {
+/**
+ * Id of the built-in shared-state read tool — namespaced like every other
+ * built-in (`devframe:<area>:<fn>`). Tool-shaped access matters because many
+ * MCP clients only consume tools — the parallel `devframe://state/<key>`
+ * resource projection stays for the clients that do read resources.
+ */
+const READ_STATE_TOOL = 'devframe:state:read'
+/** Wire name of the built-in shared-state read tool: `devframe_state_read`. */
+const READ_STATE_NAME = toAgentToolName(READ_STATE_TOOL)
+
+function sharedStateFilter(exposeSharedState: boolean | ((key: string) => boolean)): ((key: string) => boolean) | undefined {
+  if (exposeSharedState === false)
+    return undefined
+  return typeof exposeSharedState === 'function' ? exposeSharedState : () => true
+}
+
+function readStateToolProjection(): Tool {
+  return {
+    name: READ_STATE_NAME,
+    title: 'Read shared state',
+    description: 'Read this devtool\'s live shared state. Call without arguments to list the available keys, then with a key to get that value as JSON. Safe to call freely.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        key: {
+          type: 'string',
+          description: 'A shared-state key from the key list. Omit to list all keys.',
+        },
+      },
+    },
+    annotations: {
+      title: 'Read shared state',
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+  } as Tool
+}
+
+async function readStateResult(
+  ctx: DevframeNodeContext,
+  filter: (key: string) => boolean,
+  key: string | undefined,
+): Promise<unknown> {
+  const keys = ctx.rpc.sharedState.keys().filter(filter)
+  if (key === undefined)
+    return { keys }
+  if (!keys.includes(key))
+    throw diagnostics.DF0048({ key })
+  const state = await ctx.rpc.sharedState.get(key)
+  return { key, value: state.value() }
+}
+
+function registerToolHandlers(
+  server: Server,
+  ctx: DevframeNodeContext,
+  exposeSharedState: boolean | ((key: string) => boolean),
+): void {
+  const stateFilter = sharedStateFilter(exposeSharedState)
+  const warnedCollisions = new Set<string>()
+
+  /**
+   * Resolve a wire tool name back to the registered {@link AgentTool}.
+   * Wire-name matching runs first, in manifest order — the same tool the
+   * list projection advertises under that name — with a raw-id fallback so
+   * a colon-namespaced id keeps working as a call name.
+   */
+  const resolveTool = (name: string): AgentTool | undefined => {
+    const byWireName = ctx.agent.list().tools.find(tool => toAgentToolName(tool.id) === name)
+    return byWireName ?? ctx.agent.getTool(name)
+  }
+
   server.setRequestHandler('tools/list', async () => {
-    const tools = ctx.agent.list().tools.map(tool => projectTool(tool, ctx))
+    // Two ids may sanitize to the same wire name — first registration wins
+    // and later ones are hidden with a coded warning (once per name).
+    const byName = new Map<string, AgentTool>()
+    for (const tool of ctx.agent.list().tools) {
+      const name = toAgentToolName(tool.id)
+      const existing = byName.get(name)
+      if (existing) {
+        if (!warnedCollisions.has(`${name}|${tool.id}`)) {
+          warnedCollisions.add(`${name}|${tool.id}`)
+          diagnostics.DF0047({ name, id: tool.id, existing: existing.id })
+        }
+        continue
+      }
+      byName.set(name, tool)
+    }
+    const tools = [...byName.entries()].map(([name, tool]) => projectTool(name, tool, ctx))
+    // A registered agent tool projecting to the same wire name wins over
+    // the built-in.
+    if (stateFilter && !byName.has(READ_STATE_NAME))
+      tools.push(readStateToolProjection())
     return { tools }
   })
 
   server.setRequestHandler('tools/call', async (request) => {
     const { name, arguments: args } = request.params
     try {
-      const tool = ctx.agent.getTool(name)
+      const tool = resolveTool(name)
+      // Built-in shared-state read. A registered agent tool resolving to
+      // the same wire name wins (mirroring the list projection above) —
+      // ids are namespaced, so a collision is a deliberate override.
+      if (stateFilter && !tool && (name === READ_STATE_NAME || name === READ_STATE_TOOL)) {
+        const key = (args as { key?: string } | undefined)?.key
+        const result = await readStateResult(ctx, stateFilter, key)
+        return {
+          content: [{ type: 'text', text: stringifyForMcp(result) }],
+          structuredContent: result as Record<string, unknown>,
+        }
+      }
       const outputSchema = tool
-        ? tool.outputSchema ?? computeOutputSchema(tool, ctx)
+        ? usableOutputSchema(tool.outputSchema ?? computeOutputSchema(tool, ctx))
         : undefined
-      const result = await ctx.agent.invoke(name, args ?? {})
+      const result = await ctx.agent.invoke(tool?.id ?? name, args ?? {})
       return {
         content: [
           {
@@ -248,11 +349,23 @@ function registerResourceHandlers(
   })
 }
 
-function projectTool(tool: AgentTool, ctx: DevframeNodeContext): Tool {
+/**
+ * MCP constrains a tool's `outputSchema` to a JSON Schema of `type:
+ * "object"` — clients (the SDK included) reject anything else. Non-object
+ * return schemas (e.g. a schema for `void` / a bare string) simply project
+ * no output schema; the text content still carries the result.
+ */
+function usableOutputSchema(schema: unknown): unknown {
+  return schema && typeof schema === 'object' && (schema as { type?: unknown }).type === 'object'
+    ? schema
+    : undefined
+}
+
+function projectTool(name: string, tool: AgentTool, ctx: DevframeNodeContext): Tool {
   const inputSchema = tool.inputSchema ?? computeInputSchema(tool, ctx)
-  const outputSchema = tool.outputSchema ?? computeOutputSchema(tool, ctx)
+  const outputSchema = usableOutputSchema(tool.outputSchema ?? computeOutputSchema(tool, ctx))
   return {
-    name: tool.id,
+    name,
     title: tool.title,
     description: tool.description,
     inputSchema,
@@ -266,6 +379,8 @@ function projectTool(tool: AgentTool, ctx: DevframeNodeContext): Tool {
 }
 
 function computeInputSchema(tool: AgentTool, ctx: DevframeNodeContext): unknown {
+  if (tool.kind === 'tool')
+    return argsToJsonSchema(tool.args).schema
   if (tool.kind !== 'rpc' || !tool.rpcName)
     return { type: 'object', properties: {} }
   const def = ctx.rpc.definitions.get(tool.rpcName) as RpcFunctionDefinitionAnyWithContext<DevframeNodeContext> | undefined

@@ -7,6 +7,8 @@ import type {
   AgentResourceInput,
   AgentTool,
   AgentToolInput,
+  AgentToolProvider,
+  AgentToolProviderHandle,
   DevframeAgentHostEvents,
   DevframeAgentHost as DevframeAgentHostType,
   DevframeNodeContext,
@@ -14,6 +16,7 @@ import type {
   RpcFunctionAgentOptions,
 } from 'devframe/types'
 import { createEventEmitter } from 'devframe/utils/events'
+import { coerceAgentPositionalArgs } from './agent-args'
 import { diagnostics } from './diagnostics'
 
 interface RegisteredTool {
@@ -39,6 +42,7 @@ export class DevframeAgentHost implements DevframeAgentHostType {
 
   private readonly tools = new Map<string, RegisteredTool>()
   private readonly resources = new Map<string, RegisteredResource>()
+  private readonly providers = new Set<AgentToolProvider>()
   private _rpcUnsubscribe: (() => void) | undefined
 
   constructor(
@@ -70,6 +74,23 @@ export class DevframeAgentHost implements DevframeAgentHostType {
       this.events.emit('agent:manifest:changed')
     }
     return existed
+  }
+
+  registerToolProvider(provider: AgentToolProvider): AgentToolProviderHandle {
+    this.providers.add(provider)
+    this.events.emit('agent:manifest:changed')
+
+    const notifyChanged = (): void => {
+      if (this.providers.has(provider))
+        this.events.emit('agent:manifest:changed')
+    }
+    return {
+      notifyChanged,
+      unregister: () => {
+        if (this.providers.delete(provider))
+          this.events.emit('agent:manifest:changed')
+      },
+    }
   }
 
   registerResource(input: AgentResourceInput): AgentHandle {
@@ -105,8 +126,19 @@ export class DevframeAgentHost implements DevframeAgentHostType {
     const rpcTools = this._collectRpcTools()
     const plainTools = Array.from(this.tools.values()).map(t => t.tool)
     const resources = Array.from(this.resources.values()).map(r => r.resource)
+
+    // Provider tools are queried lazily; earlier sources win on id collision.
+    const seen = new Set([...rpcTools, ...plainTools].map(t => t.id))
+    const providerTools: AgentTool[] = []
+    for (const { tool } of this._collectProviderTools()) {
+      if (seen.has(tool.id))
+        continue
+      seen.add(tool.id)
+      providerTools.push(tool)
+    }
+
     return {
-      tools: [...rpcTools, ...plainTools],
+      tools: [...rpcTools, ...plainTools, ...providerTools],
       resources,
     }
   }
@@ -115,7 +147,10 @@ export class DevframeAgentHost implements DevframeAgentHostType {
     const plain = this.tools.get(id)
     if (plain)
       return plain.tool
-    return this._collectRpcTools().find(t => t.id === id)
+    const rpc = this._collectRpcTools().find(t => t.id === id)
+    if (rpc)
+      return rpc
+    return this._collectProviderTools().find(t => t.tool.id === id)?.tool
   }
 
   getResource(id: string): AgentResource | undefined {
@@ -132,8 +167,15 @@ export class DevframeAgentHost implements DevframeAgentHostType {
     if (rpcDef) {
       // RPC args are positional. Accept an object keyed by `arg0..argN`
       // (what the MCP adapter sends after flattening), or a plain array.
-      const positional = this._coercePositionalArgs(args, rpcDef)
+      // An untyped RPC may take a single raw object, so undeclared object
+      // payload wraps into one positional argument.
+      const positional = coerceAgentPositionalArgs(args, rpcDef.args as readonly unknown[] | undefined, 'wrap')
       return await this.context.rpc.invokeLocal(id as any, ...(positional as any))
+    }
+
+    const provided = this._collectProviderTools().find(t => t.tool.id === id)
+    if (provided) {
+      return await provided.input.handler(args)
     }
 
     throw new Error(`[devframe/agent] tool "${id}" not found`)
@@ -172,10 +214,25 @@ export class DevframeAgentHost implements DevframeAgentHostType {
       description: input.description,
       safety: input.safety ?? 'action',
       tags: input.tags,
+      // Standard Schema `args` are carried raw (mirroring how an RPC-backed
+      // tool defers to `ctx.rpc.definitions`) — consumers (the MCP adapter)
+      // convert to JSON Schema on demand. An explicit `inputSchema` override
+      // wins when given.
+      args: input.args,
       inputSchema: input.inputSchema,
       outputSchema: input.outputSchema,
       examples: input.examples,
     }
+  }
+
+  /** Query every registered provider, projecting inputs to serializable tools. */
+  private _collectProviderTools(): { input: AgentToolInput, tool: AgentTool }[] {
+    const out: { input: AgentToolInput, tool: AgentTool }[] = []
+    for (const provider of this.providers) {
+      for (const input of provider())
+        out.push({ input, tool: this._projectTool(input) })
+    }
+    return out
   }
 
   private _collectRpcTools(): AgentTool[] {
@@ -212,41 +269,10 @@ export class DevframeAgentHost implements DevframeAgentHostType {
       return def
     return undefined
   }
-
-  private _coercePositionalArgs(
-    args: unknown,
-    def: RpcFunctionDefinitionAnyWithContext<DevframeNodeContext>,
-  ): unknown[] {
-    if (Array.isArray(args))
-      return args
-    if (args === undefined || args === null)
-      return []
-    if (args && typeof args === 'object') {
-      const obj = args as Record<string, unknown>
-      const schemas = def.args as readonly unknown[] | undefined
-      if (schemas && schemas.length)
-        return schemas.map((_, i) => obj[`arg${i}`])
-      // Fallback: detect arg0/arg1/... keys even without schemas.
-      if (hasPositionalKeys(obj)) {
-        const out: unknown[] = []
-        let i = 0
-        while (`arg${i}` in obj) {
-          out.push(obj[`arg${i}`])
-          i++
-        }
-        return out
-      }
-    }
-    return [args]
-  }
 }
 
 function inferSafety(type: RpcFunctionType): 'read' | 'action' | 'destructive' {
   if (type === 'static' || type === 'query')
     return 'read'
   return 'action'
-}
-
-function hasPositionalKeys(obj: Record<string, unknown>): boolean {
-  return 'arg0' in obj
 }

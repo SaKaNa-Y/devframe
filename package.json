@@ -38,6 +38,7 @@
     "@antfu/design": "catalog:frontend",
     "@antfu/eslint-config": "catalog:tooling",
     "@antfu/utils": "catalog:inlined",
+    "@modelcontextprotocol/client": "catalog:deps",
     "@playwright/test": "catalog:testing",
     "@types/node": "catalog:types",
     "@types/prompts": "catalog:types",

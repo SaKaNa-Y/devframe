@@ -1,3 +1,4 @@
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { RpcFunctionAgentOptions } from '../rpc/types'
 import type { EventEmitter } from './events'
 
@@ -24,6 +25,14 @@ export interface AgentTool {
   tags?: readonly string[]
   /** Present for `kind === 'rpc'` — points to the RPC function name. */
   rpcName?: string
+  /**
+   * Positional Standard Schemas describing a `kind: 'tool'` entry's
+   * arguments — carried on the tool itself (mirroring how `rpcName` defers
+   * an RPC-backed tool's schemas to `ctx.rpc.definitions`) so consumers
+   * (e.g. the MCP adapter) convert Standard Schema → JSON Schema on demand,
+   * same as RPC `args`.
+   */
+  args?: readonly StandardSchemaV1[]
   /** JSON Schema describing the input (positional args synthesized to an object). */
   inputSchema?: unknown
   /** JSON Schema describing the output. */
@@ -44,6 +53,17 @@ export interface AgentToolInput {
   description: string
   safety?: 'read' | 'action' | 'destructive'
   tags?: readonly string[]
+  /**
+   * Positional Standard Schemas describing the tool's arguments — the same
+   * shape RPC definitions carry (any [Standard Schema](https://standardschema.dev/)
+   * validator: valibot, zod, arktype, devframe's built-in `s` builder, …).
+   * Each is advertised under `arg0` / `arg1` / … on the tool's JSON-Schema
+   * input, matching how the agent bridge coerces the incoming payload back
+   * into positional arguments. Purely descriptive: the handler still
+   * receives the caller's args object as-is.
+   */
+  args?: readonly StandardSchemaV1[]
+  /** Raw JSON-Schema input override. Prefer {@link args}. */
   inputSchema?: unknown
   outputSchema?: unknown
   examples?: readonly { args: unknown[], description?: string }[]
@@ -115,6 +135,35 @@ export interface AgentHandle {
 }
 
 /**
+ * A lazy source of agent tools, queried at `list()` / `getTool()` /
+ * `invoke()` time — the same on-demand projection the host applies to
+ * `agent`-flagged RPC definitions. Use a provider when tools *derive from*
+ * other state (a command registry, a plugin catalog): the underlying state
+ * stays the single source of truth and nothing needs to be kept in sync.
+ *
+ * Providers should namespace tool ids like any other tool; on an id
+ * collision the earlier source wins (registered tools, then RPC tools,
+ * then providers in registration order).
+ *
+ * @experimental
+ */
+export type AgentToolProvider = () => readonly AgentToolInput[]
+
+/**
+ * Handle returned by `registerToolProvider`.
+ *
+ * @experimental
+ */
+export interface AgentToolProviderHandle extends AgentHandle {
+  /**
+   * Signal that the provider's tool set changed. Fires
+   * `agent:manifest:changed` so protocol adapters (e.g. MCP) emit
+   * `tools/list_changed`.
+   */
+  notifyChanged: () => void
+}
+
+/**
  * Events emitted by `DevframeAgentHost`.
  *
  * @experimental
@@ -151,6 +200,12 @@ export interface DevframeAgentHost {
   registerTool: (tool: AgentToolInput) => AgentHandle
   /** Unregister a previously registered tool by id. */
   unregisterTool: (id: string) => boolean
+
+  /**
+   * Register a lazy tool source, queried on demand — see
+   * {@link AgentToolProvider}.
+   */
+  registerToolProvider: (provider: AgentToolProvider) => AgentToolProviderHandle
 
   /** Register a readable resource. */
   registerResource: (resource: AgentResourceInput) => AgentHandle

@@ -22,6 +22,27 @@ export interface CreateStorageOptions<T extends object> {
   mergeInitialValue?: false | ((_: T, _: T) => T);
   debounce?: number;
 }
+export interface DevframeInstanceRecord {
+  pid: number;
+  port: number;
+  origin: string;
+  basePath: string;
+  id: string;
+  name?: string;
+  rootDir: string;
+  mcp: {
+    path: string;
+  } | null;
+  startedAt: number;
+}
+export interface DevframeInstanceRegistration {
+  readonly file: string;
+  unregister: () => void;
+}
+// #endregion
+
+// #region Types
+export type AgentArgsFallback = 'wrap' | 'drop';
 // #endregion
 
 // #region Classes
@@ -30,10 +51,12 @@ export declare class DevframeAgentHost implements DevframeAgentHost$1 {
   readonly events: EventEmitter<DevframeAgentHostEvents>;
   private readonly tools;
   private readonly resources;
+  private readonly providers;
   private _rpcUnsubscribe;
   constructor(_: DevframeNodeContext);
   registerTool(_: AgentToolInput): AgentHandle;
   unregisterTool(_: string): boolean;
+  registerToolProvider(_: AgentToolProvider): AgentToolProviderHandle;
   registerResource(_: AgentResourceInput): AgentHandle;
   unregisterResource(_: string): boolean;
   list(): AgentManifest;
@@ -44,9 +67,9 @@ export declare class DevframeAgentHost implements DevframeAgentHost$1 {
   _dispose(): void;
   private _validateToolId;
   private _projectTool;
+  private _collectProviderTools;
   private _collectRpcTools;
   private _findRpcDefinition;
-  private _coercePositionalArgs;
 }
 export declare class DevframeDiagnosticsHost implements DevframeDiagnosticsHost$1 {
   readonly context: DevframeNodeContext;
@@ -77,6 +100,7 @@ export declare class DevframeViewHost implements DevframeViewHost$1 {
 // #endregion
 
 // #region Functions
+export declare function coerceAgentPositionalArgs(_: unknown, _: readonly unknown[] | undefined, _?: AgentArgsFallback): unknown[];
 export declare function createH3DevframeHost(_: CreateH3DevframeHostOptions): DevframeHost;
 export declare function createHostContext(_: CreateHostContextOptions): Promise<DevframeNodeContext>;
 export declare function createNodeSettings<T extends Record<string, any> = Record<string, any>>(_: DevframeNodeContext, _: string): DevframeSettings<T>;
@@ -87,6 +111,9 @@ export declare function createStorage<T extends object>(_: CreateStorageOptions<
 export declare function formatHostForUrl(_: string): string;
 export declare function isObject(_: unknown): value is Record<string, any>;
 export declare function normalizeHttpServerUrl(_: string, _: number | string): string;
+export declare function registerDevframeInstance(_: DevframeInstanceRecord, _?: {
+  instancesDir?: string;
+}): DevframeInstanceRegistration;
 export declare function toDialableHost(_: string): string;
 // #endregion
 

@@ -42,6 +42,7 @@
     "devframe": "workspace:*"
   },
   "dependencies": {
+    "@standard-schema/spec": "catalog:deps",
     "destr": "catalog:deps",
     "nostics": "catalog:deps",
     "pathe": "catalog:deps",
@@ -53,6 +54,7 @@
     "@types/node": "catalog:types",
     "devframe": "workspace:*",
     "mlly": "catalog:build",
-    "tsdown": "catalog:build"
+    "tsdown": "catalog:build",
+    "valibot": "catalog:deps"
   }
 }

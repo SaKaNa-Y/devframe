@@ -37,6 +37,7 @@ export interface AgentTool {
   safety: 'read' | 'action' | 'destructive';
   tags?: readonly string[];
   rpcName?: string;
+  args?: readonly StandardSchemaV1[];
   inputSchema?: unknown;
   outputSchema?: unknown;
   examples?: readonly {
@@ -50,6 +51,7 @@ export interface AgentToolInput {
   description: string;
   safety?: 'read' | 'action' | 'destructive';
   tags?: readonly string[];
+  args?: readonly StandardSchemaV1[];
   inputSchema?: unknown;
   outputSchema?: unknown;
   examples?: readonly {
@@ -57,6 +59,9 @@ export interface AgentToolInput {
     description?: string;
   }[];
   handler: (_: any) => unknown | Promise<unknown>;
+}
+export interface AgentToolProviderHandle extends AgentHandle {
+  notifyChanged: () => void;
 }
 export interface ConnectionMeta {
   backend: 'websocket' | 'static';
@@ -78,6 +83,7 @@ export interface DevframeAgentHost {
   readonly events: EventEmitter<DevframeAgentHostEvents>;
   registerTool: (_: AgentToolInput) => AgentHandle;
   unregisterTool: (_: string) => boolean;
+  registerToolProvider: (_: AgentToolProvider) => AgentToolProviderHandle;
   registerResource: (_: AgentResourceInput) => AgentHandle;
   unregisterResource: (_: string) => boolean;
   list: () => AgentManifest;
@@ -389,6 +395,7 @@ export interface ScopedBroadcastOptions<METHOD, Args extends any[]> {
 // #endregion
 
 // #region Types
+export type AgentToolProvider = () => readonly AgentToolInput[];
 export type DevframeDeploymentKind = 'standalone' | 'hosted';
 export type DevframeDiagnosticsDefinition = ReturnType<typeof defineDiagnostics<any, any>>;
 export type DevframeDiagnosticsLogger = Record<string, any>;

@@ -1,4 +1,5 @@
 import { defineRpcFunction } from 'devframe'
+import { s } from 'devframe/utils/simple-schema'
 import { isSafeRevision, RECORD, splitClean, tryGit, UNIT } from '../../node/git.ts'
 import { getGitContext } from '../context.ts'
 
@@ -25,6 +26,26 @@ export interface GitLog {
   /** `true` when the page filled to `limit`, hinting at further history. */
   hasMore: boolean
 }
+
+const commitSchema = s.object({
+  hash: s.string(),
+  shortHash: s.string(),
+  author: s.string(),
+  email: s.string(),
+  date: s.number(),
+  subject: s.string(),
+  body: s.string(),
+  refs: s.array(s.string()),
+  parents: s.array(s.string()),
+})
+
+const gitLogSchema = s.object({
+  isRepo: s.boolean(),
+  commits: s.array(commitSchema),
+  limit: s.number(),
+  skip: s.number(),
+  hasMore: s.boolean(),
+})
 
 export interface LogArgs {
   /** Number of commits to return (clamped to 1–200, default 30). */
@@ -79,11 +100,21 @@ export const log = defineRpcFunction({
   name: 'devframes:plugin:git:log',
   type: 'query',
   jsonSerializable: true,
+  args: [s.object({
+    limit: s.optional(s.number()),
+    skip: s.optional(s.number()),
+    ref: s.optional(s.string()),
+  })],
+  returns: gitLogSchema,
+  agent: {
+    description: 'Commit history of the inspected repository, newest first. Paginate with limit (1-200, default 30) and skip; pass ref to read another branch. Call before reasoning about recent changes. Safe to call freely.',
+    title: 'Git log',
+  },
   // A static build can't run git on demand, so bake the head of history (up to
   // `SNAPSHOT_LIMIT`) as the snapshot. Every client call resolves to this baked
   // page via the fallback; since a static bundle has no further page to fetch,
   // it reports `hasMore: false` so the UI shows everything it has in one shot.
-  dump: async (_ctx, handler: (args?: LogArgs) => Promise<GitLog>) => {
+  dump: async (_ctx, handler: (args: LogArgs) => GitLog | Promise<GitLog>) => {
     const output = await handler({ limit: SNAPSHOT_LIMIT, skip: 0 })
     const baked: GitLog = { ...output, hasMore: false }
     // `RETURN` carries the handler's `Promise<GitLog>`, while dump records hold

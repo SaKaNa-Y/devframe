@@ -60,6 +60,86 @@ describe('mcp adapter (in-memory)', () => {
     }
   })
 
+  it('converts a registered tool\'s Standard Schema args to JSON Schema over the wire', async () => {
+    const { ctx, client, cleanup } = await bootPair()
+    try {
+      const v = await import('valibot')
+      ctx.agent.registerTool({
+        id: 'schema-tool',
+        description: 'Takes a schema-typed arg.',
+        args: [v.object({ name: v.optional(v.string()) })],
+        handler: args => args,
+      })
+
+      const listed = await client.listTools()
+      const tool = listed.tools.find(t => t.name === 'schema-tool')!
+      // Each positional arg is advertised under `arg0`/`arg1`/… — the
+      // project-wide Standard Schema convention (no single-arg unwrapping).
+      const schema = tool.inputSchema as { type: string, properties: Record<string, unknown> }
+      expect(schema.type).toBe('object')
+      expect(Object.keys(schema.properties)).toEqual(['arg0'])
+
+      // `args` is purely descriptive for a plain registered tool — the
+      // handler receives the caller's payload as-is, unlike RPC-backed
+      // tools (or hub commands) which coerce `arg0`/`arg1`/… into
+      // positional parameters.
+      const result = await client.callTool({ name: 'schema-tool', arguments: { arg0: { name: 'devframe' } } })
+      const content = result.content as Array<{ type: string, text: string }>
+      expect(JSON.parse(content[0]!.text)).toEqual({ arg0: { name: 'devframe' } })
+    }
+    finally {
+      await cleanup()
+    }
+  })
+
+  it('advertises colon-namespaced ids under their derived wire name and resolves calls back', async () => {
+    const { ctx, client, cleanup } = await bootPair()
+    try {
+      ctx.agent.registerTool({
+        id: 'devframes:plugin:demo:greet',
+        description: 'Say hello.',
+        safety: 'read',
+        handler: () => ({ greeting: 'hi' }),
+      })
+
+      const listed = await client.listTools()
+      const names = listed.tools.map(t => t.name)
+      expect(names).toContain('devframes_plugin_demo_greet')
+      expect(names).not.toContain('devframes:plugin:demo:greet')
+
+      const result = await client.callTool({ name: 'devframes_plugin_demo_greet', arguments: {} })
+      const content = result.content as Array<{ type: string, text: string }>
+      expect(JSON.parse(content[0]!.text)).toEqual({ greeting: 'hi' })
+    }
+    finally {
+      await cleanup()
+    }
+  })
+
+  it('hides a later tool whose wire name collides with an earlier one', async () => {
+    const { ctx, client, cleanup } = await bootPair()
+    try {
+      ctx.agent.registerTool({
+        id: 'demo:greet',
+        description: 'First.',
+        handler: () => 'first',
+      })
+      ctx.agent.registerTool({
+        id: 'demo_greet',
+        description: 'Second — sanitizes to the same wire name.',
+        handler: () => 'second',
+      })
+
+      const listed = await client.listTools()
+      const matches = listed.tools.filter(t => t.name === 'demo_greet')
+      expect(matches).toHaveLength(1)
+      expect(matches[0]!.description).toBe('First.')
+    }
+    finally {
+      await cleanup()
+    }
+  })
+
   it('returns text and structured content for a tool with an output schema', async () => {
     const { ctx, client, cleanup } = await bootPair()
     try {
@@ -173,6 +253,111 @@ describe('mcp adapter (in-memory)', () => {
     }
     finally {
       await cleanup()
+    }
+  })
+
+  it('omits non-object output schemas (MCP requires type: "object")', async () => {
+    const { ctx, client, cleanup } = await bootPair()
+    try {
+      ctx.agent.registerTool({
+        id: 'void-tool',
+        description: 'Returns nothing.',
+        // What a valibot `v.void()` returns schema converts to.
+        outputSchema: { type: 'null' },
+        handler: () => undefined,
+      })
+
+      const listed = await client.listTools()
+      const tool = listed.tools.find(t => t.name === 'void-tool')!
+      expect(tool.outputSchema).toBeUndefined()
+
+      // The call still succeeds with plain text content.
+      const result = await client.callTool({ name: 'void-tool', arguments: {} })
+      expect(result.isError).toBeFalsy()
+      expect(result.structuredContent).toBeUndefined()
+    }
+    finally {
+      await cleanup()
+    }
+  })
+
+  it('exposes shared state through the built-in devframe_state_read tool', async () => {
+    const { ctx, client, cleanup } = await bootPair()
+    try {
+      await ctx.rpc.sharedState.get('my-plugin:counter', {
+        initialValue: { count: 7 },
+      })
+
+      const listed = await client.listTools()
+      const tool = listed.tools.find(t => t.name === 'devframe_state_read')
+      expect(tool).toBeDefined()
+      expect(tool!.annotations?.readOnlyHint).toBe(true)
+
+      // No key → key list.
+      const keys = await client.callTool({ name: 'devframe_state_read', arguments: {} })
+      expect(keys.structuredContent).toEqual({ keys: ['my-plugin:counter'] })
+
+      // With key → the value.
+      const value = await client.callTool({ name: 'devframe_state_read', arguments: { key: 'my-plugin:counter' } })
+      expect(value.structuredContent).toEqual({ key: 'my-plugin:counter', value: { count: 7 } })
+
+      // Unknown key → agent-actionable error.
+      const missing = await client.callTool({ name: 'devframe_state_read', arguments: { key: 'nope' } })
+      expect(missing.isError).toBe(true)
+      const content = missing.content as Array<{ text: string }>
+      expect(content[0]!.text).toContain('Unknown shared-state key')
+    }
+    finally {
+      await cleanup()
+    }
+  })
+
+  it('hides devframe:state:read when shared-state exposure is disabled', async () => {
+    const ctx = await createHostContext({ cwd: process.cwd(), mode: 'dev', host: nullHost() })
+    const { server, dispose } = buildMcpServerFromContext(ctx, {
+      serverName: 'test',
+      serverVersion: '0.0.0-test',
+      exposeSharedState: false,
+    })
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    await server.connect(serverTransport)
+    const client = new Client({ name: 'test-client', version: '0.0.0' })
+    await client.connect(clientTransport)
+    try {
+      const listed = await client.listTools()
+      expect(listed.tools.map(t => t.name)).not.toContain('devframe_state_read')
+    }
+    finally {
+      dispose()
+      await client.close()
+      await server.close()
+    }
+  })
+
+  it('respects the shared-state filter in devframe:state:read', async () => {
+    const ctx = await createHostContext({ cwd: process.cwd(), mode: 'dev', host: nullHost() })
+    await ctx.rpc.sharedState.get('visible:key', { initialValue: { n: 1 } })
+    await ctx.rpc.sharedState.get('hidden:key', { initialValue: { n: 2 } })
+    const { server, dispose } = buildMcpServerFromContext(ctx, {
+      serverName: 'test',
+      serverVersion: '0.0.0-test',
+      exposeSharedState: key => key.startsWith('visible:'),
+    })
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    await server.connect(serverTransport)
+    const client = new Client({ name: 'test-client', version: '0.0.0' })
+    await client.connect(clientTransport)
+    try {
+      const keys = await client.callTool({ name: 'devframe_state_read', arguments: {} })
+      expect(keys.structuredContent).toEqual({ keys: ['visible:key'] })
+
+      const hidden = await client.callTool({ name: 'devframe_state_read', arguments: { key: 'hidden:key' } })
+      expect(hidden.isError).toBe(true)
+    }
+    finally {
+      dispose()
+      await client.close()
+      await server.close()
     }
   })
 })
