@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: Devframe
-  text: Framework-neutral foundation for Devframe
+  text: Framework-neutral foundation for DevTools
   tagline: One devframe definition, adapters to different environments. Managed communication layer, agent-native.
   image:
     src: /logo.svg
