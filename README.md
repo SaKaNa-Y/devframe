@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-Framework-neutral foundation for building devframes.
+Framework-neutral foundation for building DevTools.
 </p>
 
 <p align="center">
@@ -29,10 +29,6 @@ Framework-neutral foundation for building devframes.
     <img src="https://cdn.jsdelivr.net/gh/antfu/static/sponsors.svg" alt="Sponsors"/>
   </a>
 </p>
-
-## Credits
-
-The `devframe connect` MCP connector (discovery + gateway tools + agent-steering errors) follows the architecture Vercel's [`next-devtools-mcp`](https://github.com/vercel/next-devtools-mcp) validated: the real MCP endpoint lives inside the framework, and a thin external connector discovers and proxies it.
 
 ## License
 
