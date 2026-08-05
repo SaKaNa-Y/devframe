@@ -175,6 +175,10 @@ export function viteDevframeHub(options: ViteDevframeHubOptions = {}): Plugin {
       started = await startHttpAndWs({
         context,
         port,
+        // Single-user localhost demo: the side-car is reachable only on
+        // loopback, so it opts out of the gate for a no-friction dev
+        // experience. A hub reachable beyond localhost should gate (see
+        // `docs/guide/security.md`).
         auth: false,
       })
 

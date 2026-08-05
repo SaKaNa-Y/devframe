@@ -33,7 +33,8 @@ export interface DevframeNextHostMcpOptions {
   exposeSharedState?: boolean | ((key: string) => boolean)
   /**
    * Origin allow-list beyond the loopback default. `false` disables the
-   * origin gate entirely.
+   * origin gate entirely. Note the MCP route rejects `Origin`-less requests
+   * (see `createMcpFetchHandler`).
    */
   allowedOrigins?: readonly string[] | false
 }

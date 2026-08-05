@@ -60,9 +60,17 @@ describe('mcp adapter (streamable http route)', () => {
     expect(meta.mcp).toBeUndefined()
   })
 
+  // A native MCP client must send a (loopback) Origin so the route's gate —
+  // which rejects Origin-less requests — accepts it.
+  function originTransport(started: StartedServer): StreamableHTTPClientTransport {
+    return new StreamableHTTPClientTransport(new URL(`${started.origin}/__mcp`), {
+      requestInit: { headers: { origin: started.origin } },
+    })
+  }
+
   it('establishes a stateful session and lists agent tools', async () => {
     const started = await boot()
-    const transport = new StreamableHTTPClientTransport(new URL(`${started.origin}/__mcp`))
+    const transport = originTransport(started)
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     try {
       await client.connect(transport)
@@ -88,11 +96,13 @@ describe('mcp adapter (streamable http route)', () => {
 
     // Initialize over raw HTTP to capture the issued session id from the
     // response header (the body is an SSE stream we can discard).
+    const originHeader = { origin: started.origin }
     const init = await fetch(url, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'accept': 'application/json, text/event-stream',
+        ...originHeader,
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
@@ -108,7 +118,7 @@ describe('mcp adapter (streamable http route)', () => {
     // DELETE ends the session.
     const del = await fetch(url, {
       method: 'DELETE',
-      headers: { 'mcp-session-id': sessionId! },
+      headers: { 'mcp-session-id': sessionId!, ...originHeader },
     })
     await del.body?.cancel()
     expect(del.status).toBeLessThan(300)
@@ -121,11 +131,34 @@ describe('mcp adapter (streamable http route)', () => {
         'content-type': 'application/json',
         'accept': 'application/json, text/event-stream',
         'mcp-session-id': sessionId!,
+        ...originHeader,
       },
       body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list' }),
     })
     await stale.body?.cancel()
     expect(stale.status).toBe(404)
+  })
+
+  it('rejects an Origin-less request', async () => {
+    const started = await boot()
+    // Unlike the WS transport, the MCP route does not allow Origin-less
+    // requests — a route-based endpoint would otherwise be reachable by any
+    // local process.
+    const res = await fetch(`${started.origin}/__mcp`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'accept': 'application/json, text/event-stream',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'x', version: '0' } },
+      }),
+    })
+    await res.body?.cancel()
+    expect(res.status).toBe(403)
   })
 
   it('rejects a disallowed cross-origin request', async () => {

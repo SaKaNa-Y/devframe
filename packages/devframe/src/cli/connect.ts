@@ -250,7 +250,13 @@ async function withInstanceClient<T>(
   url: string,
   fn: (client: InstanceType<ConnectSdk['Client']>) => Promise<T>,
 ): Promise<T> {
-  const transport = new sdk.StreamableHTTPClientTransport(new URL(url))
+  // Send the instance's own (loopback) origin so the MCP route's origin gate,
+  // which rejects `Origin`-less requests, accepts this native client.
+  const origin = new URL(url).origin
+  const transport = new sdk.StreamableHTTPClientTransport(
+    new URL(url),
+    { requestInit: { headers: { origin } } },
+  )
   const client = new sdk.Client({ name: 'devframe-connect', version: '0.0.0' })
   await client.connect(transport)
   try {

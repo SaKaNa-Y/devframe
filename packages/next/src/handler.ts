@@ -22,9 +22,11 @@ export interface CreateDevframeNextHandlerOptions {
   /** Flag bag forwarded to `def.setup(ctx, { flags })`. */
   flags?: Record<string, unknown>
   /**
-   * Whether the side-car runs its own auth gate. Defaults to `false`: this is a
-   * hosted adapter and the Next app owns authentication. Pass `true` for
-   * devframe's interactive gate or a handler for a custom scheme.
+   * Whether the side-car runs its own auth gate. **Gates by default** (defers
+   * to `createDevServer` — devframe's interactive OTP unless the definition's
+   * `cli.auth` opts out), so the side-car socket isn't silently reachable by
+   * anything that can open it. Pass `false` to opt out for a single-user
+   * localhost host, or a handler for a custom scheme.
    */
   auth?: CreateDevServerOptions['auth']
   /** Origin the Next app is reachable at, for docks needing an absolute URL. */
@@ -127,7 +129,9 @@ export function createDevframeNextHandler(
       port,
       flags: options.flags,
       openBrowser: false,
-      auth: options.auth ?? false,
+      // Gate by default: an unset `auth` defers to `createDevServer` rather
+      // than leaving the side-car socket ungated. `false` opts out explicitly.
+      auth: options.auth,
       mcp: options.mcp,
     })
     const mcpMeta = resolveMcpConnectionMeta(def, options.mcp, port)

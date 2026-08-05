@@ -1,5 +1,7 @@
 import type { DevframeDefinition } from '../../types/devframe'
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
+import { createRpcClient } from 'devframe/rpc/client'
+import { createWsRpcChannel } from 'devframe/rpc/transports/ws-client'
 import { getPort } from 'get-port-please'
 import { afterEach, describe, expect, it } from 'vitest'
 import { viteDevBridge } from '../vite'
@@ -61,6 +63,9 @@ describe('viteDevBridge (bridge mode mcp)', () => {
     bridge = viteDevBridge(defineTestDef(), {
       devMiddleware: { port, host: '127.0.0.1' },
       mcp: true,
+      // The bridge now gates by default; opt out here so this test can dial
+      // the WS/MCP side-car directly.
+      auth: false,
     })
 
     const server = fakeViteServer()
@@ -73,9 +78,11 @@ describe('viteDevBridge (bridge mode mcp)', () => {
     expect(meta.websocket).toEqual({ port, path: '/__devframe_ws' })
     expect(meta.mcp).toEqual({ port, path: '/__mcp' })
 
-    // The advertised endpoint is live: a real MCP client can connect and
-    // list the agent tools on the side-car origin.
-    const transport = new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/__mcp`))
+    // The advertised endpoint is live: a real MCP client presenting a loopback
+    // Origin (required by the route's gate) can connect and list agent tools.
+    const transport = new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/__mcp`), {
+      requestInit: { headers: { origin: `http://127.0.0.1:${port}` } },
+    })
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     try {
       await client.connect(transport)
@@ -91,6 +98,7 @@ describe('viteDevBridge (bridge mode mcp)', () => {
     const port = await getPort({ port: 19720, host: '127.0.0.1' })
     bridge = viteDevBridge(defineTestDef(), {
       devMiddleware: { port, host: '127.0.0.1' },
+      auth: false,
     })
 
     const server = fakeViteServer()
@@ -98,5 +106,46 @@ describe('viteDevBridge (bridge mode mcp)', () => {
 
     const meta = await readJsonMiddleware(server.routes.get('/__vite-bridge-test/__connection.json'))
     expect(meta.mcp).toBeUndefined()
+  })
+})
+
+describe('viteDevBridge (auth default)', () => {
+  let bridge: ReturnType<typeof viteDevBridge> | undefined
+
+  afterEach(async () => {
+    await bridge?.closeBundle?.()
+    bridge = undefined
+  })
+
+  /** Handshake result on a fresh, unauthenticated WS connection. */
+  async function handshakeIsTrusted(port: number): Promise<boolean> {
+    const rpc = createRpcClient<any, any>({}, {
+      channel: createWsRpcChannel({ url: `ws://127.0.0.1:${port}/__devframe_ws` }),
+    })
+    try {
+      const res = await rpc.$call('anonymous:devframe:auth', { authToken: '', ua: 'test', origin: 'http://localhost' }) as { isTrusted: boolean }
+      return res.isTrusted
+    }
+    finally {
+      rpc.$close?.()
+    }
+  }
+
+  it('gates the side-car by default (unset auth → untrusted handshake)', async () => {
+    const port = await getPort({ port: 19730, host: '127.0.0.1' })
+    bridge = viteDevBridge(defineTestDef(), { devMiddleware: { port, host: '127.0.0.1' } })
+    await bridge.configureServer(fakeViteServer())
+
+    // A gated server answers the handshake with `isTrusted: false` until a
+    // code is exchanged; an ungated (`auth: false`) server auto-trusts.
+    expect(await handshakeIsTrusted(port)).toBe(false)
+  })
+
+  it('opts out when auth: false is passed explicitly (auto-trust handshake)', async () => {
+    const port = await getPort({ port: 19740, host: '127.0.0.1' })
+    bridge = viteDevBridge(defineTestDef(), { devMiddleware: { port, host: '127.0.0.1' }, auth: false })
+    await bridge.configureServer(fakeViteServer())
+
+    expect(await handshakeIsTrusted(port)).toBe(true)
   })
 })

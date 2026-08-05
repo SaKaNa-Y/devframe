@@ -35,7 +35,7 @@ export default defineDevframe({
 
 The endpoint speaks the MCP Streamable-HTTP transport at `/__mcp` (relative to the base path — `/__<id>/__mcp` under a host), sharing the dev server's origin and port. The `--mcp` and `--no-mcp` flags override the definition per run. `__connection.json` advertises the route so in-browser tooling can discover it.
 
-Each client session gets its own MCP server built from the live context, correlated by the `Mcp-Session-Id` header, so `tools/list_changed` and `resources/list_changed` notifications reach connected clients as the tool evolves. The endpoint binds to the same loopback host as the dev server and applies the shared loopback origin gate; widen it for a tunnel or LAN origin:
+Each client session gets its own MCP server built from the live context, correlated by the `Mcp-Session-Id` header, so `tools/list_changed` and `resources/list_changed` notifications reach connected clients as the tool evolves. The endpoint binds to the same loopback host as the dev server and applies an origin gate: a request must carry an `Origin` that is loopback (or on the configured allow-list). Unlike the WS transport it rejects `Origin`-less requests, so a route-based endpoint isn't reachable by an arbitrary local process — native clients (like `devframe connect`) send their loopback origin explicitly. Widen the gate for a tunnel or LAN origin:
 
 ```ts
 defineDevframe({
@@ -90,6 +90,6 @@ It exposes two gateway tools (the wire names of the `devframe:connect:*` ids —
 - **`devframe_connect_list-instances`** — discover running devframe dev servers and list each one's MCP tools. Instances running without an MCP route are listed with a hint to restart with `--mcp`.
 - **`devframe_connect_call-tool`** — invoke one tool on one instance (`{ port, tool, args }`) over its Streamable-HTTP endpoint.
 
-Discovery reads the **instance registry**: every `createDevServer` (CLI `dev`, `viteDevBridge`, `@devframes/next`'s handler) writes a record to `~/.devframe/instances/<pid>-<port>.json` on boot and removes it on close; readers prune records whose liveness probe fails. In-process hosts register explicitly with `registerDevframeInstance` from `devframe/node` — see `createDevframeNextHost().mountMcp` for serving MCP on a Next app's own origin. `--port <n>` probes an explicit port besides the registry; `DEVFRAME_INSTANCES_DIR` relocates the registry and `DEVFRAME_DISABLE_INSTANCE_REGISTRY=1` opts a server out.
+Discovery reads the **instance registry**: every `createDevServer` (CLI `dev`, `viteDevBridge`, `@devframes/next`'s handler) writes a record to `~/.devframe/instances/<pid>-<port>.json` on boot and removes it on close; readers prune records whose liveness probe fails. The connector dials each instance's endpoint with the instance's own loopback origin, so it clears the route's origin gate without any configuration. In-process hosts register explicitly with `registerDevframeInstance` from `devframe/node` — see `createDevframeNextHost().mountMcp` for serving MCP on a Next app's own origin. `--port <n>` probes an explicit port besides the registry; `DEVFRAME_INSTANCES_DIR` relocates the registry and `DEVFRAME_DISABLE_INSTANCE_REGISTRY=1` opts a server out.
 
 See the [Agent-Native](/guide/agent-native) page for the full API, safety model, and Claude Desktop integration example.

@@ -13,7 +13,12 @@ export interface CreateMcpFetchHandlerOptions {
   exposeSharedState: boolean | ((key: string) => boolean)
   /**
    * Origin allow-list beyond the loopback default. `false` disables the
-   * origin gate entirely. Default: loopback-only (mirrors the WS transport).
+   * origin gate entirely. Default: loopback-only.
+   *
+   * Unlike the WS transport, the MCP route does **not** allow `Origin`-less
+   * requests: a route-based endpoint is reachable by any local process, so a
+   * request must carry an `Origin` that passes the gate. Native clients
+   * (e.g. `devframe connect`) send their loopback origin explicitly.
    */
   allowedOrigins?: readonly string[] | false
 }
@@ -44,9 +49,10 @@ interface McpSession {
  * and MCP server (built from the shared, live `ctx` via
  * `buildMcpServerFromContext`), correlated by the `Mcp-Session-Id` header: an
  * `initialize` POST spins up a session; later requests route to it; a `DELETE`
- * (or client disconnect) tears it down. The origin gate applies devframe's
- * loopback-default DNS-rebinding protection (identical semantics to the WS
- * upgrade's `isAllowedOrigin`).
+ * (or client disconnect) tears it down. The origin gate guards every request:
+ * loopback-default DNS-rebinding protection that — unlike the WS upgrade's
+ * `isAllowedOrigin` — also rejects `Origin`-less requests, so a route-based
+ * endpoint isn't reachable by an arbitrary local process.
  *
  * @experimental
  */
@@ -105,12 +111,14 @@ export function createMcpFetchHandler(
   }
 
   async function handle(req: Request): Promise<Response> {
-    // Origin gate — identical semantics to the WS upgrade's `isAllowedOrigin`
-    // (loopback + `Origin`-less native clients + the configured allow-list).
-    // This is the endpoint's DNS-rebinding protection.
+    // Origin gate — the endpoint's DNS-rebinding protection and its guard
+    // against arbitrary local processes. Unlike the WS transport, an
+    // `Origin`-less request is rejected: a route-based MCP endpoint would
+    // otherwise be reachable by any local process. A request must carry an
+    // `Origin` that is loopback or on the configured allow-list.
     const origin = req.headers.get('origin') ?? undefined
-    if (allowedOrigins !== false && !isAllowedOrigin(origin, allowedOrigins ?? []))
-      return new Response('Forbidden: origin not allowed', { status: 403 })
+    if (allowedOrigins !== false && (origin === undefined || !isAllowedOrigin(origin, allowedOrigins ?? [])))
+      return new Response('Forbidden: origin required', { status: 403 })
 
     const sessionId = req.headers.get('mcp-session-id') ?? undefined
     let session = sessionId ? sessions.get(sessionId) : undefined
