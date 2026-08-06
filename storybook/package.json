@@ -1,7 +1,7 @@
 {
   "name": "@devframes/storybook",
   "type": "module",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "private": true,
   "description": "Unified Storybook host — a devframe hub that docks every plugin's Storybook (React, Vue, Svelte, Solid, vanilla), spawning each `storybook dev` on demand.",
   "scripts": {
