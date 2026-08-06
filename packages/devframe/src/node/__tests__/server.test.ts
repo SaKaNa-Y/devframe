@@ -101,6 +101,50 @@ describe('startHttpAndWs rpcOptions passthrough', () => {
   })
 })
 
+describe('startHttpAndWs onPeerConnect / onPeerDisconnect', () => {
+  it('forwards both hooks, symmetrically, for the same peer', async () => {
+    const context = await createTestContext()
+    const onPeerConnect = vi.fn()
+    const onPeerDisconnect = vi.fn()
+    const host = '127.0.0.1'
+    const port = await getPort({ port: 0, host })
+    const server = await startHttpAndWs({
+      context,
+      host,
+      port,
+      auth: false,
+      onPeerConnect,
+      onPeerDisconnect,
+    })
+
+    try {
+      const raw = new WebSocket(`ws://${host}:${port}`)
+      await new Promise<void>((resolve, reject) => {
+        raw.once('open', () => resolve())
+        raw.once('error', reject)
+      })
+
+      await vi.waitFor(() => {
+        expect(onPeerConnect).toHaveBeenCalledTimes(1)
+      })
+      const [, session] = onPeerConnect.mock.calls[0]!
+      expect(onPeerDisconnect).not.toHaveBeenCalled()
+
+      raw.close()
+
+      await vi.waitFor(() => {
+        expect(onPeerDisconnect).toHaveBeenCalledTimes(1)
+      })
+      const [, meta] = onPeerDisconnect.mock.calls[0]!
+      // Same underlying session — proven by the stable meta id — closing out.
+      expect(meta.id).toBe(session.meta.id)
+    }
+    finally {
+      await server.close()
+    }
+  })
+})
+
 describe('startHttpAndWs listen failures', () => {
   it('rejects when the port is already taken instead of hanging', async () => {
     const host = '127.0.0.1'
