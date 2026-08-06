@@ -117,6 +117,16 @@ export interface StartHttpAndWsOptions {
    * own startup banner. Devframe does not print one itself.
    */
   onReady?: (info: { origin: string, port: number, app: H3 }) => void | Promise<void>
+  /**
+   * Called for any error the HTTP server devframe owns emits after it starts
+   * listening — e.g. a transient `EMFILE` while accepting a connection.
+   * Without it such an error has no listener and crashes the process.
+   *
+   * Applies only to a server devframe created itself. When `server` is
+   * supplied the caller owns that object and attaches to it directly, so
+   * devframe leaves its error handling alone.
+   */
+  onServerError?: (error: Error) => void
 }
 
 export interface StartedServer {
@@ -287,6 +297,10 @@ export async function startHttpAndWs(options: StartHttpAndWsOptions): Promise<St
         cause: error,
       })
     }
+    // Attached only now that the bind has already succeeded — this never
+    // changes bind-time crash/hang semantics, only what happens afterward.
+    if (options.onServerError)
+      httpServer.on('error', options.onServerError)
   }
 
   const address = httpServer.address()
