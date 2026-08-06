@@ -31,10 +31,10 @@ packages:
   - docs
 
 refs:
-  nuxt: &nuxt ^4.5.0
-  storybook: &storybook ^10.5.5
+  nuxt: &nuxt ^4.5.1
+  storybook: &storybook ^10.5.6
   unocss: &unocss ^66.7.5
-  vueuse: &vueuse ^14.3.0
+  vueuse: &vueuse ^14.4.0
 
 overrides:
   '@devframe/hub': 'workspace:*'
@@ -65,9 +65,9 @@ catalogs:
     mlly: ^1.8.2
     nuxt: ^4.5.1
     tsdown: ^0.22.14
-    tsx: ^4.23.1
-    turbo: ^2.10.7
-    vite: ^8.1.5
+    tsx: ^4.23.6
+    turbo: ^2.10.8
+    vite: ^8.2.0
     vite-plugin-solid: ^2.11.14
   deps:
     '@json-render/core': ^0.19.0
@@ -96,20 +96,20 @@ catalogs:
     pathe: ^2.0.3
     perfect-debounce: ^2.1.0
     structured-clone-es: ^2.0.1
-    tinyexec: ^1.2.4
+    tinyexec: ^1.3.0
     tinyglobby: ^0.2.17
     ufo: ^1.6.4
     valibot: ^1.4.2
     whenexpr: ^0.1.2
-    ws: ^8.21.1
+    ws: ^8.21.2
     zigpty: ^0.2.1
     zod: ^4.4.3
   docs:
-    mermaid: ^11.16.0
-    vitepress: ^2.0.0-alpha.18
+    mermaid: ^11.16.1
+    vitepress: ^2.0.0-alpha.19
     vitepress-plugin-mermaid: ^2.0.17
   frontend:
-    '@antfu/design': ^0.3.2
+    '@antfu/design': ^0.3.3
     '@discoveryjs/discovery': 1.0.0-beta.99
     '@floating-ui/react': ^0.27.20
     '@iconify-json/catppuccin': ^1.2.17
@@ -128,11 +128,11 @@ catalogs:
     axe-core: ^4.12.1
     clsx: ^2.1.1
     colorjs.io: ^0.7.1
-    dompurify: ^3.4.12
+    dompurify: ^3.4.13
     floating-vue: ^5.2.2
     iframe-pane: ^1.1.0
-    next: ^16.2.12
-    preact: ^10.29.7
+    next: ^16.3.0
+    preact: ^10.29.8
     react: ^19.2.8
     react-dom: ^19.2.8
     reka-ui: ^2.10.1
@@ -156,12 +156,12 @@ catalogs:
     storybook: *storybook
     storybook-solidjs-vite: ^10.6.0
   testing:
-    '@playwright/test': ^1.62.0
+    '@playwright/test': ^1.62.1
     tsnapi: ^1.2.0
     vitest: ^4.1.10
   tooling:
     '@antfu/eslint-config': ^9.2.0
-    bumpp: ^12.0.0
+    bumpp: ^12.1.1
     eslint: ^10.8.0
     knip: ^6.31.0
     nano-staged: ^1.0.2
@@ -170,9 +170,12 @@ catalogs:
     skills-npm: ^1.2.0
     typescript: ^6.0.3
   types:
-    '@types/codemirror': ^5.60.17
+    '@types/codemirror': ^5.60.18
     '@types/node': ^26.1.2
     '@types/prompts': ^2.4.9
-    '@types/react': ^19.2.17
-    '@types/react-dom': ^19.2.3
+    '@types/react': ^19.2.18
+    '@types/react-dom': ^19.2.4
     '@types/ws': ^8.18.1
+update:
+  ignoreDeps:
+    - typescript@7
