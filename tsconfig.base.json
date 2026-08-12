@@ -40,6 +40,9 @@
       "devframe/node": [
         "./packages/devframe/src/node/index.ts"
       ],
+      "devframe/internal": [
+        "./packages/devframe/src/internal/index.ts"
+      ],
       "devframe/constants": [
         "./packages/devframe/src/constants.ts"
       ],
@@ -67,14 +70,8 @@
       "devframe/utils/open": [
         "./packages/devframe/src/utils/open.ts"
       ],
-      "devframe/utils/promise": [
-        "./packages/devframe/src/utils/promise.ts"
-      ],
       "devframe/utils/simple-schema": [
         "./packages/devframe/src/utils/simple-schema.ts"
-      ],
-      "devframe/utils/scope": [
-        "./packages/devframe/src/utils/scope.ts"
       ],
       "devframe/utils/serve-static": [
         "./packages/devframe/src/utils/serve-static.ts"

@@ -97,16 +97,6 @@ randomDigits(6) // '047204' — uniform, leading zeros preserved
 timingSafeEqual(input, secret) // constant-time string comparison
 ```
 
-### `devframe/utils/promise`
-
-Promise constructor with externally-controlled resolution.
-
-```ts
-import { promiseWithResolver } from 'devframe/utils/promise'
-
-const { promise, resolve, reject } = promiseWithResolver<number>()
-```
-
 ### `devframe/utils/events`
 
 Generic typed event emitter — `on(event, cb)` returns an unsubscribe function. Used as the eventing primitive across devframe's hosts.

@@ -36,13 +36,14 @@
  * inspectors run eval-grade queries against live objects in this process —
  * treat the endpoint like a debugger port.
  */
-import type { DevframeHost, DevframeNodeContext } from 'devframe/types'
+import type { DevframeHost, DevframeNodeContext } from 'devframe'
 import type { DataSourceEntry } from '../registry/index'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import process from 'node:process'
-import { createHostContext, startHttpAndWs } from 'devframe/node'
+import { startHttpAndWs } from 'devframe/internal'
+import { createHostContext } from 'devframe/node'
 import { createInteractiveAuth } from 'devframe/recipes/interactive-auth'
 import { randomToken } from 'devframe/utils/crypto-token'
 import { getPort } from 'get-port-please'

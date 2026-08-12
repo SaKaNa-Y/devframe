@@ -1,5 +1,5 @@
-import type { StartedServer } from 'devframe/node'
-import type { DevframeNodeContext } from 'devframe/types'
+import type { DevframeNodeContext } from 'devframe'
+import type { StartedServer } from 'devframe/internal'
 import type { ChatHistory } from '../src/devframe'
 import { createRpcStreamingClientHost } from 'devframe/client'
 import { createRpcClient } from 'devframe/rpc/client'

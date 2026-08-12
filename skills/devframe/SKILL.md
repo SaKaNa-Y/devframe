@@ -170,7 +170,7 @@ declare module 'devframe' {
 
 ```ts
 // src/devframe.ts
-import { defineDevframe } from 'devframe/types'
+import { defineDevframe } from 'devframe'
 import pkg from '../package.json' with { type: 'json' }
 import { setMyToolContext } from './context'
 import { serverFunctions } from './rpc'
@@ -198,7 +198,7 @@ When per-file RPCs need access to runtime values that `setup(ctx)` constructs on
 
 ```ts
 // src/context.ts
-import type { DevframeNodeContext } from 'devframe/types'
+import type { DevframeNodeContext } from 'devframe'
 
 export interface MyToolContext {
   loaders: { list: () => Promise<string[]> }
@@ -554,7 +554,6 @@ Devframe re-exports a curated set of helpers under `devframe/utils/*`. They are 
 | `structuredClone{Serialize,Deserialize,Stringify,Parse}` from `devframe/utils/structured-clone` | `structured-clone-es` | JSON-safe round-trip of `Map` / `Set` / `Date` / `BigInt` / cycles |
 | `nanoid` from `devframe/utils/nanoid` | (vendored) | URL-safe random IDs |
 | `randomToken` / `randomDigits` / `timingSafeEqual` from `devframe/utils/crypto-token` | (native WebCrypto) | CSPRNG bearer tokens, one-time codes, constant-time compare |
-| `promiseWithResolver` from `devframe/utils/promise` | — | Externally-controlled `Promise` |
 | `createEventEmitter` from `devframe/utils/events` | — | Typed event bus |
 | `createSharedState` from `devframe/utils/shared-state` | (immer internal) | Immutable state container (see `ctx.rpc.sharedState`) |
 | `createStreamSink` / `createStreamReader` from `devframe/utils/streaming-channel` | — | Low-level streaming primitives |

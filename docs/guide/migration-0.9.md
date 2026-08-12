@@ -4,7 +4,7 @@ outline: deep
 
 # Migrating to 0.9
 
-0.9 removes the compatibility shims that were deprecated across the 0.7 series. Each removed export has a drop-in replacement that has shipped alongside it since 0.7, so migrating is a matter of updating import paths and a handful of call sites. This page covers the changes between 0.8.x and 0.9.
+0.9 removes the compatibility shims that were deprecated across the 0.7 series and trims the public API surface of `devframe` and `@devframes/hub` down to what integrations actually consume. Each change has a drop-in replacement, so migrating is a matter of updating import paths and a handful of call sites. This page covers the changes between 0.8.x and 0.9.
 
 ## `devframe/adapters/cli` is removed
 
@@ -96,3 +96,69 @@ const view = createJsonRenderView(ctx, {
 `createJsonRenderView` returns a view carrying a serializable `ref` (a shared-state key or an inline spec). Project it onto a hub dock with `toJsonRenderDockEntry` from `@devframes/json-render/hub`, which contributes the `'json-render'` dock type to the hub's open dock union. A dock entry now carries that serializable `view` ref rather than a live renderer handle — a client reads `entry.view.stateKey` (or `entry.view.spec`) to render it.
 
 See [JSON-Render](./json-render) for the full integration reference.
+
+## `defineDevframe` moves to the package root
+
+`defineDevframe` — the primary authoring helper — now lives on the `devframe` entry point alongside `defineRpcFunction`. `devframe/types` is now strictly type-only. Import both values and types from `devframe`:
+
+| 0.8.x | 0.9 |
+|-------|-----|
+| `import { defineDevframe } from 'devframe/types'` | `import { defineDevframe } from 'devframe'` |
+| `import type { DevframeNodeContext } from 'devframe/types'` | `import type { DevframeNodeContext } from 'devframe'` |
+
+```ts
+import type { DevframeNodeContext } from 'devframe'
+// 0.9
+import { defineDevframe, defineRpcFunction } from 'devframe'
+```
+
+`devframe/types` still resolves as the type-only subpath — useful for `declare module 'devframe/types'` augmentations — but `devframe` is the canonical import for both values and types.
+
+## `devframe/utils/{promise,scope}` are removed
+
+Two utility subpaths with no integration consumers are removed:
+
+| Removed | Replacement |
+|---------|-------------|
+| `import { promiseWithResolver } from 'devframe/utils/promise'` | `Promise.withResolvers()` (native) |
+| `import { isQualifiedName, qualifyName } from 'devframe/utils/scope'` | Inline the check (`name.includes(':')`) |
+
+The other `devframe/utils/*` helpers — `colors`, `open`, `launch-editor`, `hash`, `nanoid`, `crypto-token`, `structured-clone`, `events`, `shared-state`, `streaming-channel`, `when`, `simple-schema`, `serve-static`, `agent-tool-name` — are unchanged.
+
+## `devframe/node` is slimmed to the context surface
+
+`devframe/node` keeps just the context-building API — `createHostContext` (+ `CreateHostContextOptions`), `createStorage` (+ `CreateStorageOptions`), and the `RpcFunctionsHost` type. Serve a devframe through the adapters (`createDevServer`, `createBuild`, `createCac`) or [`devframe/initiate`](../adapters/initiate); build a context to embed one with `createHostContext`.
+
+The internal host implementations and low-level factories are no longer exported at all:
+
+| Removed from `devframe/node` | Notes |
+|---|---|
+| `DevframeDiagnosticsHost`, `DevframeServicesHostImpl`, `DevframeViewHost` (classes) | Internal host implementations. The same-named **types** remain on `devframe/types`. |
+| `createRpcSharedStateServerHost`, `createRpcStreamingServerHost` | Wired internally by `createContextRpcServer`. |
+| `createScopedNodeContext`, `createNodeSettings` | Internal to context assembly. |
+| `toDialableHost`, `formatHostForUrl`, `isObject` | Internal helpers (`isObject` is removed entirely — inline `typeof x === 'object' && x !== null`). |
+
+## Cross-package internals move to `devframe/internal`
+
+The low-level primitives shared between `devframe` and its first-party integrations (`@devframes/hub`, the inspect plugin, `@vitejs/devtools`, custom hosts) now live at the new `devframe/internal` entry point, which is explicitly **unstable** (it can change in any minor release). They were previously on `devframe/node`:
+
+| Moved | From | To |
+|---|---|---|
+| `createH3DevframeHost` (+ `CreateH3DevframeHostOptions`) | `devframe/node` | `devframe/internal` |
+| `startHttpAndWs` (+ `StartedServer`, `StartHttpAndWsOptions`) | `devframe/node` | `devframe/internal` |
+| `createContextRpcServer` (+ `ContextRpcServer`, `CreateContextRpcServerOptions`) | `devframe/node` | `devframe/internal` |
+| `DevframeAgentHost` (class) | `devframe/node` | `devframe/internal` |
+| `coerceAgentPositionalArgs` (+ `AgentArgsFallback`) | `devframe/node` | `devframe/internal` |
+| `registerDevframeInstance` / `listLiveDevframeInstances` (+ `DevframeInstanceRecord`, `DevframeInstanceRegistration`) | `devframe/node` | `devframe/internal` |
+| `normalizeHttpServerUrl` | `devframe/node` | `devframe/internal` |
+
+A host that stands up its own server composes from `devframe/internal` — `createH3DevframeHost` for the node `DevframeHost`, `startHttpAndWs` (or `createContextRpcServer` + `devframe/rpc/server` + `devframe/rpc/transports/*`) to bind a transport — plus `devframe/node`'s `createHostContext` and `devframe/node/hub-internals`. This is the path `@devframes/hub`'s `initHub` takes. A custom host advertises itself with `registerDevframeInstance`, and a devtool enumerates running instances with `listLiveDevframeInstances`. Application code should prefer the adapters and `devframe/initiate`.
+
+## `@devframes/hub` category order lives only on `/constants`
+
+`DEFAULT_CATEGORIES_ORDER` is now exported only from `@devframes/hub/constants` (its documented single source of truth). The redundant re-exports from `@devframes/hub`, `@devframes/hub/node`, and `@devframes/hub/client` are removed:
+
+```ts
+// 0.9
+import { DEFAULT_CATEGORIES_ORDER } from '@devframes/hub/constants'
+```
