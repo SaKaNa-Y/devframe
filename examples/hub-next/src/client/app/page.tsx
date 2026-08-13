@@ -57,7 +57,7 @@ function createClientNotesUrl(): string {
 </style>
 <h1>Client-only dock</h1>
 <p>This dock was registered in the browser with
-  <code>host.context.docks.register()</code>. It lives only in this page — it
+  <code>host.context.docks.register()</code>. It lives only in this page - it
   never enters the <code>devframe:docks</code> shared state, so it is not synced
   to the hub server or to any other connected viewer.</p>
 <p>Patch it live through the returned handle with <code>update()</code> (its
@@ -65,12 +65,12 @@ function createClientNotesUrl(): string {
   return URL.createObjectURL(new Blob([html], { type: 'text/html' }))
 }
 
-// An *interactive* json-render spec synthesized entirely in the browser — the
+// An *interactive* json-render spec synthesized entirely in the browser - the
 // client-only counterpart to a server-authored view. Interactivity needs no
 // server and no shared state: `{ $bindState }` inputs write straight into the
 // view's own `state`, `{ $state }` reads mirror it live, and the buttons use the
 // framework's built-in state actions (`pushState` / `setState`) to mutate that
-// state — every change re-renders through the mini React registry.
+// state - every change re-renders through the mini React registry.
 function createClientPlaygroundSpec(clientType: string): DevframeJsonRenderSpec {
   return {
     root: 'root',
@@ -172,7 +172,7 @@ function DockIcon({ entry }: { entry: DevframeDockEntry }) {
 // The hub serves both live transports (WS at `__ws`, SSE at `__sse`); the
 // client's `transport` option picks one, `auto` trusting the server's
 // advertisement. A closed client has no reconnect, so the toggle writes the
-// preference into the URL and reloads — the whole host boots on the chosen
+// preference into the URL and reloads - the whole host boots on the chosen
 // transport.
 
 const TRANSPORT_PREFS = ['auto', 'websocket', 'sse'] as const
@@ -232,7 +232,7 @@ export default function Page() {
         setStatus({ text: `Connected: transport=${rpc.transport}`, kind: 'ready' })
 
         // Boot the framework-level client host: it builds the shared client
-        // context and imports each dock's client script into this page — e.g.
+        // context and imports each dock's client script into this page - e.g.
         // the a11y inspector's in-page agent, which then scans this hub live.
         //
         // Register a mini React json-render renderer so the hub can display the
@@ -244,7 +244,7 @@ export default function Page() {
         hostRef.current = clientHost
         const ctx = clientHost.context
 
-        // Register a *client-only* dock — one this page synthesizes itself.
+        // Register a *client-only* dock - one this page synthesizes itself.
         // Unlike the server-authored docks, it's registered on the client host
         // context, so it never enters the `devframe:docks` shared state: it
         // stays local to this page and is not synced to the hub server or other
@@ -262,12 +262,12 @@ export default function Page() {
         // Patch it in place with the returned handle (the id is immutable).
         clientDock.update({ badge: ctx.clientType })
 
-        // Register a second client-only dock — this one a *json-render* view the
+        // Register a second client-only dock - this one a *json-render* view the
         // page authors itself, the richer sibling of the iframe dock above. Its
         // spec is carried **inline** in the dock entry (`view.spec`), so it needs
-        // no shared state at all: it lives only in this page yet renders — and
+        // no shared state at all: it lives only in this page yet renders - and
         // stays fully interactive (inputs, toggles, and buttons that mutate its
-        // state) — through the same `json-render` dock renderer (the mini React
+        // state) - through the same `json-render` dock renderer (the mini React
         // registry) as a server-authored view. `force` lets React StrictMode
         // re-run this effect safely.
         const clientJsonRenderDock = clientHost.context.docks.register<DevframeJsonRenderDockEntry>({
@@ -290,7 +290,7 @@ export default function Page() {
 
         // Mirror the merged dock list (server docks + client-only docks) and the
         // host's current selection into React state. Selection is owned by the
-        // client host (`switchEntry`) — that is what lets the frame-nav adapter
+        // client host (`switchEntry`) - that is what lets the frame-nav adapter
         // hear a dock's `entry:activated` and drive shared-frame soft-navigation.
         const syncDocks = () => setDocks([...ctx.docks.entries])
         const syncSelected = () => setSelectedDockId(ctx.docks.selectedId)
@@ -370,8 +370,8 @@ export default function Page() {
 
   const renderableDocks = useMemo(() => docks.filter(isRenderableDock), [docks])
 
-  // Wire each dock's state once so a selection change — from a click, or from
-  // the frame-nav adapter reacting to in-frame navigation — updates the UI.
+  // Wire each dock's state once so a selection change - from a click, or from
+  // the frame-nav adapter reacting to in-frame navigation - updates the UI.
   useEffect(() => {
     const ctx = hostRef.current?.context
     if (!ctx)

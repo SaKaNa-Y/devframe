@@ -121,7 +121,7 @@ export const alias = {
   '@devframes/plugin-assets': p('assets/src/index.ts'),
 }
 
-// update tsconfig.base.json — CSS aliases exist for Vite resolution only;
+// update tsconfig.base.json - CSS aliases exist for Vite resolution only;
 // TypeScript resolves `*.css` side-effect imports through ambient shims.
 const raw = fs.readFileSync(join(root, 'tsconfig.base.json'), 'utf-8').trim()
 const tsconfig = JSON.parse(raw)

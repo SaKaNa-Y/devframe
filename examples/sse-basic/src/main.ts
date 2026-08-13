@@ -18,7 +18,7 @@ async function main() {
   // response body brings the result back.
   uptimeEl.textContent = `${await (rpc.call as any)('sse-basic:uptime')}s`
 
-  // Server → client: shared state synced over the SSE event stream — the
+  // Server → client: shared state synced over the SSE event stream - the
   // clock ticks without this page ever polling.
   const clock = await rpc.sharedState.get<{ now: string }>('sse-basic:clock')
   const renderClock = () => {

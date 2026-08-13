@@ -6,7 +6,7 @@ import { baseCatalog } from '@devframes/json-render'
 import { defineRegistry, useBoundProp } from '@json-render/react'
 import { useEffect, useState } from 'react'
 
-// A deliberately small **React** implementation of the base catalog — the
+// A deliberately small **React** implementation of the base catalog - the
 // "registry replacement" path from the JSON-render plan: a React host renders a
 // server-authored spec with its own components instead of the Vue reference
 // frontend (@devframes/json-render-ui). Styling uses the same @antfu/design

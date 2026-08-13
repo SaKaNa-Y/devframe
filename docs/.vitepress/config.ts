@@ -128,7 +128,7 @@ export function devframeNav(prefix = ''): DefaultTheme.NavItem[] {
       text: 'Guide',
       items: [
         ...guideItems(prefix),
-        { text: 'Examples', items: examplesItems(prefix) },
+        { text: 'Examples', link: `${prefix}/examples/` },
       ],
     },
     {

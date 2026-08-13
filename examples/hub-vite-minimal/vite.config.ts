@@ -6,7 +6,7 @@ import { createMessagesDevframe } from '@devframes/plugin-messages'
 import { defineConfig } from 'vite'
 
 // The one mount base, referenced by both `initHub({ base })` and the injected
-// embedded-script URL — no duplicated string literal.
+// embedded-script URL - no duplicated string literal.
 const base = DEVFRAMES_HUB_BASE
 
 // The minimal Vite host: one `initHub()` call mounted as connect middleware
@@ -25,7 +25,7 @@ export default defineConfig({
     apply: 'serve',
     configureServer(server) {
       // Share Vite's own HTTP server for the WS upgrade at
-      // `/__devframes/__ws` — zero extra ports. Only a plain-HTTP dev server
+      // `/__devframes/__ws` - zero extra ports. Only a plain-HTTP dev server
       // qualifies (an https/http2 one isn't a `node:http` server), so an
       // auto-port side-car covers the rest; either way the browser finds the
       // socket through `__connection.json`.
@@ -45,7 +45,7 @@ export default defineConfig({
       // the host page and its assets while the hub owns `/__devframes/*`.
       server.middlewares.use(hub.nodeMiddleware)
     },
-    // Inject the floating-dock bootstrap into the host page — one dev-only
+    // Inject the floating-dock bootstrap into the host page - one dev-only
     // module script, the whole embedded integration.
     transformIndexHtml() {
       return [{

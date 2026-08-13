@@ -38,7 +38,7 @@ function setStatus(text: string, kind?: 'ready' | 'error') {
 // The hub serves both live transports (WS at `__ws`, SSE at `__sse`); the
 // client's `transport` option picks one, `auto` trusting the server's
 // advertisement. A closed client has no reconnect, so the toggle writes the
-// preference into the URL and reloads — the whole host boots on the chosen
+// preference into the URL and reloads - the whole host boots on the chosen
 // transport.
 
 const TRANSPORT_PREFS = ['auto', 'websocket', 'sse'] as const
@@ -79,7 +79,7 @@ function renderList<T>(host: HTMLElement, items: readonly T[], render: (item: T)
 }
 
 // Session-lifetime cache of resolved dock-icon SVGs, keyed by the icon id
-// (e.g. `ph:git-branch-duotone`) — `dockIconSvg` itself caches per fetch, this
+// (e.g. `ph:git-branch-duotone`) - `dockIconSvg` itself caches per fetch, this
 // just lets a re-render (e.g. a badge update) paint an already-resolved icon
 // synchronously instead of flashing the fallback initial again.
 const dockIconCache = new Map<string, string | null>()
@@ -100,7 +100,7 @@ function dockIcon(entry: DevframeDockEntry): string {
 
 /**
  * Resolve (and cache) each unresolved dock's icon SVG, then patch just that
- * dock's `[data-dock-icon]` element in place — no full re-render, since the
+ * dock's `[data-dock-icon]` element in place - no full re-render, since the
  * fetch is async and the dock list may already be showing by the time it
  * settles. A dock with no icon or an unparsable/failed fetch keeps its
  * fallback initial.
@@ -146,7 +146,7 @@ function createClientNotesUrl(): string {
 </style>
 <h1>Client-only dock</h1>
 <p>This dock was registered in the browser with
-  <code>host.context.docks.register()</code>. It lives only in this page — it
+  <code>host.context.docks.register()</code>. It lives only in this page - it
   never enters the <code>devframe:docks</code> shared state, so it is not synced
   to the hub server or to any other connected viewer.</p>
 <p>Patch it live through the returned handle with <code>update()</code> (its
@@ -154,12 +154,12 @@ function createClientNotesUrl(): string {
   return URL.createObjectURL(new Blob([html], { type: 'text/html' }))
 }
 
-// An *interactive* json-render spec synthesized entirely in the browser — the
+// An *interactive* json-render spec synthesized entirely in the browser - the
 // client-only counterpart to a server-authored view. Interactivity needs no
 // server and no shared state: `{ $bindState }` inputs write straight into the
 // view's own `state`, `{ $state }` reads mirror it live, and the buttons use the
 // framework's built-in state actions (`pushState` / `setState`) to mutate that
-// state — every change re-renders through the same `createJsonRenderDockRenderer`.
+// state - every change re-renders through the same `createJsonRenderDockRenderer`.
 function createClientPlaygroundSpec(clientType: string): DevframeJsonRenderSpec {
   return {
     root: 'root',
@@ -238,7 +238,7 @@ async function main() {
   transportEl.textContent = `Connected over ${rpc.transport} (${transportPref === 'auto' ? 'auto-selected' : 'pinned'})`
 
   // Boot the framework-level client host: it builds the shared client context
-  // and imports each dock's client script into this page — e.g. the a11y
+  // and imports each dock's client script into this page - e.g. the a11y
   // inspector's in-page agent, which then scans this host live. The dock UI
   // below still reads the same shared state directly.
   //
@@ -249,7 +249,7 @@ async function main() {
     renderers: { 'json-render': createJsonRenderDockRenderer() },
   })
 
-  // Register a *client-only* dock — one this page synthesizes itself. Unlike
+  // Register a *client-only* dock - one this page synthesizes itself. Unlike
   // the server-authored docks, it's registered on the client host context, so
   // it never enters the `devframe:docks` shared state: it stays local to this
   // page and is not synced to the hub server or other viewers. It merges into
@@ -266,11 +266,11 @@ async function main() {
   // `clientDock.dispose()` to remove it from the merged list again.
   clientDock.update({ badge: host.context.clientType })
 
-  // Register a second client-only dock — this one a *json-render* view the page
+  // Register a second client-only dock - this one a *json-render* view the page
   // authors itself, the richer sibling of the iframe dock above. Its spec is
   // carried **inline** in the dock entry (`view.spec`), so it needs no shared
-  // state at all: it lives only in this page yet renders — and stays fully
-  // interactive (inputs, toggles, and buttons that mutate its state) — through
+  // state at all: it lives only in this page yet renders - and stays fully
+  // interactive (inputs, toggles, and buttons that mutate its state) - through
   // the very same `json-render` dock renderer registered above as a
   // server-authored view.
   host.context.docks.register<DevframeJsonRenderDockEntry>({
@@ -282,7 +282,7 @@ async function main() {
     category: 'app',
   })
 
-  // 1. Docks — the merged list from the client host: server docks (projected
+  // 1. Docks - the merged list from the client host: server docks (projected
   // from `devframe:docks` shared state) plus the client-only docks above and
   // any the frame-nav adapter materializes for a shared-frame anchor.
   const docks = await rpc.sharedState.get<DevframeDockEntry[]>(
@@ -297,7 +297,7 @@ async function main() {
 
   // Keep-alive iframe pool: one iframe per `frameId` (shared-frame docks) or per
   // dock id (plain iframe docks). Switching docks toggles visibility instead of
-  // reloading — and shared-frame member docks reuse the same element, soft-
+  // reloading - and shared-frame member docks reuse the same element, soft-
   // navigating via the adapter rather than re-`src`-ing.
   const iframePool = new Map<string, HTMLIFrameElement>()
   const frameKeyOf = (e: DevframeDockEntry): string =>
@@ -418,7 +418,7 @@ async function main() {
   })
   render()
 
-  // 2. Commands — read from `devframe:commands` shared state.
+  // 2. Commands - read from `devframe:commands` shared state.
   const commands = await rpc.sharedState.get<DevframeCommandEntry[]>(
     'devframe:commands',
     { initialValue: [] },
@@ -428,7 +428,7 @@ async function main() {
   commands.on('updated', renderCommands)
   renderCommands()
 
-  // 3. Messages — pulled via a kit-local RPC. A fuller kit would also
+  // 3. Messages - pulled via a kit-local RPC. A fuller kit would also
   //    register a client-side RPC handler for `devframe:messages:updated`
   //    to refresh on broadcast; this minimal example polls instead.
   const refreshMessages = async () => {
@@ -440,7 +440,7 @@ async function main() {
   }
   await refreshMessages()
 
-  // 4. Terminals — same pattern as messages.
+  // 4. Terminals - same pattern as messages.
   const refreshTerminals = async () => {
     const sessions = await rpc.call(
       'example:vite-devframe-hub:terminals:list' as any,

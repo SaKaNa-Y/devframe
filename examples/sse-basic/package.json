@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.8.2",
   "private": true,
-  "description": "Minimal SSE-only devframe — `ws: false`, every RPC frame over plain HTTP at `__sse`, no WebSocket anywhere.",
+  "description": "Minimal devframe that carries every RPC frame over plain HTTP with SSE.",
   "homepage": "https://github.com/devframes/devframe/tree/main/examples/sse-basic",
   "scripts": {
     "dev": "vite",

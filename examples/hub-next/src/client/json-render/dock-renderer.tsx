@@ -9,7 +9,7 @@ import { useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { baseReactRegistry, ERROR_COMPONENT_TYPE } from './registry'
 
-// Built-ins handled inside upstream's ActionProvider — never bridged to RPC.
+// Built-ins handled inside upstream's ActionProvider - never bridged to RPC.
 const RESERVED = new Set(['setState', 'pushState', 'removeState', 'validateForm', 'then', 'catch', 'finally'])
 
 /**

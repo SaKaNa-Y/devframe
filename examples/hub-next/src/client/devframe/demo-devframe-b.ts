@@ -12,7 +12,7 @@ export default defineDevframe({
   version: pkg.version,
   packageName: pkg.name,
   homepage: pkg.homepage,
-  description: 'A second demo devframe — proves the dock switcher has more than one option.',
+  description: 'A second demo devframe - proves the dock switcher has more than one option.',
   icon: 'ph:wrench-duotone',
   basePath: '/__next-demo-tool-b/',
   cli: {
@@ -32,7 +32,7 @@ export default defineDevframe({
     await ctx.messages.add({
       level: 'info',
       message: 'Second Next demo devframe loaded',
-      description: 'A second devframe in the hub `devframes` list — proves the switcher has more than one option.',
+      description: 'A second devframe in the hub `devframes` list - proves the switcher has more than one option.',
     })
   },
 })

@@ -7,7 +7,7 @@ import { DEVFRAMES_HUB_BASE, initHub } from '@devframes/hub/initiate'
 // (SPA assets, the embedded/viewer bundles) via `new URL('../dist/...',
 // import.meta.url)`. Loaded with a runtime dynamic `import()` carrying
 // `webpackIgnore` / `turbopackIgnore` so Next's bundler leaves them alone and
-// Node resolves the published `dist` at request time — a static import would
+// Node resolves the published `dist` at request time - a static import would
 // be bundled from source and break those lookups.
 async function loadHub(): Promise<HubInstance> {
   const [hubUi, inspect, messages] = await Promise.all([

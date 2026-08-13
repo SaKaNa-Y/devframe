@@ -5,7 +5,7 @@ import { defineConfig } from 'vite'
 import { alias } from '../../alias'
 
 // The whole devframe: two RPC functions and a shared-state clock. `ws: false`
-// makes it SSE-only — the instance binds no WebSocket, advertises
+// makes it SSE-only - the instance binds no WebSocket, advertises
 // `backend: 'sse'`, and every RPC frame rides plain HTTP at `<base>__sse`.
 const devframe = defineDevframe({
   id: 'sse-basic',
@@ -32,7 +32,7 @@ const devframe = defineDevframe({
     })
 
     // A server-driven clock: each tick streams to every client over the SSE
-    // event stream — the server→client half of the transport.
+    // event stream - the server→client half of the transport.
     const clock = await ctx.rpc.sharedState.get<{ now: string }>('sse-basic:clock', {
       initialValue: { now: new Date().toLocaleTimeString() },
     })
