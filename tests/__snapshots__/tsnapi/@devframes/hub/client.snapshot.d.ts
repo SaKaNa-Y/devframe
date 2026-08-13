@@ -11,6 +11,12 @@ export interface CommandsContext {
   settings: SharedState<DevframeDocksUserSettings>;
   paletteOpen: boolean;
 }
+export interface CreateDockRenderersContextOptions {
+  context: () => DevframeClientContext;
+  local?: Record<string, DockRenderer<any>>;
+  manifest?: () => DockRendererManifest;
+  onMounted?: (_: () => void, _: DevframeDockEntry) => (() => void) | void;
+}
 export interface DevframeClientHost {
   context: DevframeClientContext;
   dispose: () => void;
@@ -20,7 +26,7 @@ export interface DevframeClientHostOptions {
   connect?: DevframeRpcClientOptions;
   clientType?: DockClientType;
   loadClientScripts?: boolean;
-  renderers?: Record<string, DockRenderer>;
+  renderers?: Record<string, DockRenderer<any>>;
   categoryOrder?: Record<string, number>;
 }
 export interface DockClientScriptContext extends DocksContext {
@@ -60,16 +66,16 @@ export interface DockRegistration<T extends DevframeDockEntry = DevframeDockEntr
 export interface DockRendererInstance {
   dispose?: () => void;
 }
-export interface DockRendererMountOptions {
-  entry: DevframeDockEntry;
+export interface DockRendererMountOptions<Entry extends DevframeDockEntry = DevframeDockEntry> {
+  entry: Entry;
   container: HTMLElement;
   context: DevframeClientContext;
 }
 export interface DockRenderersContext {
-  register: (_: string, _: DockRenderer) => () => void;
+  register: (_: string, _: DockRenderer<any>) => () => void;
   get: (_: string) => DockRenderer | undefined;
   has: (_: string) => boolean;
-  mount: (_: DevframeDockEntry, _: HTMLElement) => Promise<() => void>;
+  mount: (_: DevframeDockEntry, _: HTMLElement) => Promise<DockRendererMountResult>;
 }
 export interface DocksConnectionContext {
   readonly status: DevframeConnectionStatus;
@@ -152,7 +158,17 @@ export interface WhenClauseContext {
 export type ConnectRemoteDevframeOptions = Omit<DevframeRpcClientOptions, 'connectionMeta' | 'authToken'>;
 export type DevframeClientContext = DocksContext;
 export type DockClientType = 'embedded' | 'standalone';
-export type DockRenderer = (_: DockRendererMountOptions) => DockRendererInstance | Promise<DockRendererInstance>;
+export type DockRenderer<Entry extends DevframeDockEntry = DevframeDockEntry> = (_: DockRendererMountOptions<Entry>) => DockRendererInstance | Promise<DockRendererInstance>;
+export type DockRendererManifest = Record<string, ClientScriptEntry>;
+export type DockRendererMountResult = {
+  status: 'mounted';
+  dispose: () => void;
+} | {
+  status: 'missing-renderer';
+} | {
+  status: 'load-error';
+  error: unknown;
+};
 export type FrameNavFrameMessage = FrameNavEnvelope & {
   from: 'frame';
 } & ({
@@ -185,6 +201,7 @@ export declare function attachFrameNavClient(_: FrameNavClientOptions): FrameNav
 export declare function buildRemoteDevframeUrl(_: string, _: DevframeConnection): string;
 export declare function connectRemoteDevframe(_?: ConnectRemoteDevframeOptions): Promise<DevframeRpcClient>;
 export declare function createDevframeClientHost(_?: DevframeClientHostOptions): Promise<DevframeClientHost>;
+export declare function createDockRenderersContext(_: CreateDockRenderersContextOptions): DockRenderersContext;
 export declare function createMessagesClient(_: DevframeRpcClient, _?: MessagesClientOptions): DevframeMessagesClient;
 export declare function getDevframeClientContext(): DevframeClientContext | undefined;
 export declare function parseRemoteConnection(_?: string): RemoteConnectionInfo | null;

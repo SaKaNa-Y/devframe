@@ -14,7 +14,7 @@ pnpm --filter hub-next dev
 Open the printed URL. The dock on the left lists every mounted tool with its icon:
 
 - **Git**, **Terminals**, **Code Server**, **RPC & State Inspector**, **A11y Inspector** - the built-in plugins, each an entry in `initHub`'s `devframes` list
-- **Next Demo Tool** / **Next Demo Tool B** - two trivial static SPAs that show the bare mount path
+- **Next Demo Tool** - a trivial static SPA that shows the bare mount path
 
 Selecting a tool loads its SPA in the stage. The bottom drawer mirrors the hub's **Commands**, **Messages**, and **Terminals** subsystems, plus a button that dispatches a command through `hub:commands:execute`, and a **Transport** section showing which RPC transport the connection runs on (`websocket` or `sse`) with a segmented Auto / WS / SSE toggle - the choice rides a `?transport=` URL param and reconnects the whole client host on the pinned transport.
 
@@ -42,6 +42,8 @@ The instance is memoized on `globalThis`, so Next's dev-time module re-evaluatio
 - Every `devframes` entry is mounted as a dock and served at `/__devframes/<id>/` with its own `__connection.json`, so the embedded SPA connects straight back to the hub
 - The browser reads `devframe:docks` / `devframe:commands` shared state and dispatches commands over RPC - byte-for-byte the same protocol the Vite host speaks
 - `createDevframeClientHost()` boots the hub's framework-level client runtime in the host page: it publishes the shared client context and imports each dock's `clientScript` (here, the a11y agent) so plugins run code in the page being inspected
+- The **JSON Render** dock renders through a **local React renderer** (`src/client/json-render/react-renderer.tsx` - a compact React port of the base catalog) registered at `createDevframeClientHost({ renderers })`. The hub *also* publishes the reference Vue frontend through its renderer manifest (`renderers: [jsonRenderUiRenderer()]` on `initHub`), but local registration takes precedence - witnessing that any frontend implementing the `JsonRenderDockRenderer` contract can replace the reference one. Delete the local `renderers` option and the same dock renders via the manifest-served module instead. (The sibling `hub-vite` witness ships no local renderer and consumes the manifest directly - the other side of the swap seam.)
+- The **No Renderer** dock witnesses the missing-renderer path: its type is covered by nothing, so `renderers.mount()` resolves `{ status: 'missing-renderer' }` and the shell shows *No renderer for "demo-unrendered" in the current environment* instead of a dead panel
 
 ## Hosting built-in plugins in a bundler
 
@@ -51,7 +53,8 @@ The plugins run node-side (child processes, the native `zigpty` PTY backend) and
 
 | File | Role |
 |---|---|
-| `src/client/devframe/next-devframe-hub.ts` | The Next host - one `initHub()` call: devframes (incl. the a11y agent's dock `clientScript`), hub RPCs, commands, the json-render dock, instance-registry registration |
+| `src/client/devframe/next-devframe-hub.ts` | The Next host - one `initHub()` call: devframes (incl. the a11y agent's dock `clientScript`), hub RPCs, commands, the json-render dock + renderer manifest, instance-registry registration |
+| `src/client/devframe/unrendered-dock.ts` | A dock type registered with no renderer on purpose - the missing-renderer fallback witness |
 | `src/client/app/%5F_devframes/[[...path]]/route.ts` | The one catch-all - delegates every `/__devframes/*` request to the instance's `handler` |
 | `src/client/app/page.tsx` | The browser UI that consumes the hub protocol |
 | `src/client/app/icons.ts` | Offline Phosphor icons for the dock |

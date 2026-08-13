@@ -555,12 +555,33 @@ importers:
       '@devframes/hub-ui':
         specifier: workspace:*
         version: link:../../packages/hub-ui
+      '@devframes/plugin-a11y':
+        specifier: workspace:*
+        version: link:../../plugins/a11y
+      '@devframes/plugin-assets':
+        specifier: workspace:*
+        version: link:../../plugins/assets
+      '@devframes/plugin-code-server':
+        specifier: workspace:*
+        version: link:../../plugins/code-server
+      '@devframes/plugin-data-inspector':
+        specifier: workspace:*
+        version: link:../../plugins/data-inspector
+      '@devframes/plugin-git':
+        specifier: workspace:*
+        version: link:../../plugins/git
       '@devframes/plugin-inspect':
         specifier: workspace:*
         version: link:../../plugins/inspect
       '@devframes/plugin-messages':
         specifier: workspace:*
         version: link:../../plugins/messages
+      '@devframes/plugin-og':
+        specifier: workspace:*
+        version: link:../../plugins/og
+      '@devframes/plugin-terminals':
+        specifier: workspace:*
+        version: link:../../plugins/terminals
       '@hono/node-server':
         specifier: catalog:deps
         version: 1.19.17(hono@4.13.1)
@@ -589,6 +610,9 @@ importers:
       '@devframes/json-render':
         specifier: workspace:*
         version: link:../../packages/json-render
+      '@devframes/json-render-ui':
+        specifier: workspace:*
+        version: link:../../packages/json-render-ui
       '@devframes/next':
         specifier: workspace:*
         version: link:../../packages/next
@@ -601,6 +625,9 @@ importers:
       '@devframes/plugin-code-server':
         specifier: workspace:*
         version: link:../../plugins/code-server
+      '@devframes/plugin-data-inspector':
+        specifier: workspace:*
+        version: link:../../plugins/data-inspector
       '@devframes/plugin-git':
         specifier: workspace:*
         version: link:../../plugins/git
@@ -610,6 +637,9 @@ importers:
       '@devframes/plugin-messages':
         specifier: workspace:*
         version: link:../../plugins/messages
+      '@devframes/plugin-og':
+        specifier: workspace:*
+        version: link:../../plugins/og
       '@devframes/plugin-terminals':
         specifier: workspace:*
         version: link:../../plugins/terminals
@@ -674,15 +704,42 @@ importers:
       '@devframes/hub-ui':
         specifier: workspace:*
         version: link:../../packages/hub-ui
+      '@devframes/json-render':
+        specifier: workspace:*
+        version: link:../../packages/json-render
+      '@devframes/json-render-ui':
+        specifier: workspace:*
+        version: link:../../packages/json-render-ui
       '@devframes/next':
         specifier: workspace:*
         version: link:../../packages/next
+      '@devframes/plugin-a11y':
+        specifier: workspace:*
+        version: link:../../plugins/a11y
+      '@devframes/plugin-assets':
+        specifier: workspace:*
+        version: link:../../plugins/assets
+      '@devframes/plugin-code-server':
+        specifier: workspace:*
+        version: link:../../plugins/code-server
+      '@devframes/plugin-data-inspector':
+        specifier: workspace:*
+        version: link:../../plugins/data-inspector
+      '@devframes/plugin-git':
+        specifier: workspace:*
+        version: link:../../plugins/git
       '@devframes/plugin-inspect':
         specifier: workspace:*
         version: link:../../plugins/inspect
       '@devframes/plugin-messages':
         specifier: workspace:*
         version: link:../../plugins/messages
+      '@devframes/plugin-og':
+        specifier: workspace:*
+        version: link:../../plugins/og
+      '@devframes/plugin-terminals':
+        specifier: workspace:*
+        version: link:../../plugins/terminals
       devframe:
         specifier: workspace:*
         version: link:../../packages/devframe
@@ -711,12 +768,33 @@ importers:
       '@devframes/hub-ui':
         specifier: workspace:*
         version: link:../../packages/hub-ui
+      '@devframes/plugin-a11y':
+        specifier: workspace:*
+        version: link:../../plugins/a11y
+      '@devframes/plugin-assets':
+        specifier: workspace:*
+        version: link:../../plugins/assets
+      '@devframes/plugin-code-server':
+        specifier: workspace:*
+        version: link:../../plugins/code-server
+      '@devframes/plugin-data-inspector':
+        specifier: workspace:*
+        version: link:../../plugins/data-inspector
+      '@devframes/plugin-git':
+        specifier: workspace:*
+        version: link:../../plugins/git
       '@devframes/plugin-inspect':
         specifier: workspace:*
         version: link:../../plugins/inspect
       '@devframes/plugin-messages':
         specifier: workspace:*
         version: link:../../plugins/messages
+      '@devframes/plugin-og':
+        specifier: workspace:*
+        version: link:../../plugins/og
+      '@devframes/plugin-terminals':
+        specifier: workspace:*
+        version: link:../../plugins/terminals
       devframe:
         specifier: workspace:*
         version: link:../../packages/devframe
@@ -736,12 +814,39 @@ importers:
       '@devframes/hub-ui':
         specifier: workspace:*
         version: link:../../packages/hub-ui
+      '@devframes/json-render':
+        specifier: workspace:*
+        version: link:../../packages/json-render
+      '@devframes/json-render-ui':
+        specifier: workspace:*
+        version: link:../../packages/json-render-ui
+      '@devframes/plugin-a11y':
+        specifier: workspace:*
+        version: link:../../plugins/a11y
+      '@devframes/plugin-assets':
+        specifier: workspace:*
+        version: link:../../plugins/assets
+      '@devframes/plugin-code-server':
+        specifier: workspace:*
+        version: link:../../plugins/code-server
+      '@devframes/plugin-data-inspector':
+        specifier: workspace:*
+        version: link:../../plugins/data-inspector
+      '@devframes/plugin-git':
+        specifier: workspace:*
+        version: link:../../plugins/git
       '@devframes/plugin-inspect':
         specifier: workspace:*
         version: link:../../plugins/inspect
       '@devframes/plugin-messages':
         specifier: workspace:*
         version: link:../../plugins/messages
+      '@devframes/plugin-og':
+        specifier: workspace:*
+        version: link:../../plugins/og
+      '@devframes/plugin-terminals':
+        specifier: workspace:*
+        version: link:../../plugins/terminals
       devframe:
         specifier: workspace:*
         version: link:../../packages/devframe
@@ -806,16 +911,10 @@ importers:
       json-render:
         specifier: workspace:*
         version: link:../json-render
-      vue:
-        specifier: catalog:frontend
-        version: 3.5.41(typescript@6.0.3)
     devDependencies:
       '@iconify-json/ph':
         specifier: catalog:frontend
         version: 1.2.2
-      '@vitejs/plugin-vue':
-        specifier: catalog:build
-        version: 6.0.8(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(tsx@4.23.12)(yaml@2.9.0))(vue@3.5.41(typescript@6.0.3))
       pathe:
         specifier: catalog:deps
         version: 2.0.3
@@ -834,12 +933,39 @@ importers:
       '@devframes/hub-ui':
         specifier: workspace:*
         version: link:../../packages/hub-ui
+      '@devframes/json-render':
+        specifier: workspace:*
+        version: link:../../packages/json-render
+      '@devframes/json-render-ui':
+        specifier: workspace:*
+        version: link:../../packages/json-render-ui
+      '@devframes/plugin-a11y':
+        specifier: workspace:*
+        version: link:../../plugins/a11y
+      '@devframes/plugin-assets':
+        specifier: workspace:*
+        version: link:../../plugins/assets
+      '@devframes/plugin-code-server':
+        specifier: workspace:*
+        version: link:../../plugins/code-server
+      '@devframes/plugin-data-inspector':
+        specifier: workspace:*
+        version: link:../../plugins/data-inspector
+      '@devframes/plugin-git':
+        specifier: workspace:*
+        version: link:../../plugins/git
       '@devframes/plugin-inspect':
         specifier: workspace:*
         version: link:../../plugins/inspect
       '@devframes/plugin-messages':
         specifier: workspace:*
         version: link:../../plugins/messages
+      '@devframes/plugin-og':
+        specifier: workspace:*
+        version: link:../../plugins/og
+      '@devframes/plugin-terminals':
+        specifier: workspace:*
+        version: link:../../plugins/terminals
       devframe:
         specifier: workspace:*
         version: link:../../packages/devframe
@@ -1137,12 +1263,6 @@ importers:
       '@iconify-json/ph':
         specifier: catalog:frontend
         version: 1.2.2
-      '@json-render/core':
-        specifier: catalog:deps
-        version: 0.19.0(zod@4.4.3)
-      '@json-render/vue':
-        specifier: catalog:frontend
-        version: 0.19.0(vue@3.5.41(typescript@5.9.3))(zod@4.4.3)
       '@storybook/addon-docs':
         specifier: catalog:storybook
         version: 10.5.7(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.0)(rollup@4.60.3)(storybook@10.5.7(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(tsx@4.23.12)(yaml@2.9.0))
@@ -1232,6 +1352,9 @@ importers:
       '@antfu/design':
         specifier: catalog:frontend
         version: 0.3.4(@antfu/utils@9.3.0)(@iconify-json/catppuccin@1.2.17)(@tanstack/vue-virtual@3.13.30(vue@3.5.41(typescript@6.0.3)))(@unocss/core@66.7.5)(colorjs.io@0.6.1)(dompurify@3.4.13)(floating-vue@5.2.2(vue@3.5.41(typescript@6.0.3)))(playwright@1.62.1)(reka-ui@2.10.3(vue@3.5.41(typescript@6.0.3)))(splitpanes@4.1.2(vue@3.5.41(typescript@6.0.3)))(unocss@66.7.5(@unocss/postcss@66.7.5(postcss@8.5.26))(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(tsx@4.23.12)(yaml@2.9.0)))(vue@3.5.41(typescript@6.0.3))
+      '@devframes/hub':
+        specifier: workspace:*
+        version: link:../hub
       '@devframes/json-render':
         specifier: workspace:*
         version: link:../json-render
@@ -1247,6 +1370,9 @@ importers:
       '@unocss/preset-icons':
         specifier: catalog:frontend
         version: 66.7.5
+      '@unocss/reset':
+        specifier: catalog:frontend
+        version: 66.7.5
       '@vitejs/plugin-vue':
         specifier: catalog:build
         version: 6.0.8(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(tsx@4.23.12)(yaml@2.9.0))(vue@3.5.41(typescript@6.0.3))
@@ -1256,9 +1382,15 @@ importers:
       storybook:
         specifier: catalog:storybook
         version: 10.5.7(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      tinyglobby:
+        specifier: catalog:deps
+        version: 0.2.17
       tsdown:
         specifier: catalog:build
         version: 0.22.14(@volar/typescript@2.4.28(typescript@6.0.3))(oxc-resolver@11.24.2)(tsx@4.23.12)(typescript@6.0.3)
+      tsx:
+        specifier: catalog:build
+        version: 4.23.12
       unocss:
         specifier: catalog:frontend
         version: 66.7.5(@unocss/postcss@66.7.5(postcss@8.5.26))(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(tsx@4.23.12)(yaml@2.9.0))
@@ -10595,10 +10727,10 @@ snapshots:
       '@babel/helper-compilation-targets': 7.28.6
       '@babel/helper-module-transforms': 7.28.6(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2)
       '@babel/helpers': 7.29.2
-      '@babel/parser': 7.29.7
+      '@babel/parser': 7.29.8
       '@babel/template': 7.29.7
       '@babel/traverse': 7.29.7(supports-color@10.2.2)
-      '@babel/types': 7.29.7
+      '@babel/types': 7.29.8
       '@jridgewell/remapping': 2.3.5
       convert-source-map: 2.0.0
       debug: 4.4.3(supports-color@10.2.2)
@@ -10610,8 +10742,8 @@ snapshots:
 
   '@babel/generator@7.29.7':
     dependencies:
-      '@babel/parser': 7.29.7
-      '@babel/types': 7.29.7
+      '@babel/parser': 7.29.8
+      '@babel/types': 7.29.8
       '@jridgewell/gen-mapping': 0.3.13
       '@jridgewell/trace-mapping': 0.3.31
       jsesc: 3.1.0
@@ -10666,7 +10798,7 @@ snapshots:
   '@babel/helper-module-imports@7.28.6(supports-color@10.2.2)':
     dependencies:
       '@babel/traverse': 7.29.7(supports-color@10.2.2)
-      '@babel/types': 7.29.7
+      '@babel/types': 7.29.8
     transitivePeerDependencies:
       - supports-color
 
@@ -10714,7 +10846,7 @@ snapshots:
   '@babel/helpers@7.29.2':
     dependencies:
       '@babel/template': 7.29.7
-      '@babel/types': 7.29.7
+      '@babel/types': 7.29.8
 
   '@babel/parser@7.29.7':
     dependencies:
@@ -10772,17 +10904,17 @@ snapshots:
   '@babel/template@7.29.7':
     dependencies:
       '@babel/code-frame': 7.29.7
-      '@babel/parser': 7.29.7
-      '@babel/types': 7.29.7
+      '@babel/parser': 7.29.8
+      '@babel/types': 7.29.8
 
   '@babel/traverse@7.29.7(supports-color@10.2.2)':
     dependencies:
       '@babel/code-frame': 7.29.7
       '@babel/generator': 7.29.7
       '@babel/helper-globals': 7.29.7
-      '@babel/parser': 7.29.7
+      '@babel/parser': 7.29.8
       '@babel/template': 7.29.7
-      '@babel/types': 7.29.7
+      '@babel/types': 7.29.8
       debug: 4.4.3(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
@@ -10831,7 +10963,7 @@ snapshots:
 
   '@devframes/hub@0.7.14(devframe@packages+devframe)':
     dependencies:
-      birpc: 4.0.0
+      birpc: 4.1.0
       destr: 2.0.5
       devframe: link:packages/devframe
       nostics: 1.2.0
@@ -11492,12 +11624,6 @@ snapshots:
       react: 19.2.8
     transitivePeerDependencies:
       - zod
-
-  '@json-render/vue@0.19.0(vue@3.5.41(typescript@5.9.3))(zod@4.4.3)':
-    dependencies:
-      '@json-render/core': 0.19.0(zod@4.4.3)
-      vue: 3.5.41(typescript@5.9.3)
-      zod: 4.4.3
 
   '@json-render/vue@0.19.0(vue@3.5.41(typescript@6.0.3))(zod@4.4.3)':
     dependencies:
@@ -13914,7 +14040,7 @@ snapshots:
       local-pkg: 1.2.1
       mlly: 1.8.2
       nostics: 1.2.0
-      nypm: 0.6.8
+      nypm: 0.6.9
       vite: 8.2.1(@types/node@26.2.0)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(tsx@4.23.12)(yaml@2.9.0)
     optional: true
 
@@ -14136,7 +14262,7 @@ snapshots:
       '@vue/shared': 3.5.41
       estree-walker: 2.0.2
       magic-string: 0.30.21
-      postcss: 8.5.23
+      postcss: 8.5.26
       source-map-js: 1.2.1
 
   '@vue/compiler-ssr@3.5.40':
@@ -16359,8 +16485,8 @@ snapshots:
 
   magicast@0.5.4:
     dependencies:
-      '@babel/parser': 7.29.7
-      '@babel/types': 7.29.7
+      '@babel/parser': 7.29.8
+      '@babel/types': 7.29.8
       source-map-js: 1.2.1
 
   make-asynchronous@1.1.0:
@@ -18628,7 +18754,7 @@ snapshots:
   terser@5.47.1:
     dependencies:
       '@jridgewell/source-map': 0.3.11
-      acorn: 8.16.0
+      acorn: 8.18.0
       commander: 2.20.3
       source-map-support: 0.5.21
 

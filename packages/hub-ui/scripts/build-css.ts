@@ -6,6 +6,7 @@ import { colors as c } from 'devframe/utils/colors'
 import MagicString from 'magic-string'
 import { glob } from 'tinyglobby'
 import { createGenerator } from 'unocss'
+import { namespaceShadowCssVars, shadowSurfaceSafelist } from '../../../design/uno.config'
 import config from '../uno.config'
 
 // Compile the components' UnoCSS output ahead of time into a plain string
@@ -62,12 +63,22 @@ export async function buildCSS(): Promise<void> {
 
   const primaryRamp = await fs.readFile(PRIMARY_RAMP, 'utf-8')
   const unoResult = await generator.generate(tokens)
-  const css = [
+  // Wind3 drops a *plain* semantic shortcut (`.bg-base` / `.color-base`) from
+  // the main pass when the same shortcut also appears variant-prefixed in the
+  // sources (e.g. `@antfu/design`'s Tabs emits `data-[state=active]:bg-base`) —
+  // a shortcut+variant interaction. Generate the shadow-surface tokens in a
+  // dedicated pass so their plain (and `.dark`) rules are always present.
+  const surfaces = await generator.generate(shadowSurfaceSafelist.join(' '))
+  // Namespace Wind's `--un-*` vars (→ `--un-hub-*`) so this shadow-root
+  // stylesheet is immune to a host page's Wind4 `@property` registrations
+  // (see `namespaceShadowCssVars`).
+  const css = namespaceShadowCssVars([
     reset,
     userStyle.toString(),
     unoResult.css,
+    surfaces.css,
     primaryRamp,
-  ].join('\n')
+  ].join('\n'), '--un-hub-')
 
   await fs.mkdir(join(SRC_DIR, '.generated'), { recursive: true })
   await fs.writeFile(GENERATED_CSS, [

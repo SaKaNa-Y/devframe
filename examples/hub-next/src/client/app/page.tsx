@@ -12,10 +12,34 @@ import type { DevframeJsonRenderSpec } from '@devframes/json-render'
 import type { DevframeJsonRenderDockEntry } from '@devframes/json-render/hub'
 import { connectDevframe, createDevframeClientHost, FRAME_NAV_CHANNEL } from '@devframes/hub/client'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { createReactJsonRenderDockRenderer } from '../json-render/dock-renderer'
+import { createReactJsonRenderDockRenderer } from '../json-render/react-renderer'
 import { dockIconSvg } from './icons'
 
 const HUB_BASE = '/__devframes/'
+
+// ── transport preference (`?transport=` param) ──────────────────────────────
+// The hub serves both live transports (WS at `__ws`, SSE at `__sse`); the
+// client's `transport` option picks one, `auto` trusting the server's
+// advertisement. A connected client has no live switch, so the toggle writes
+// the `?transport=` param and reloads to reconnect on the pinned transport.
+const TRANSPORT_PREFS = ['auto', 'websocket', 'sse'] as const
+type TransportPref = (typeof TRANSPORT_PREFS)[number]
+
+function readTransportPref(): TransportPref {
+  const raw = new URLSearchParams(window.location.search).get('transport')
+  return (TRANSPORT_PREFS as readonly string[]).includes(raw ?? '') ? raw as TransportPref : 'auto'
+}
+function applyTransportPref(pref: TransportPref): void {
+  const url = new URL(window.location.href)
+  if (pref === 'auto')
+    url.searchParams.delete('transport')
+  else
+    url.searchParams.set('transport', pref)
+  window.location.href = url.href
+}
+function transportLabel(pref: TransportPref): string {
+  return pref === 'websocket' ? 'WS' : pref === 'sse' ? 'SSE' : 'Auto'
+}
 
 interface Status {
   text: string
@@ -30,11 +54,14 @@ function isIframeDock(d: DevframeDockEntry): d is IframeDock {
   return d.type === 'iframe' && typeof (d as { url?: unknown }).url === 'string'
 }
 
-// A dock this shell can display: an iframe, or one with a registered renderer
-// (the json-render dock, rendered by the mini React registry).
-const RENDERER_TYPES = new Set(['json-render'])
+// Dock types this shell renders natively (or that carry no panel view of
+// their own). Everything else routes through the hub's dock-renderer
+// registry - the local React renderer registered at boot, or a prebuilt
+// module from the hub's renderer manifest - and a type nothing covers shows
+// the missing-renderer fallback.
+const NATIVE_TYPES = new Set(['action', 'launcher', 'group', '~builtin'])
 function isRenderableDock(d: DevframeDockEntry): boolean {
-  return isIframeDock(d) || RENDERER_TYPES.has(d.type)
+  return isIframeDock(d) || !NATIVE_TYPES.has(d.type)
 }
 
 // One iframe is kept alive per `frameId` (shared-frame docks) or per dock id
@@ -138,6 +165,64 @@ function createClientPlaygroundSpec(clientType: string): DevframeJsonRenderSpec 
   }
 }
 
+type ClientContext = ClientHost['context']
+
+// Register the two *client-only* docks (an iframe from a Blob URL + an inline
+// interactive json-render view) on the client host context, so they stay local
+// to this page and never enter `devframe:docks` shared state. `force` lets
+// React StrictMode re-run the boot effect without tripping the duplicate-id
+// guard. Returns a disposer that removes them again.
+function registerClientDocks(ctx: ClientContext): () => void {
+  const notes = ctx.docks.register<DevframeViewIframe>({
+    id: 'client-notes',
+    title: 'Client Notes',
+    icon: 'ph:note-pencil-duotone',
+    type: 'iframe',
+    url: createClientNotesUrl(),
+    category: 'app',
+  }, true)
+  notes.update({ badge: ctx.clientType }) // patch in place via the handle
+  const playground = ctx.docks.register<DevframeJsonRenderDockEntry>({
+    id: 'client-playground',
+    title: 'Client Playground',
+    icon: 'ph:sliders-horizontal-duotone',
+    type: 'json-render',
+    view: { spec: createClientPlaygroundSpec(ctx.clientType) },
+    category: 'app',
+  }, true)
+  return () => {
+    notes.dispose()
+    playground.dispose()
+  }
+}
+
+// Poll the two kit-local RPCs that expose the hub's message + terminal
+// subsystems (a fuller kit would push over the hub's `*:updated` broadcasts).
+// Returns a stop function that ends the polling.
+function pollDrawer(
+  rpc: DevframeRpcClient,
+  onMessages: (m: DevframeMessageEntry[]) => void,
+  onTerminals: (t: TerminalSummary[]) => void,
+): () => void {
+  let alive = true
+  const refresh = async (): Promise<void> => {
+    const [messages, terminals] = await Promise.all([
+      rpc.call('example:next-devframe-hub:messages:list' as any) as Promise<DevframeMessageEntry[]>,
+      rpc.call('example:next-devframe-hub:terminals:list' as any) as Promise<TerminalSummary[]>,
+    ])
+    if (alive) {
+      onMessages(messages)
+      onTerminals(terminals)
+    }
+  }
+  void refresh()
+  const interval = window.setInterval(() => void refresh(), 2000)
+  return () => {
+    alive = false
+    window.clearInterval(interval)
+  }
+}
+
 /** Fetches (and caches, for the component's lifetime) a dock icon's sanitized SVG. */
 function useDockIconSvg(icon: DevframeDockEntry['icon']): string | undefined {
   const [svg, setSvg] = useState<string | undefined>(undefined)
@@ -168,34 +253,6 @@ function DockIcon({ entry }: { entry: DevframeDockEntry }) {
   return <span className="grid h-5 w-5 shrink-0 place-items-center rounded bg-active text-[0.7rem] font-bold">{initial}</span>
 }
 
-// ── transport preference (`?transport=` param) ──────────────────────────────
-// The hub serves both live transports (WS at `__ws`, SSE at `__sse`); the
-// client's `transport` option picks one, `auto` trusting the server's
-// advertisement. A closed client has no reconnect, so the toggle writes the
-// preference into the URL and reloads - the whole host boots on the chosen
-// transport.
-
-const TRANSPORT_PREFS = ['auto', 'websocket', 'sse'] as const
-type TransportPref = (typeof TRANSPORT_PREFS)[number]
-
-function readTransportPref(): TransportPref {
-  const raw = new URLSearchParams(window.location.search).get('transport')
-  return (TRANSPORT_PREFS as readonly string[]).includes(raw ?? '') ? raw as TransportPref : 'auto'
-}
-
-function applyTransportPref(pref: TransportPref) {
-  const url = new URL(window.location.href)
-  if (pref === 'auto')
-    url.searchParams.delete('transport')
-  else
-    url.searchParams.set('transport', pref)
-  window.location.href = url.href
-}
-
-function transportLabel(pref: TransportPref): string {
-  return pref === 'websocket' ? 'WS' : pref === 'sse' ? 'SSE' : 'Auto'
-}
-
 export default function Page() {
   const [status, setStatus] = useState<Status>({ text: 'Connecting...' })
   const [transport, setTransport] = useState<string | null>(null)
@@ -206,6 +263,9 @@ export default function Page() {
   const [terminals, setTerminals] = useState<TerminalSummary[]>([])
   const [pingResult, setPingResult] = useState('Run ping')
   const [selectedDockId, setSelectedDockId] = useState<string | null>(null)
+  // Fallback shown when the selected renderer dock's type has no renderer
+  // (missing-renderer) or its manifest module failed to import (load-error).
+  const [panelFallback, setPanelFallback] = useState<{ message: string, hint: string } | null>(null)
   const rpcRef = useRef<DevframeRpcClient | null>(null)
   const hostRef = useRef<ClientHost | null>(null)
   // The stage holds the kept-alive iframe pool; the panel hosts renderer docks.
@@ -235,8 +295,13 @@ export default function Page() {
         // context and imports each dock's client script into this page - e.g.
         // the a11y inspector's in-page agent, which then scans this hub live.
         //
-        // Register a mini React json-render renderer so the hub can display the
-        // `json-render` dock authored server-side via @devframes/json-render.
+        // Register a mini React json-render renderer. The hub also publishes
+        // the reference Vue frontend through its renderer manifest
+        // (`initHub({ renderers: [jsonRenderUiRenderer()] })`), but a locally
+        // registered renderer takes precedence - witnessing that any frontend
+        // implementing the `JsonRenderDockRenderer` contract can replace the
+        // reference one. Delete this `renderers` option and the same dock
+        // renders through the manifest-served Vue module instead.
         const clientHost = await createDevframeClientHost({
           rpc,
           renderers: { 'json-render': createReactJsonRenderDockRenderer() },
@@ -244,40 +309,10 @@ export default function Page() {
         hostRef.current = clientHost
         const ctx = clientHost.context
 
-        // Register a *client-only* dock - one this page synthesizes itself.
-        // Unlike the server-authored docks, it's registered on the client host
-        // context, so it never enters the `devframe:docks` shared state: it
-        // stays local to this page and is not synced to the hub server or other
-        // viewers. It merges into `ctx.docks.entries` alongside the server
-        // docks. `force` lets React StrictMode re-run this effect without
-        // tripping the duplicate-id guard.
-        const clientDock = ctx.docks.register<DevframeViewIframe>({
-          id: 'client-notes',
-          title: 'Client Notes',
-          icon: 'ph:note-pencil-duotone',
-          type: 'iframe',
-          url: createClientNotesUrl(),
-          category: 'app',
-        }, true)
-        // Patch it in place with the returned handle (the id is immutable).
-        clientDock.update({ badge: ctx.clientType })
-
-        // Register a second client-only dock - this one a *json-render* view the
-        // page authors itself, the richer sibling of the iframe dock above. Its
-        // spec is carried **inline** in the dock entry (`view.spec`), so it needs
-        // no shared state at all: it lives only in this page yet renders - and
-        // stays fully interactive (inputs, toggles, and buttons that mutate its
-        // state) - through the same `json-render` dock renderer (the mini React
-        // registry) as a server-authored view. `force` lets React StrictMode
-        // re-run this effect safely.
-        const clientJsonRenderDock = clientHost.context.docks.register<DevframeJsonRenderDockEntry>({
-          id: 'client-playground',
-          title: 'Client Playground',
-          icon: 'ph:sliders-horizontal-duotone',
-          type: 'json-render',
-          view: { spec: createClientPlaygroundSpec(clientHost.context.clientType) },
-          category: 'app',
-        }, true)
+        // Two *client-only* docks (an iframe + an interactive inline
+        // json-render view), local to this page - never entering
+        // `devframe:docks` shared state, merged into `ctx.docks.entries`.
+        const disposeClientDocks = registerClientDocks(ctx)
 
         const docksState = await rpc.sharedState.get<DevframeDockEntry[]>(
           'devframe:docks',
@@ -315,36 +350,13 @@ export default function Page() {
         }
         window.addEventListener('message', onMessage)
 
-        const refreshMessages = async () => {
-          const entries = await rpc.call(
-            'example:next-devframe-hub:messages:list' as any,
-          ) as DevframeMessageEntry[]
-          if (!cancelled)
-            setMessages(entries)
-        }
-
-        const refreshTerminals = async () => {
-          const sessions = await rpc.call(
-            'example:next-devframe-hub:terminals:list' as any,
-          ) as TerminalSummary[]
-          if (!cancelled)
-            setTerminals(sessions)
-        }
-
-        await refreshMessages()
-        await refreshTerminals()
-
-        const interval = window.setInterval(() => {
-          void refreshMessages()
-          void refreshTerminals()
-        }, 2000)
+        const stopPolling = pollDrawer(rpc, setMessages, setTerminals)
 
         cleanup = () => {
-          window.clearInterval(interval)
+          stopPolling()
           window.removeEventListener('message', onMessage)
           // Remove the client-only docks, then tear down the host + local DOM.
-          clientDock.dispose()
-          clientJsonRenderDock.dispose()
+          disposeClientDocks()
           clientHost.dispose()
           wiredRef.current.clear()
           for (const el of iframePoolRef.current.values()) el.remove()
@@ -433,24 +445,49 @@ export default function Page() {
     }
   }, [selectedDockId, docks, selectedDock])
 
-  // Mount a renderer dock (json-render) into the panel via the client host's
-  // renderer registry, disposing when the selection changes.
+  // Mount a renderer dock (e.g. json-render) into the panel via the client
+  // host's renderer registry - the local React renderer, or a prebuilt module
+  // lazy-imported from the hub's renderer manifest - disposing when the
+  // selection changes. Each mount gets a fresh container element (a
+  // self-styling renderer may attach a shadow root to it); the typed mount
+  // result drives the missing-renderer / load-error fallback below.
   useEffect(() => {
     const host = hostRef.current
     const dock = selectedDock
-    const container = panelRef.current
-    if (!host || !dock || isIframeDock(dock) || !container)
+    const stage = panelRef.current
+    if (!host || !dock || isIframeDock(dock) || !stage)
       return
     let alive = true
     let dispose: (() => void) | undefined
-    void host.context.renderers.mount(dock, container).then((d) => {
-      if (alive)
-        dispose = d
-      else d()
+    setPanelFallback(null)
+    const container = document.createElement('div')
+    container.className = 'h-full w-full'
+    stage.append(container)
+    void host.context.renderers.mount(dock, container).then((result) => {
+      if (!alive) {
+        if (result.status === 'mounted')
+          result.dispose()
+        return
+      }
+      if (result.status === 'mounted') {
+        dispose = result.dispose
+        return
+      }
+      setPanelFallback(result.status === 'missing-renderer'
+        ? {
+            message: `No renderer for “${dock.type}” in the current environment`,
+            hint: 'The host has not registered a renderer for this dock type.',
+          }
+        : {
+            message: `The renderer for “${dock.type}” failed to load`,
+            hint: 'Check the console, then re-select the dock to retry.',
+          })
     })
     return () => {
       alive = false
       dispose?.()
+      container.remove()
+      setPanelFallback(null)
     }
   }, [selectedDockId, selectedIsIframe])
 
@@ -513,8 +550,14 @@ export default function Page() {
           {/* Iframe docks are pooled here (one kept-alive iframe per frameId),
               shown/hidden on switch so shared-frame tabs soft-navigate. */}
           <div ref={stageRef} hidden={!selectedDock || !selectedIsIframe} className="absolute inset-0" />
-          {/* Renderer docks (json-render) mount here via the client host. */}
+          {/* Renderer docks (json-render, …) mount here via the client host. */}
           <div ref={panelRef} hidden={!selectedDock || selectedIsIframe} className="absolute inset-0 of-auto bg-base p4" />
+          {panelFallback && selectedDock && !selectedIsIframe && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-base p6 text-center">
+              <div className="text-sm op-fade">{panelFallback.message}</div>
+              <div className="text-xs op-mute">{panelFallback.hint}</div>
+            </div>
+          )}
         </main>
       </div>
 

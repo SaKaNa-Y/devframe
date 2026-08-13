@@ -1,5 +1,6 @@
-import type { HubDevframeEntry, HubInstance } from '@devframes/hub/initiate'
+import type { DockRendererRegistration, HubDevframeEntry, HubInstance } from '@devframes/hub/initiate'
 import type { DevframeHubContext } from '@devframes/hub/node'
+import type { jsonRenderUiRenderer as JsonRenderUiRenderer } from '@devframes/json-render-ui/hub'
 import type { DevframeDefinition } from 'devframe'
 import { homedir } from 'node:os'
 import process from 'node:process'
@@ -10,8 +11,8 @@ import { toJsonRenderDockEntry } from '@devframes/json-render/hub'
 import { createDashboardView } from 'json-render/dashboard'
 import { dirname, join } from 'pathe'
 import demoDevframe from './demo-devframe'
-import demoDevframeB from './demo-devframe-b'
 import tabbedDevframe from './tabbed-devframe'
+import { unrenderedDockEntry } from './unrendered-dock'
 
 /**
  * Built-in plugin packages dogfooded through the hub mount path.
@@ -31,6 +32,7 @@ const BUILTIN_PLUGIN_PACKAGES = [
   '@devframes/plugin-inspect',
   '@devframes/plugin-a11y',
   '@devframes/plugin-messages',
+  '@devframes/plugin-og',
 ] as const
 
 async function loadBuiltinPlugins(): Promise<DevframeDefinition[]> {
@@ -58,6 +60,31 @@ async function loadAssetsDevframe(): Promise<DevframeDefinition> {
   // `src/client/devframe/` → `src/client/public`, the dir Next serves at `/`.
   const dir = join(dirname(fileURLToPath(import.meta.url)), '../public')
   return (mod.createAssetsDevframe as (options: { dir: string, watch: boolean }) => DevframeDefinition)({ dir, watch: false })
+}
+
+/**
+ * Load the data-inspector plugin with a colon-free id. Its default id
+ * (`devframes:plugin:data-inspector`) carries `:` - a route-param marker to
+ * the router the hub mounts each frame on - so it can't be a `<base><id>/`
+ * segment (`DF8004`); the override makes it mountable. Loaded through the same
+ * bundler-ignored dynamic `import()` as the other plugins.
+ */
+async function loadDataInspectorDevframe(): Promise<DevframeDefinition> {
+  const mod = await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ '@devframes/plugin-data-inspector')
+  return (mod.createDataInspectorDevframe as (options: { id: string }) => DevframeDefinition)({ id: 'devframes_plugin_data-inspector' })
+}
+
+/**
+ * The reference json-render renderer registration for `initHub({ renderers })`.
+ * Loaded through the same bundler-ignored dynamic `import()` as the plugins:
+ * `jsonRenderUiRenderer()` resolves its prebuilt module via `import.meta.url`,
+ * which only points at the published `dist` when Node loads the package at
+ * request time - a static import would be rewritten into a Next server chunk,
+ * making the path resolve inside `.next/` (see `DF8109`).
+ */
+async function loadJsonRenderUiRenderer(): Promise<DockRendererRegistration> {
+  const mod = await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ '@devframes/json-render-ui/hub')
+  return (mod.jsonRenderUiRenderer as typeof JsonRenderUiRenderer)()
 }
 
 /**
@@ -156,6 +183,10 @@ export async function nextDevframeHub(
   // the origin, so their BroadcastChannel connects.
   const a11yAgent = await loadA11yAgentMount()
 
+  // The reference json-render renderer module, loaded the same bundler-ignored
+  // way so its `import.meta.url` bundle path resolves to the published `dist`.
+  const jsonRenderRenderer = await loadJsonRenderUiRenderer()
+
   // Demo devframes alongside the dogfooded built-in plugin packages. The
   // shared-iframe soft-navigation demo mounts as a `subTabs` anchor (a shared
   // `frameId` + the postmessage protocol) so the client host attaches the
@@ -163,12 +194,12 @@ export async function nextDevframeHub(
   // shim reports - all sharing one iframe.
   const devframes: (DevframeDefinition | HubDevframeEntry)[] = [
     demoDevframe,
-    demoDevframeB,
     ...(await loadBuiltinPlugins()).map<DevframeDefinition | HubDevframeEntry>(def =>
       a11yAgent && def.id === a11yAgent.dockId
         ? { devframe: def, dock: { clientScript: { importFrom: a11yAgent.importFrom } } }
         : def,
     ),
+    await loadDataInspectorDevframe(),
     await loadAssetsDevframe(),
     {
       devframe: tabbedDevframe,
@@ -208,6 +239,12 @@ export async function nextDevframeHub(
       nextHubTerminalsList,
     ],
     devframes,
+    // Serve the reference json-render frontend as a prebuilt renderer module
+    // (published in the renderer manifest). This host's own page registers a
+    // local React renderer for the same type (app/page.tsx), which takes
+    // precedence - witnessing both sides of the swap seam: the manifest
+    // composition AND a local frontend replacing it.
+    renderers: [jsonRenderRenderer],
     // Record this hub in the global registry so `devframe connect` discovers
     // it - running inside the Next dev server - like any standalone devframe.
     // The instance owns the record (written once its pinned origin resolves,
@@ -256,6 +293,10 @@ export async function nextDevframeHub(
         icon: 'ph:layout-duotone',
         category: 'app',
       }))
+
+      // Witness the missing-renderer path: a dock type nothing covers - the
+      // client shows its fallback view instead of a dead panel.
+      ctx.docks.register(unrenderedDockEntry)
 
       await ctx.messages.add({
         level: 'success',

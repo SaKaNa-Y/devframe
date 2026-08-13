@@ -11,8 +11,15 @@
   "dependencies": {
     "@devframes/hub": "workspace:*",
     "@devframes/hub-ui": "workspace:*",
+    "@devframes/plugin-a11y": "workspace:*",
+    "@devframes/plugin-assets": "workspace:*",
+    "@devframes/plugin-code-server": "workspace:*",
+    "@devframes/plugin-data-inspector": "workspace:*",
+    "@devframes/plugin-git": "workspace:*",
     "@devframes/plugin-inspect": "workspace:*",
     "@devframes/plugin-messages": "workspace:*",
+    "@devframes/plugin-og": "workspace:*",
+    "@devframes/plugin-terminals": "workspace:*",
     "devframe": "workspace:*",
     "nitro": "catalog:deps"
   },
