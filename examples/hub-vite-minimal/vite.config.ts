@@ -1,8 +1,6 @@
 import type { DevframeJsonRenderSpec } from '@devframes/json-render'
 import type { DevframeJsonRenderDockEntry } from '@devframes/json-render/hub'
-import { Server as NodeHttpServer } from 'node:http'
 import { createUi } from '@devframes/hub-ui'
-import { DEVFRAMES_HUB_BASE, initHub } from '@devframes/hub/initiate'
 import { jsonRenderUiRenderer } from '@devframes/json-render-ui/hub'
 import { createA11yDevframe } from '@devframes/plugin-a11y'
 import { createAssetsDevframe } from '@devframes/plugin-assets'
@@ -13,6 +11,7 @@ import { createInspectDevframe } from '@devframes/plugin-inspect'
 import { createMessagesDevframe } from '@devframes/plugin-messages'
 import { createOgDevframe } from '@devframes/plugin-og'
 import { createTerminalsDevframe } from '@devframes/plugin-terminals'
+import { viteDevframeHub } from '@devframes/vite/hub'
 import { defineConfig } from 'vite'
 
 // Every built-in plugin, dogfooded end to end through the hub mount path.
@@ -30,10 +29,6 @@ const builtinDevframes = [
   createOgDevframe(),
   createAssetsDevframe({ watch: false }),
 ]
-
-// The one mount base, referenced by both `initHub({ base })` and the injected
-// embedded-script URL - no duplicated string literal.
-const base = DEVFRAMES_HUB_BASE
 
 // A server-authored JSON-render dock: the whole view is this serializable
 // spec — no client build. It renders through whatever `'json-render'`
@@ -57,62 +52,38 @@ const jsonRenderDock: DevframeJsonRenderDockEntry = {
   view: { spec: jsonRenderSpec },
 }
 
-// The minimal Vite host: one `initHub()` call mounted as connect middleware
-// on the Vite dev server, created inside `configureServer` so importing this
-// config never boots a hub. `initHub` runs here in Vite's Node config process
-// (never bundled into the browser), so `createUi()`'s prebuilt-asset lookup
-// and the plugins' node code work unchanged. The WebSocket upgrade shares
-// Vite's own dev server at `/__devframes/__ws` (zero extra ports); the dock
-// UI comes from `@devframes/hub-ui` via the `ui` slot.
+// The minimal Vite host: one `viteDevframeHub()` plugin from
+// `@devframes/vite/hub`. It wraps `initHub` (mounted as connect middleware on
+// Vite's dev server, sharing its HTTP server for the WS upgrade at
+// `/__devframes/__ws`) and injects the UI's `embedded.js` bootstrap into the
+// host page — the whole embedded integration in one call. `quiet` silences the
+// Vite-DevTools recommendation for this reference example.
 export default defineConfig({
   // Dev tooling reached from arbitrary hostnames (LAN IPs, tunnels): accept
   // any Host header and fall back to the next free port when busy.
   server: { allowedHosts: true, strictPort: false },
-  plugins: [{
-    name: 'hub-vite-minimal',
-    apply: 'serve',
-    configureServer(server) {
-      // Share Vite's own HTTP server for the WS upgrade at
-      // `/__devframes/__ws` - zero extra ports. Only a plain-HTTP dev server
-      // qualifies (an https/http2 one isn't a `node:http` server), so an
-      // auto-port side-car covers the rest; either way the browser finds the
-      // socket through `__connection.json`.
-      const httpServer = server.httpServer instanceof NodeHttpServer ? server.httpServer : undefined
-      const hub = initHub({
-        base,
-        devframes: builtinDevframes,
-        // Rebrand the reference UI to Vite's own purple — one field, no CSS:
-        // `createUi`'s `branding` option publishes `branding.json`, which the
-        // dock fetches at boot and feeds into `--devframe-primary` (see
-        // `@devframes/hub-ui`'s `primary-ramp.css`).
-        ui: createUi({ branding: { primaryColor: '#646cff', productName: 'Devframes on Vite' } }),
-        // Serve the reference json-render frontend as a prebuilt renderer
-        // module — the one-liner that makes `'json-render'` docks render in
-        // the prebuilt viewer. Swap it for any community implementation of
-        // the same contract.
-        renderers: [jsonRenderUiRenderer()],
-        configure(ctx) {
-          ctx.docks.register(jsonRenderDock)
-        },
-        // Gate with devframe's interactive OTP (the default). The hub prints a
-        // 6-digit code + magic link on startup, and the reference UI's
-        // authorization view exchanges it for a bearer token. See
-        // docs/guide/security.md.
-        server: httpServer,
-        ...(httpServer ? {} : { ws: { sidecar: true } }),
-      })
-      // Self-filters by base and calls next() otherwise, so Vite keeps serving
-      // the host page and its assets while the hub owns `/__devframes/*`.
-      server.middlewares.use(hub.nodeMiddleware)
-    },
-    // Inject the floating-dock bootstrap into the host page - one dev-only
-    // module script, the whole embedded integration.
-    transformIndexHtml() {
-      return [{
-        tag: 'script',
-        attrs: { type: 'module', src: `${base}embedded.js` },
-        injectTo: 'body',
-      }]
-    },
-  }],
+  plugins: [
+    viteDevframeHub({
+      quiet: true,
+      devframes: builtinDevframes,
+      // Rebrand the reference UI to Vite's own purple — one field, no CSS:
+      // `createUi`'s `branding` option publishes `branding.json`, which the
+      // dock fetches at boot and feeds into `--devframe-primary` (see
+      // `@devframes/hub-ui`'s `primary-ramp.css`). Passing `ui` overrides the
+      // default `createUi()` the plugin would otherwise use.
+      ui: createUi({ branding: { primaryColor: '#646cff', productName: 'Devframes on Vite' } }),
+      // Serve the reference json-render frontend as a prebuilt renderer
+      // module — the one-liner that makes `'json-render'` docks render in
+      // the prebuilt viewer. Swap it for any community implementation of
+      // the same contract.
+      renderers: [jsonRenderUiRenderer()],
+      configure(ctx) {
+        ctx.docks.register(jsonRenderDock)
+      },
+      // Gate with devframe's interactive OTP (the default): the hub prints a
+      // 6-digit code + magic link on startup, and the reference UI's
+      // authorization view exchanges it for a bearer token. See
+      // docs/guide/security.md.
+    }),
+  ],
 })

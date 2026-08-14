@@ -1,11 +1,11 @@
-import type { DevframeVitePlugin, ViteDevBridgeOptions } from 'devframe/helpers/vite'
+import type { DevframeViteBridgeOptions, DevframeVitePlugin } from '@devframes/vite/dev-spa'
 import type { TerminalsOptions } from './types'
-import { viteDevBridge } from 'devframe/helpers/vite'
+import { devframeViteBridge, devframeVitePlugin } from '@devframes/vite/dev-spa'
 import { createTerminalsDevframe } from './index'
 
 export interface TerminalsViteOptions extends TerminalsOptions {
-  /** Forwarded to the underlying `viteDevBridge` (mount base, etc.). */
-  vite?: ViteDevBridgeOptions
+  /** Forwarded to the underlying `devframeViteBridge`/`devframeVitePlugin` (mount base, etc.). */
+  vite?: DevframeViteBridgeOptions
 }
 
 /**
@@ -19,7 +19,7 @@ export function terminalsVite(options: TerminalsViteOptions = {}): DevframeViteP
   const { vite, ...terminalsOptions } = options
   const definition = createTerminalsDevframe(terminalsOptions)
   return [
-    viteDevBridge(definition, { ...vite, devMiddleware: true }),
-    viteDevBridge(definition, vite),
+    devframeViteBridge(definition, vite),
+    devframeVitePlugin(definition, { base: vite?.base }),
   ]
 }

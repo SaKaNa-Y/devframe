@@ -90,7 +90,7 @@ For the Nuxt side, add the devframe helper module — it sets `app.baseURL: './'
 ```ts [nuxt.config.ts]
 export default defineNuxtConfig({
   ssr: false,
-  modules: ['@devframes/nuxt'],
+  modules: ['@devframes/nuxt/dev-spa'],
   nitro: {
     preset: 'static',
     output: { dir: './dist' }, // matches createCac's distDir of ./dist/public
@@ -98,7 +98,7 @@ export default defineNuxtConfig({
 })
 ```
 
-Build with `nuxt build` and point `cli.distDir` at `./dist/public`. The SPA discovers its effective base at runtime — no `--base` rewrite needed. See the [Nuxt helper docs](/helpers/nuxt) for the full reference.
+Build with `nuxt build` and point `cli.distDir` at `./dist/public`. The SPA discovers its effective base at runtime — no `--base` rewrite needed. See the [Nuxt docs](/frameworks/nuxt) for the full reference.
 
 ## Next.js SPA setup
 

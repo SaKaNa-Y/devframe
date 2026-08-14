@@ -103,9 +103,6 @@
       "devframe/adapters/build": [
         "./packages/devframe/src/adapters/build.ts"
       ],
-      "devframe/helpers/vite": [
-        "./packages/devframe/src/helpers/vite.ts"
-      ],
       "devframe/adapters/embedded": [
         "./packages/devframe/src/adapters/embedded.ts"
       ],
@@ -139,14 +136,44 @@
       "@devframes/nuxt/runtime/plugin.client": [
         "./packages/nuxt/src/runtime/plugin.client.ts"
       ],
+      "@devframes/nuxt/dev-spa": [
+        "./packages/nuxt/src/dev-spa.ts"
+      ],
+      "@devframes/nuxt/hub/client": [
+        "./packages/nuxt/src/hub-client.ts"
+      ],
+      "@devframes/nuxt/hub": [
+        "./packages/nuxt/src/hub.ts"
+      ],
       "@devframes/nuxt": [
         "./packages/nuxt/src/index.ts"
       ],
-      "@devframes/next/client": [
+      "@devframes/next/dev-spa/client": [
         "./packages/next/src/client.tsx"
+      ],
+      "@devframes/next/dev-spa": [
+        "./packages/next/src/dev-spa.ts"
+      ],
+      "@devframes/next/hub/client": [
+        "./packages/next/src/hub-client.tsx"
+      ],
+      "@devframes/next/hub": [
+        "./packages/next/src/hub.ts"
       ],
       "@devframes/next": [
         "./packages/next/src/index.ts"
+      ],
+      "@devframes/vite/dev-spa": [
+        "./packages/vite/src/dev-spa.ts"
+      ],
+      "@devframes/vite/hub/client": [
+        "./packages/vite/src/hub-client.ts"
+      ],
+      "@devframes/vite/hub": [
+        "./packages/vite/src/hub.ts"
+      ],
+      "@devframes/vite": [
+        "./packages/vite/src/index.ts"
       ],
       "@devframes/json-render/core": [
         "./packages/json-render/src/core.ts"

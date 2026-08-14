@@ -1,10 +1,10 @@
-import type { DevframeVitePlugin, ViteDevBridgeOptions } from 'devframe/helpers/vite'
-import { viteDevBridge } from 'devframe/helpers/vite'
+import type { DevframeViteOptions, DevframeVitePlugin } from '@devframes/vite/dev-spa'
+import { devframeVite } from '@devframes/vite/dev-spa'
 import assetsDevframe from './index'
 
-export type { ViteDevBridgeOptions }
+export type { DevframeViteOptions }
 
-export type AssetsVitePluginOptions = ViteDevBridgeOptions
+export type AssetsVitePluginOptions = DevframeViteOptions
 
 /**
  * Mount the assets manager into an existing Vite dev server. As a hosted
@@ -12,5 +12,5 @@ export type AssetsVitePluginOptions = ViteDevBridgeOptions
  * own gate stays off by default — opt back in with `{ auth: true }`.
  */
 export function assetsVitePlugin(options: AssetsVitePluginOptions = {}): DevframeVitePlugin {
-  return viteDevBridge(assetsDevframe, options)
+  return devframeVite(assetsDevframe, options)
 }
