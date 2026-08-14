@@ -3,7 +3,15 @@
   "globalDependencies": ["pnpm-lock.yaml", "tsconfig.base.json"],
   "tasks": {
     "typecheck": {
-      "dependsOn": ["^typecheck"]
+      "dependsOn": ["^typecheck", "@devframes/hub-ui#build:css", "@devframes/json-render-ui#build:css"]
+    },
+    "@devframes/hub-ui#build:css": {
+      "outputLogs": "new-only",
+      "outputs": ["src/client/.generated/**"]
+    },
+    "@devframes/json-render-ui#build:css": {
+      "outputLogs": "new-only",
+      "outputs": ["src/.generated/**"]
     },
     "devframe#build": {
       "outputLogs": "new-only",

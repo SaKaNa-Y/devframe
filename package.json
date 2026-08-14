@@ -15,6 +15,7 @@
   "bugs": "https://github.com/devframes/devframe/issues",
   "scripts": {
     "build": "turbo run build --concurrency=3",
+    "build:css": "turbo run build:css",
     "ci:build": "tsx scripts/ci-retry.ts pnpm run build",
     "watch": "turbo watch build --concurrency=3",
     "play": "tsx scripts/play.ts",
@@ -33,7 +34,7 @@
     "release": "bumpp -r",
     "typecheck": "pnpm run verify:typecheck-coverage && turbo run typecheck",
     "verify:typecheck-coverage": "tsx scripts/verify-typecheck-coverage.ts",
-    "postinstall": "npx simple-git-hooks && skills-npm"
+    "postinstall": "npx simple-git-hooks && skills-npm && pnpm run build:css"
   },
   "devDependencies": {
     "@antfu/design": "catalog:frontend",
