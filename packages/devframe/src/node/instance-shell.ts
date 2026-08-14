@@ -589,6 +589,14 @@ export function createInstanceShell<TContext extends DevframeNodeContext>(
       ...(result.mcp ? { mcp: result.mcp } : {}),
     }
 
+    // Whatever `setup(ctx)` wrote to `ctx.staticConfig` during
+    // `options.init(api)` — e.g. a hub aggregating each installed devframe's
+    // own dock-bar preferences — is in by now; bake it into the meta
+    // `options.mount` (and every host that re-serves this same meta at
+    // another base) publishes.
+    if (Object.keys(ctx.staticConfig).length > 0)
+      meta.configs = ctx.staticConfig
+
     await options.mount?.(ctx, meta, api)
 
     // A pinned origin means the banner and registry record needn't wait for a

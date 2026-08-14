@@ -1,10 +1,24 @@
 import type { DevframeHubUi } from '@devframes/hub/initiate'
+import type { DevframeDockPreferences } from './client/dock-preferences'
+import type { EmbeddedVisibility } from './client/embedded/visibility'
 import type { DevframeBranding } from './client/state/branding'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+export type { DevframeDockPreferences } from './client/dock-preferences'
+export type { EmbeddedVisibility } from './client/embedded/visibility'
 export type { DevframeBranding } from './client/state/branding'
+
+declare module 'devframe/types' {
+  interface DevframeConnectionConfigsRegistry {
+    ui: {
+      branding?: DevframeBranding
+      embeddedVisibility?: EmbeddedVisibility
+      dockPreferences?: DevframeDockPreferences
+    }
+  }
+}
 
 /**
  * The built client assets live next to the built entry (`dist/index.mjs` →
@@ -29,12 +43,33 @@ export interface CreateUiOptions {
   embedded?: boolean
   /**
    * Rebrand the reference UI — logo, product name, primary color, and more.
-   * Published as `<base>branding.json` (via the hub's generic `assets` seam)
-   * and fetched by the dock at boot. Reaches both the embedded dock and the
-   * standalone viewer. A host page can still override any field at runtime via
-   * `window.__DEVFRAME_BRANDING__` / `<script data-*>` / `?query` params.
+   * Published as `ConnectionMeta.configs.ui.branding`, read by the dock at
+   * boot from the one connection handshake it already performs. Reaches
+   * both the embedded dock and the standalone viewer.
    */
   branding?: DevframeBranding
+  /**
+   * How the embedded floating dock reveals itself on a fresh page:
+   *
+   * - `'normal'` (default) — shown immediately.
+   * - `'passive'` — starts hidden with a console hint; `Shift+Alt+D` reveals
+   *   it, and the reveal persists per-origin so later sessions start shown.
+   * - `'hidden'` — starts hidden; `Shift+Alt+D` reveals it for the current
+   *   session only.
+   *
+   * Published as `ConnectionMeta.configs.ui.embeddedVisibility`. Like the
+   * float/edge dock mode, it seeds a user-overridable preference — the
+   * visitor's own reveal/hide wins from then on. Applies to the embedded
+   * dock only; the standalone viewer is an explicit visit and always shows.
+   */
+  embeddedVisibility?: EmbeddedVisibility
+  /**
+   * Dock-bar rendering preferences — category ordering, floating-dock
+   * inline-item capacity, and the first-run float/edge mode and position.
+   * Published as `ConnectionMeta.configs.ui.dockPreferences`; each seeds a
+   * user-overridable preference the visitor's own choice then wins.
+   */
+  dockPreferences?: DevframeDockPreferences
 }
 
 /**
@@ -63,6 +98,15 @@ export function createUi(options: CreateUiOptions = {}): DevframeHubUi {
     ...(options.embedded !== false
       ? { embedded: { entry: join(client, 'embedded.js') } }
       : {}),
-    assets: { 'branding.json': () => JSON.stringify(options.branding || {}) },
+    // Publish the reference UI's config through the generic `ctx.staticConfig`
+    // — it rides the connection handshake to every mounted frame and the
+    // standalone viewer as `ConnectionMeta.configs.ui`.
+    setup(ctx) {
+      ctx.staticConfig.ui = {
+        branding: options.branding || {},
+        ...(options.embeddedVisibility ? { embeddedVisibility: options.embeddedVisibility } : {}),
+        ...(options.dockPreferences ? { dockPreferences: options.dockPreferences } : {}),
+      }
+    },
   }
 }

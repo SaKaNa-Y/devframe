@@ -11,11 +11,12 @@ export type BrandingLogo = string | { light: string, dark: string }
 
 /**
  * Consumer-facing branding for the reference hub-ui. Every field is optional
- * and falls back to devframe's own identity. Delivered three ways, merged
- * field-by-field (later wins): the `branding.json` `createUi({ branding })`
- * publishes, then the host page (a `window.__DEVFRAME_BRANDING__` global or
- * `data-*` attrs on the embedding `<script>`, or `?query` params on the
- * standalone viewer).
+ * and falls back to devframe's own identity. Published as
+ * `ConnectionMeta.configs.ui.branding` via `createUi({ branding })`, and
+ * read from the one connection handshake the dock already performs —
+ * `ConnectionMeta` has its own cross-realm propagation (see
+ * `DEVFRAME_CONNECTION_KEY`), so branding needs no globals or query params
+ * of its own.
  */
 export interface DevframeBranding {
   /** Product name — the wordmark, window titles, and all user-visible copy. */
@@ -84,112 +85,6 @@ function resolveLogo(logo: BrandingLogo | undefined, dark: boolean): string | un
   if (typeof logo === 'string')
     return logo
   return dark ? (logo.dark || logo.light) : logo.light
-}
-
-// --- Merge + host-page reading -------------------------------------------
-
-/** Field-level merge; later layers override earlier ones (empty values skip). */
-function mergeBranding(...layers: Array<DevframeBranding | undefined>): DevframeBranding {
-  const out: DevframeBranding = {}
-  for (const layer of layers) {
-    if (!layer || typeof layer !== 'object')
-      continue
-    for (const key of Object.keys(layer) as (keyof DevframeBranding)[]) {
-      const value = layer[key]
-      if (value !== undefined && value !== null && value !== '')
-        (out as Record<string, unknown>)[key] = value
-    }
-  }
-  return out
-}
-
-function readWindowGlobal(): DevframeBranding | undefined {
-  const global = (globalThis as { __DEVFRAME_BRANDING__?: unknown }).__DEVFRAME_BRANDING__
-  return global && typeof global === 'object' ? global as DevframeBranding : undefined
-}
-
-const SCRIPT_ATTR_MAP: Record<string, keyof DevframeBranding> = {
-  'data-product-name': 'productName',
-  'data-primary-color': 'primaryColor',
-  'data-logo': 'logo',
-  'data-tagline': 'tagline',
-  'data-window-title': 'windowTitle',
-}
-
-function findEmbeddedScript(): HTMLScriptElement | null {
-  if (typeof document === 'undefined')
-    return null
-  const current = document.currentScript as HTMLScriptElement | null
-  if (current?.src)
-    return current
-  const scripts = Array.from(document.querySelectorAll('script[src]')) as HTMLScriptElement[]
-  return scripts.find(script => /embedded\.js(?:$|[?#])/.test(script.src)) ?? null
-}
-
-function readScriptDataAttrs(): DevframeBranding {
-  const out: DevframeBranding = {}
-  const script = findEmbeddedScript()
-  if (!script)
-    return out
-  for (const [attr, key] of Object.entries(SCRIPT_ATTR_MAP)) {
-    const value = script.getAttribute(attr)
-    if (value != null)
-      (out as Record<string, unknown>)[key] = value
-  }
-  return out
-}
-
-const QUERY_PARAM_MAP: Record<string, keyof DevframeBranding> = {
-  productName: 'productName',
-  primaryColor: 'primaryColor',
-  logo: 'logo',
-  tagline: 'tagline',
-  windowTitle: 'windowTitle',
-}
-
-function readQueryParams(): DevframeBranding {
-  const out: DevframeBranding = {}
-  if (typeof location === 'undefined')
-    return out
-  const params = new URLSearchParams(location.search)
-  for (const [param, key] of Object.entries(QUERY_PARAM_MAP)) {
-    const value = params.get(param)
-    if (value != null)
-      (out as Record<string, unknown>)[key] = value
-  }
-  return out
-}
-
-async function fetchBrandingJson(url: string | URL): Promise<DevframeBranding | undefined> {
-  try {
-    const res = await fetch(url)
-    if (!res.ok)
-      return undefined
-    const json = await res.json()
-    return json && typeof json === 'object' ? json as DevframeBranding : undefined
-  }
-  catch {
-    // A missing branding.json (embedded-only without the assets seam, offline,
-    // etc.) is expected — fall back to defaults + any host-page override.
-    return undefined
-  }
-}
-
-/**
- * Resolve branding at boot: fetch the served `branding.json`, layer the
- * host-page channels over it (they win per field), install the result, and
- * return it. Awaited before the dock element mounts, so branding is applied on
- * the first paint.
- */
-export async function resolveBranding(options: {
-  mode: 'embedded' | 'standalone'
-  brandingUrl: string | URL
-}): Promise<ResolvedBranding> {
-  const fetched = await fetchBrandingJson(options.brandingUrl)
-  const hostPage = options.mode === 'embedded'
-    ? mergeBranding(readScriptDataAttrs(), readWindowGlobal())
-    : mergeBranding(readQueryParams(), readWindowGlobal())
-  return setBranding(mergeBranding(fetched, hostPage))
 }
 
 // --- Applying to the DOM --------------------------------------------------

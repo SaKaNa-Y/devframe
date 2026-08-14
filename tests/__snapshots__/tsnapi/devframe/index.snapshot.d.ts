@@ -75,6 +75,7 @@ export interface ConnectionMeta {
   baseUrl?: string;
   authToken?: string;
   viewerOriginToken?: string;
+  configs?: Partial<DevframeConnectionConfigsRegistry>;
 }
 export interface ConnectionMetaSse {
   path?: string;
@@ -128,6 +129,7 @@ export interface DevframeCliOptions {
   configure?: (_: CAC) => void;
   flags?: CliFlagsSchema;
 }
+export interface DevframeConnectionConfigsRegistry {}
 export interface DevframeDefineDiagnosticsOptions<Codes extends Record<string, DiagnosticDefinition>> {
   docsBase?: string | ((_: keyof Codes) => string | undefined);
   codes: Codes;
@@ -191,6 +193,7 @@ export interface DevframeNodeContext {
   diagnostics: DevframeDiagnosticsHost;
   agent: DevframeAgentHost;
   services: DevframeServicesHost;
+  staticConfig: Partial<DevframeConnectionConfigsRegistry>;
   scope: {
     <NS extends string>(_: NS): DevframeScopedNodeContext<NS, SettingsForNamespace<NS>>;
     (_?: null | ''): DevframeNodeContext;

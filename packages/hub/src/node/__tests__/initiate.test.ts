@@ -174,6 +174,54 @@ describe('initHub', () => {
     }
   })
 
+  it('serves whatever the ui slot\'s setup(ctx) writes to ctx.staticConfig as ConnectionMeta.configs', async () => {
+    const wsPort = await getPort({ port: 18225, host: '127.0.0.1' })
+    const alpha = makeFrame('alpha', makeDist('<!doctype html><title>frame a</title>'))
+
+    const hub = initHub({
+      base: DEVFRAMES_HUB_BASE,
+      auth: false,
+      host: '127.0.0.1',
+      ws: { port: wsPort },
+      devframes: [alpha],
+      ui: {
+        setup(ctx) {
+          ;(ctx.staticConfig as Record<string, unknown>).ui = { branding: { productName: 'Test Hub' } }
+        },
+      },
+    })
+
+    try {
+      await hub.ready
+      const origin = 'http://localhost:5173'
+
+      // The hub's own meta carries what the ui slot published…
+      const hubMeta = await (await hub.handler(new Request(`${origin}/__devframes/__connection.json`))).json()
+      expect(hubMeta.configs).toEqual({ ui: { branding: { productName: 'Test Hub' } } })
+
+      // …and every per-frame meta carries the identical document.
+      const frameMeta = await (await hub.handler(new Request(`${origin}/__devframes/alpha/__connection.json`))).json()
+      expect(frameMeta.configs).toEqual(hubMeta.configs)
+    }
+    finally {
+      await hub.close()
+    }
+  })
+
+  it('omits ConnectionMeta.configs entirely when the ui slot writes nothing', async () => {
+    const wsPort = await getPort({ port: 18226, host: '127.0.0.1' })
+    const hub = initHub({ base: DEVFRAMES_HUB_BASE, auth: false, host: '127.0.0.1', ws: { port: wsPort }, devframes: [makeFrame('alpha')] })
+
+    try {
+      await hub.ready
+      const meta = await (await hub.handler(new Request(`http://localhost:5173/__devframes/__connection.json`))).json()
+      expect(meta.configs).toBeUndefined()
+    }
+    finally {
+      await hub.close()
+    }
+  })
+
   it('aggregate MCP: one endpoint lists tools from every mounted frame', async () => {
     const wsPort = await getPort({ port: 18230, host: '127.0.0.1' })
     const hub = initHub({ base: DEVFRAMES_HUB_BASE, auth: false, host: '127.0.0.1', ws: { port: wsPort }, mcp: true, devframes: [makeFrame('alpha'), makeFrame('beta')] })

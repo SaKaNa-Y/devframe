@@ -63,6 +63,22 @@ export interface DevframeNodeContext {
    */
   services: DevframeServicesHost
   /**
+   * This context's own {@link ConnectionMeta.configs} — static, boot-time
+   * config a host publishes once through the connection handshake and every
+   * client reads read-only. A plain, **non-reactive** object: mutate it
+   * during `setup(ctx)` (a plugin sets its keys, a hub aggregates across
+   * every installed devframe), never during the session — it's serialized
+   * once, after setup, and changing it afterwards reaches no client.
+   *
+   * ```ts
+   * ctx.staticConfig.dock = {
+   *   ...ctx.staticConfig.dock,
+   *   categoryOrder: { ...ctx.staticConfig.dock?.categoryOrder, ...myOrder },
+   * }
+   * ```
+   */
+  staticConfig: Partial<DevframeConnectionConfigsRegistry>
+  /**
    * Create a namespace-scoped view of this context. The returned
    * `ctx.scope('my-plugin')` auto-namespaces every RPC id, shared-state
    * key, and streaming channel with `my-plugin:`, and exposes a typed
@@ -203,4 +219,36 @@ export interface ConnectionMeta {
    * token same-origin until the requesting origin has been verified.
    */
   viewerOriginToken?: string
+  /**
+   * Static, host-declared configuration — baked in once at connect time and
+   * fixed for the life of the server (e.g. a hub's UI rebrand, or its
+   * aggregated dock-bar layout preferences). Read-only from the browser: a
+   * client only ever reads `rpc.connectionMeta.configs`, never writes to it.
+   *
+   * Contrast this with {@link DevframeSettingsRegistry} (`ctx.scope(ns).settings`)
+   * and a hub's `devframe:user-settings` shared-state key — both are
+   * mutable, user-editable, and synced bidirectionally over RPC for the
+   * life of the session. `configs` is the opposite: one-way, immutable,
+   * decided by whoever assembled the server.
+   *
+   * Each key is owned by one package, contributed via declaration merging:
+   *
+   * ```ts
+   * declare module 'devframe/types' {
+   *   interface DevframeConnectionConfigsRegistry {
+   *     'my-key': { some: 'shape' }
+   *   }
+   * }
+   * ```
+   */
+  configs?: Partial<DevframeConnectionConfigsRegistry>
 }
+
+/**
+ * Augmentation point for {@link ConnectionMeta.configs}. Empty by default —
+ * a package that wants to publish static, boot-time config through the
+ * connection handshake augments this interface with its own key (see
+ * {@link ConnectionMeta.configs} for the pattern). `@devframes/hub`
+ * augments it with `dock`; `@devframes/hub-ui` augments it with `ui`.
+ */
+export interface DevframeConnectionConfigsRegistry {}

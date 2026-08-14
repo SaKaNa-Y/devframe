@@ -10,6 +10,7 @@ export interface DevframeHubUi {
     entry: string;
   };
   assets?: Record<string, () => string | Uint8Array>;
+  setup?: (_: DevframeHubContext) => void | Promise<void>;
 }
 export interface DockRendererRegistration {
   type: string;

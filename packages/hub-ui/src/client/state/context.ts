@@ -3,11 +3,11 @@ import type { CommandsContext, DevframeRpcClient, DockClientScriptContext, DockE
 import type { SharedState } from 'devframe/utils/shared-state'
 import type { WhenContext } from 'devframe/utils/when'
 import type { Ref } from 'vue'
-import type { HubDocksUserSettings } from './dock-settings'
+import type { DevframeDocksUserSettings } from './dock-settings'
 import { attachFrameNavClient } from '@devframes/hub/client'
 import { DEFAULT_STATE_USER_SETTINGS, DOCK_RENDERERS_STATE_KEY } from '@devframes/hub/constants'
 import { computed, markRaw, reactive, ref, toRefs, watch, watchEffect } from 'vue'
-import { BUILTIN_ENTRIES, BUILTIN_ENTRY_SETTINGS, HUB_UI_HIDE_EVENT } from '../constants'
+import { BUILTIN_ENTRIES, BUILTIN_ENTRY_SETTINGS, DEFAULT_CATEGORIES_ORDER, HUB_UI_HIDE_EVENT } from '../constants'
 import { useBranding } from './branding'
 import { createCommandsContext } from './commands'
 import { docksGroupByCategories, getCategoryLabel, getGroupMembers, getGroupMembersGrouped, getRegisteredGroupIds, resolveCommandIcon, resolveGroupDefaultChild } from './dock-settings'
@@ -134,7 +134,7 @@ export async function createDocksContext(
   panelStore ||= ref(DEFAULT_DOCK_PANEL_STORE())
   let docksContext: DocksContext
 
-  let _settingsStorePromise: Promise<SharedState<HubDocksUserSettings>> | undefined
+  let _settingsStorePromise: Promise<SharedState<DevframeDocksUserSettings>> | undefined
   const getSettingsStore = async () => {
     if (!_settingsStorePromise) {
       _settingsStorePromise = rpc.sharedState.get(
@@ -353,8 +353,12 @@ export async function createDocksContext(
 
   // Settings store, `settings`, and `getWhenContext` are established earlier
   // (right before `switchEntry`) — its group→member resolution needs them.
+  // `categoryOrderOverride` folds in the reference UI's configured
+  // `dockPreferences.categoryOrder` (`createUi({ dockPreferences })`),
+  // delivered once via the connection handshake.
+  const categoryOrderOverride = rpc.connectionMeta.configs?.ui?.dockPreferences?.categoryOrder
   const groupedEntries = computed(() => {
-    return docksGroupByCategories(entries.value, settings.value, { whenContext: getWhenContext(), collapseGroups: true })
+    return docksGroupByCategories(entries.value, settings.value, { whenContext: getWhenContext(), collapseGroups: true, categoryOrderOverride })
   })
 
   // Initialize commands context with reactive when-context
@@ -404,8 +408,8 @@ export async function createDocksContext(
       // explicit visit and stays mounted.
       when: 'clientType == embedded',
       action: () => {
-        // Ask whoever mounted the embedded dock to tear it down for this
-        // session — a reload brings it back.
+        // Conceal the embedded dock — the Shift+Alt+D reveal shortcut (or a
+        // reload) brings it back. In passive mode this is remembered.
         window.dispatchEvent(new CustomEvent(HUB_UI_HIDE_EVENT))
       },
     },
@@ -511,6 +515,7 @@ export async function createDocksContext(
       entries,
       entryToStateMap: markRaw(dockEntryStateMap),
       groupedEntries,
+      categoryOrder: categoryOrderOverride ? { ...DEFAULT_CATEGORIES_ORDER, ...categoryOrderOverride } : DEFAULT_CATEGORIES_ORDER,
       settings: settingsStore,
       getStateById: (id: string) => dockEntryStateMap.get(id),
       switchEntry,

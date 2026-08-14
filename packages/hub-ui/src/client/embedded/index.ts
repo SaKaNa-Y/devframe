@@ -1,16 +1,17 @@
 import type { DockPanelStorage } from '@devframes/hub/client'
 import { getDevframeRpcClient, setDevframeClientContext } from '@devframes/hub/client'
 import { useLocalStorage } from '@vueuse/core'
-import { HUB_UI_HIDE_EVENT } from '../constants'
+import { applyPrimaryColor, setBranding } from '../state/branding'
 import { DEFAULT_DOCK_PANEL_STORE } from '../state/docks'
+import { setupEmbeddedVisibility } from './visibility'
 
 /**
  * The floating-dock bootstrap the hub serves at `<base>embedded.js` — load
  * it with one `<script type="module" src="<base>embedded.js">` tag and the
- * dock mounts immediately. Always visible by design: visibility policy
- * belongs to whoever authors an embedded entry, and this one's policy is
- * "you asked for devtools, here they are". The "Hide" command removes the
- * dock for the session; a reload brings it back.
+ * dock mounts itself. Its reveal policy is `ConnectionMeta.configs.ui.embeddedVisibility`
+ * (`normal` / `passive` / `hidden`): `normal` shows immediately, the others
+ * start hidden and reveal with `Shift+Alt+D`. The "Hide" command conceals the
+ * dock; the shortcut (or, for `passive`, a later reload) brings it back.
  */
 let dockEl: HTMLElement | undefined
 
@@ -39,37 +40,57 @@ async function mountDock(): Promise<void> {
     simpleAuth: false,
   })
 
+  // The reference UI's dock-bar preferences (`createUi({ dockPreferences })`),
+  // delivered once via the connection handshake we just performed — fixed for
+  // the life of this server, never re-fetched.
+  const dockPreferences = rpc.connectionMeta.configs?.ui?.dockPreferences
+
+  const defaultStore = DEFAULT_DOCK_PANEL_STORE()
   const state = useLocalStorage<DockPanelStorage>(
     'devframes-dock-state',
-    DEFAULT_DOCK_PANEL_STORE(),
+    {
+      ...defaultStore,
+      // Seed a first-run visitor's mode/position from the configured
+      // defaults — `useLocalStorage`'s own `mergeDefaults` already limits
+      // this to a visitor with no stored preference yet.
+      ...(dockPreferences?.defaultMode ? { mode: dockPreferences.defaultMode } : {}),
+      ...(dockPreferences?.defaultPosition ? { position: dockPreferences.defaultPosition } : {}),
+    },
     { mergeDefaults: true },
   )
 
   // Resolve branding before the dock exists so the primary color and logo are
-  // in place on the first paint. Fetched from `<base>branding.json` (served
-  // where this script is), then overridden by any host-page channel.
-  const { resolveBranding, applyPrimaryColor } = await import('../state/branding')
-  const branding = await resolveBranding({
-    mode: 'embedded',
-    brandingUrl: new URL('branding.json', import.meta.url),
-  })
+  // in place on the first paint. Read from `ConnectionMeta.configs.ui.branding`,
+  // carried by the connection we just established above.
+  const branding = setBranding(rpc.connectionMeta.configs?.ui?.branding || {})
 
   const { createDocksContext } = await import('../state/context')
   const context = await createDocksContext('embedded', rpc, state)
   setDevframeClientContext(context)
 
   const { DockEmbedded } = await import('../components/DockEmbedded')
-  dockEl = new DockEmbedded({ context }) as unknown as HTMLElement
+  dockEl = new DockEmbedded({
+    context,
+    ...(dockPreferences?.maxVisibleItems !== undefined ? { layout: { maxVisibleItems: dockPreferences.maxVisibleItems } } : {}),
+  }) as unknown as HTMLElement
   // Inline on the host element — beats the generated `:host` ramp defaults and
   // inherits through the shadow tree. The embedded bootstrap never touches the
   // host page's <title>/favicon (it's a guest there).
   applyPrimaryColor(dockEl, branding.primaryColor)
-  document.body.appendChild(dockEl)
-}
 
-window.addEventListener(HUB_UI_HIDE_EVENT, () => {
-  dockEl?.remove()
-  dockEl = undefined
-})
+  // Reveal policy: `normal` appends now; `passive`/`hidden` wait for the
+  // Shift+Alt+D reveal (the element is built and ready, just detached).
+  setupEmbeddedVisibility(
+    rpc.connectionMeta.configs?.ui?.embeddedVisibility ?? 'normal',
+    branding.productName,
+    {
+      show: () => {
+        if (dockEl && !dockEl.isConnected)
+          document.body.appendChild(dockEl)
+      },
+      hide: () => dockEl?.remove(),
+    },
+  )
+}
 
 void mountDock()

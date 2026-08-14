@@ -157,6 +157,22 @@ describe('createDevframeClientHost', () => {
     host.dispose()
   })
 
+  it('merges the host-page categoryOrder option beneath DEFAULT_CATEGORIES_ORDER', async () => {
+    const { rpc, states } = createStubRpc()
+    const host = await createDevframeClientHost({ rpc, categoryOrder: { app: -200, web: 999 } })
+
+    states.get('devframe:docks')!.push([
+      iframeEntry('app-entry', { category: 'app' }),
+      iframeEntry('web-entry', { category: 'web' }),
+      iframeEntry('framework-entry', { category: 'framework' }),
+    ])
+
+    expect(host.context.docks.categoryOrder).toMatchObject({ app: -200, web: 999, framework: -100 })
+    // `app` (-200, from the option) now sorts ahead of `framework` (-100, default).
+    expect(host.context.docks.groupedEntries.map(([cat]) => cat)).toEqual(['app', 'framework', 'web'])
+    host.dispose()
+  })
+
   it('switches entries with activation/deactivation events and when-context updates', async () => {
     const { rpc, states } = createStubRpc()
     const host = await createDevframeClientHost({ rpc })

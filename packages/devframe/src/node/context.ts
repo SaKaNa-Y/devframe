@@ -44,6 +44,7 @@ export async function createHostContext(options: CreateHostContextOptions): Prom
     diagnostics: undefined!,
     agent: undefined!,
     services: undefined!,
+    staticConfig: {},
     scope: undefined!,
   } as unknown as DevframeNodeContext
 

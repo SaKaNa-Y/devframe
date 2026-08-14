@@ -1,5 +1,6 @@
 import { getDevframeRpcClient, setDevframeClientContext } from '@devframes/hub/client'
 import { watchEffect } from 'vue'
+import { applyDocumentHead, applyPrimaryColor, setBranding } from '../state/branding'
 import { isDark } from '../state/color-mode'
 
 // The standalone viewer — a vanilla shell served at the hub base itself
@@ -30,12 +31,10 @@ async function main(): Promise<void> {
   })
 
   // Resolve branding before mount; the standalone page owns its own head, so
-  // apply title/favicon/description here too.
-  const { resolveBranding, applyPrimaryColor, applyDocumentHead } = await import('../state/branding')
-  const branding = await resolveBranding({
-    mode: 'standalone',
-    brandingUrl: new URL('branding.json', document.baseURI),
-  })
+  // apply title/favicon/description here too. Read from
+  // `ConnectionMeta.configs.ui.branding`, carried by the connection we just
+  // established above.
+  const branding = setBranding(rpc.connectionMeta.configs?.ui?.branding || {})
   applyDocumentHead(document, branding)
 
   const { createDocksContext } = await import('../state/context')

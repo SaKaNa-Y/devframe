@@ -56,10 +56,27 @@ The hub is headless — `DevframeHubUi` is pure data, and whoever fills it decid
 interface DevframeHubUi {
   viewer?: { distDir: string } // a standalone SPA served at the namespace root
   embedded?: { entry: string } // a prebuilt bootstrap served at <base>embedded.js
+  assets?: Record<string, () => string | Uint8Array> // extra UI-owned files
+  setup?: (ctx) => void | Promise<void> // publish static config via ctx.staticConfig
 }
 ```
 
-`@devframes/hub-ui`'s `createUi()` is the reference implementation: a standalone viewer plus the floating dock — one `<script type="module" src="/__devframes/embedded.js">` tag in the host page and the dock mounts itself, always visible. A viewer product supplies a different object to the same slot and reuses all the infrastructure; visibility policy (keyboard summon, passive modes) belongs entirely to the entry's author.
+`@devframes/hub-ui`'s `createUi()` is the reference implementation: a standalone viewer plus the floating dock — one `<script type="module" src="/__devframes/embedded.js">` tag in the host page and the dock mounts itself. A viewer product supplies a different object to the same slot and reuses all the infrastructure. Its `setup(ctx)` publishes the reference UI's config to `ctx.staticConfig.ui`, which rides `ConnectionMeta.configs.ui` to the client.
+
+`createUi()` takes a few options:
+
+- **`branding`** — rebrand the reference UI (logo, product name, primary color).
+- **`dockPreferences`** — dock-bar rendering: `categoryOrder`, floating-dock `maxVisibleItems`, and the first-run `defaultMode` (`'float'` / `'edge'`) and `defaultPosition`.
+- **`embeddedVisibility`** — the floating dock's reveal policy:
+  - `'normal'` (default) — the dock is shown immediately.
+  - `'passive'` — the dock starts hidden with a console hint; `Shift+Alt+D` reveals it, and the reveal persists per-origin so later sessions start shown.
+  - `'hidden'` — the dock starts hidden; `Shift+Alt+D` reveals it for the current session only.
+
+```ts
+createUi({ embeddedVisibility: 'passive', dockPreferences: { defaultMode: 'edge' } })
+```
+
+Each seeds a user-overridable preference — the config sets the default, the visitor's own choice (reveal/hide, float/edge, …) wins from then on.
 
 ## Renderer modules
 
