@@ -25,6 +25,7 @@ function guideGroups(prefix: string) {
         { text: 'Devframe Definition', link: `${prefix}/guide/devframe-definition` },
         { text: 'RPC', link: `${prefix}/guide/rpc` },
         { text: 'Shared State', link: `${prefix}/guide/shared-state` },
+        { text: 'Client Assets', link: `${prefix}/guide/client-assets` },
         { text: 'Structured Diagnostics', link: `${prefix}/guide/diagnostics` },
         { text: 'Agent-Native', link: `${prefix}/guide/agent-native` },
         { text: 'JSON-Render', link: `${prefix}/guide/json-render` },
