@@ -4,7 +4,7 @@
 // #region Interfaces
 export interface CreateBuildOptions {
   outDir?: string;
-  distDir?: string;
+  distDir?: StaticAssetsSource;
   pretty?: boolean;
   force?: boolean;
 }

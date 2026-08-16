@@ -55,6 +55,10 @@ export { EventEmitter }
 export { EventsMap }
 export { EventUnsubscribe }
 export { McpRouteOptions }
+export { RemoteAssets }
+export { RemoteAssetsProvider }
+export { RemoteAssetsProviderCustom }
+export { RemoteAssetsStore }
 export { RpcBroadcastOptions }
 export { RpcFunctionAgentOptions }
 export { RpcFunctionsHost }
@@ -69,4 +73,5 @@ export { ScopedRpcFn }
 export { ScopedServerFunctions }
 export { ScopedSharedStates }
 export { SettingsForNamespace }
+export { StaticAssetsSource }
 // #endregion

@@ -1,4 +1,5 @@
 import type { DevframeHost } from '../types/host'
+import type { RemoteAssetsStore } from '../types/remote-assets'
 import { homedir } from 'node:os'
 import process from 'node:process'
 import { join } from 'pathe'
@@ -12,11 +13,13 @@ export interface CreateH3DevframeHostOptions {
    */
   origin: string | (() => string)
   /**
-   * Register a static-file handler at `base` serving files from `distDir`.
-   * `mountStatic` forwards to it; when omitted the host serves no SPA
-   * (bridge mode, where the SPA is hosted elsewhere).
+   * Register a static-file handler at `base` serving files from `source` —
+   * a local directory or a resolved remote-assets back-proxy store (both
+   * accepted by `devframe/utils/serve-static`). `mountStatic` forwards to
+   * it; when omitted the host serves no SPA (bridge mode, where the SPA is
+   * hosted elsewhere).
    */
-  mount?: (base: string, distDir: string) => void | Promise<void>
+  mount?: (base: string, source: string | RemoteAssetsStore) => void | Promise<void>
   /**
    * Namespace for storage paths returned by `getStorageDir`. Workspace
    * state (committable) lives under `${workspaceRoot}/.devframe/`, project
@@ -39,8 +42,8 @@ export interface CreateH3DevframeHostOptions {
 export function createH3DevframeHost(options: CreateH3DevframeHostOptions): DevframeHost {
   const workspaceRoot = options.workspaceRoot ?? process.cwd()
   return {
-    mountStatic(base, distDir) {
-      return options.mount?.(base, distDir)
+    mountStatic(base, source) {
+      return options.mount?.(base, source)
     },
     resolveOrigin() {
       return typeof options.origin === 'function' ? options.origin() : options.origin

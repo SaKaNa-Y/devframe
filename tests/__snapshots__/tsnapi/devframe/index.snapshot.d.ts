@@ -120,7 +120,7 @@ export interface DevframeCliOptions {
   open?: boolean | string;
   auth?: boolean | DevframeAuthHandler;
   mcp?: boolean | McpRouteOptions;
-  distDir?: string;
+  distDir?: StaticAssetsSource;
   ws?: DevframeWsOptions | false;
   sse?: boolean | DevframeSseOptions;
   configure?: (_: CAC) => void;
@@ -172,7 +172,7 @@ export interface DevframeDockDefaults {
   groupId?: string;
 }
 export interface DevframeHost {
-  mountStatic: (_: string, _: string) => void | Promise<void>;
+  mountStatic: (_: string, _: string | RemoteAssetsStore) => void | Promise<void>;
   mountConnectionMeta?: (_: string) => void | Promise<void>;
   resolveOrigin: () => string;
   getStorageDir: (_: DevframeStorageScope) => string;
@@ -329,9 +329,9 @@ export interface DevframeSseOptions {
 export interface DevframeViewHost {
   buildStaticDirs: {
     baseUrl: string;
-    distDir: string;
+    source: StaticAssetsSource;
   }[];
-  hostStatic: (_: string, _: string) => void;
+  hostStatic: (_: string, _: StaticAssetsSource) => void;
 }
 export interface DevframeWsOptions {
   route?: string;
@@ -355,6 +355,26 @@ export interface EventUnsubscribe {
 export interface McpRouteOptions {
   path?: string;
   allowedOrigins?: readonly string[] | false;
+}
+export interface RemoteAssets {
+  package: string;
+  version: string;
+  path?: string;
+  provider?: RemoteAssetsProvider;
+  resolveFrom?: string;
+  fetch?: typeof globalThis.fetch;
+  offline?: boolean;
+}
+export interface RemoteAssetsProviderCustom {
+  fileUrl: (_: string, _: string, _: string) => string;
+  listFiles?: (_: string, _: string, _: typeof globalThis.fetch) => Promise<string[]>;
+}
+export interface RemoteAssetsStore {
+  readonly assets: RemoteAssets & {
+    path: string;
+  };
+  serve: (_: string) => Promise<Response | null>;
+  materialize: (_: string) => Promise<void>;
 }
 export interface RpcBroadcastOptions<METHOD, Args extends any[]> {
   method: METHOD;
@@ -422,6 +442,7 @@ export type DevframeRpcTransportKind = 'websocket' | 'sse';
 export type DevframeServiceId = keyof DevframeServicesRegistry | (string & {});
 export type DevframeServiceOf<ID> = ID extends keyof DevframeServicesRegistry ? DevframeServicesRegistry[ID] : unknown;
 export type DevframeStorageScope = 'workspace' | 'project' | 'global';
+export type RemoteAssetsProvider = 'jsdelivr' | 'unpkg' | RemoteAssetsProviderCustom;
 export type RpcFunctionsHost = RpcFunctionsCollectorBase<DevframeRpcServerFunctions, DevframeNodeContext> & {
   invokeLocal: <T extends keyof DevframeRpcServerFunctions, Args extends Parameters<DevframeRpcServerFunctions[T]>>(_: T, ..._: Args) => Promise<Awaited<ReturnType<DevframeRpcServerFunctions[T]>>>;
   broadcast: <T extends keyof DevframeRpcClientFunctions, Args extends Parameters<DevframeRpcClientFunctions[T]>>(_: RpcBroadcastOptions<T, Args>) => Promise<void>;
@@ -434,6 +455,7 @@ export type ScopedRpcFn<Registry, NS extends string, T extends string> = `${NS}:
 export type ScopedServerFunctions<NS extends string> = { [K in keyof DevframeRpcServerFunctions as K extends `${NS}:${infer R}` ? R : never]: DevframeRpcServerFunctions[K]; };
 export type ScopedSharedStates<NS extends string> = { [K in keyof DevframeRpcSharedStates as K extends `${NS}:${infer R}` ? R : never]: DevframeRpcSharedStates[K]; };
 export type SettingsForNamespace<NS extends string> = NS extends keyof DevframeSettingsRegistry ? DevframeSettingsRegistry[NS] extends Record<string, any> ? DevframeSettingsRegistry[NS] : Record<string, any> : Record<string, any>;
+export type StaticAssetsSource = string | RemoteAssets;
 // #endregion
 
 // #region Functions

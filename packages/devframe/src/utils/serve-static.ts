@@ -1,11 +1,19 @@
 import type { EventHandler } from 'h3'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web'
+import type { RemoteAssetsStore } from '../types/remote-assets'
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { Readable } from 'node:stream'
 import { defineHandler, H3 } from 'h3'
 import { lookup } from 'mrmime'
 import { extname, join, normalize, resolve, sep } from 'pathe'
+
+/**
+ * What the static-serving engine accepts: a local directory, or a resolved
+ * {@link RemoteAssetsStore} back-proxy (from `devframe/utils/remote-assets`).
+ */
+export type ServableAssets = string | RemoteAssetsStore
 
 export interface ServeStaticOptions {
   /** Default: `['index.html']`. */
@@ -133,7 +141,48 @@ function normalizeOptions(options: ServeStaticOptions | undefined): NormalizedOp
 }
 
 /**
- * h3 event handler that serves files from `dir` with SPA fallback.
+ * Drive one request through a {@link RemoteAssetsStore}: the store's
+ * `Response` on a hit, a 404 on a miss, or a 502 (styled error page for HTML
+ * navigations) on provider failure — shared between the h3 and connect flavors.
+ */
+async function remoteResponse(store: RemoteAssetsStore, urlPath: string, accept: string | null | undefined): Promise<Response> {
+  try {
+    return (await store.serve(urlPath)) ?? new Response(null, { status: 404 })
+  }
+  catch (error) {
+    if (typeof accept === 'string' && accept.includes('text/html')) {
+      return new Response(
+        remoteErrorPage(store.assets.package, store.assets.version, error instanceof Error ? error.message : String(error)),
+        { status: 502, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
+      )
+    }
+    return new Response(null, { status: 502 })
+  }
+}
+
+function serveRemoteAssetsHandler(store: RemoteAssetsStore): EventHandler {
+  return defineHandler(async (event) => {
+    const method = event.req.method
+    if (method !== 'GET' && method !== 'HEAD') {
+      event.res.status = 405
+      event.res.headers.set('Allow', 'GET, HEAD')
+      return ''
+    }
+    const res = await remoteResponse(store, event.url.pathname, event.req.headers.get('accept'))
+    event.res.status = res.status
+    res.headers.forEach((v, k) => event.res.headers.set(k, v))
+    if (method === 'HEAD') {
+      await res.body?.cancel().catch(() => {})
+      return ''
+    }
+    return (res.body ?? '') as ReadableStream
+  })
+}
+
+/**
+ * h3 event handler that serves files from `source` with SPA fallback — a
+ * local directory, or a {@link RemoteAssetsStore} whose files stream through
+ * the CDN back-proxy into the local cache.
  *
  * Drop-in replacement for `fromNodeMiddleware(sirv(dir, { dev: true, single: true }))`
  * when the surrounding server is an h3 app — no `Cache-Control` beyond
@@ -142,10 +191,12 @@ function normalizeOptions(options: ServeStaticOptions | undefined): NormalizedOp
  * works.
  */
 export function serveStaticHandler(
-  dir: string,
+  source: ServableAssets,
   options?: ServeStaticOptions,
 ): EventHandler {
-  const absDir = resolve(dir)
+  if (typeof source !== 'string')
+    return serveRemoteAssetsHandler(source)
+  const absDir = resolve(source)
   const opts = normalizeOptions(options)
   return defineHandler(async (event) => {
     const method = event.req.method
@@ -177,11 +228,11 @@ export function serveStaticHandler(
 export function mountStaticHandler(
   app: H3,
   base: string,
-  dir: string,
+  source: ServableAssets,
   options?: ServeStaticOptions,
 ): void {
   const staticApp = new H3()
-  staticApp.use(serveStaticHandler(dir, options))
+  staticApp.use(serveStaticHandler(source, options))
   app.mount(base.replace(/\/$/, ''), staticApp)
 }
 
@@ -193,10 +244,10 @@ export function mountStaticHandler(
  * adapt an event handler back into Node middleware.
  */
 export function serveStaticNodeMiddleware(
-  dir: string,
+  source: ServableAssets,
   options?: ServeStaticOptions,
 ): (req: IncomingMessage, res: ServerResponse, next?: (err?: Error) => void) => void {
-  const absDir = resolve(dir)
+  const absDir = typeof source === 'string' ? resolve(source) : undefined
   const opts = normalizeOptions(options)
   return (req, res, next) => {
     void (async () => {
@@ -212,6 +263,24 @@ export function serveStaticNodeMiddleware(
         return
       }
       const url = req.url ?? '/'
+
+      if (absDir === undefined) {
+        const response = await remoteResponse(source as RemoteAssetsStore, url, req.headers.accept)
+        if (response.status === 404 && next) {
+          next()
+          return
+        }
+        res.statusCode = response.status
+        response.headers.forEach((v, k) => res.setHeader(k, v))
+        if (method === 'HEAD' || !response.body) {
+          await response.body?.cancel().catch(() => {})
+          res.end()
+          return
+        }
+        Readable.fromWeb(response.body as NodeWebReadableStream<Uint8Array>).pipe(res)
+        return
+      }
+
       const file = await resolveTarget(absDir, url, opts.indexNames, opts.single)
       if (!file) {
         if (next) {
@@ -237,4 +306,46 @@ export function serveStaticNodeMiddleware(
       res.end()
     })
   }
+}
+
+/**
+ * Minimal, dependency-free HTML shown when a remote-assets request cannot
+ * be satisfied (no installed package, no cache, provider unreachable).
+ */
+function remoteErrorPage(pkg: string, version: string, reason: string): string {
+  const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const name = esc(pkg)
+  const ver = esc(version)
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Client assets unavailable</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; font: 14px/1.6 ui-sans-serif, system-ui, sans-serif; background: #fafafa; color: #27272a; }
+  main { max-width: 32rem; padding: 2rem; }
+  h1 { font-size: 1rem; font-weight: 600; margin: 0 0 .5rem; }
+  p { margin: .5rem 0; opacity: .8; }
+  pre { font: 12px/1.6 ui-monospace, monospace; background: rgb(125 125 125 / .12); border-radius: 6px; padding: .75rem 1rem; overflow-x: auto; }
+  button { font: inherit; padding: .35rem 1rem; border-radius: 6px; border: 1px solid rgb(125 125 125 / .3); background: transparent; color: inherit; cursor: pointer; }
+  button:hover { background: rgb(125 125 125 / .08); }
+  .muted { opacity: .55; font-size: 12px; }
+  @media (prefers-color-scheme: dark) { body { background: #111; color: #d4d4d8; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Client assets unavailable</h1>
+  <p>The UI for this tool is served from <code>${name}@${ver}</code>, which could not be reached.</p>
+  <pre>${esc(reason)}</pre>
+  <p>To use it without network access, install the assets package locally:</p>
+  <pre>npm install ${name}@${ver}</pre>
+  <button onclick="location.reload()">Retry</button>
+  <p class="muted">devframe remote assets</p>
+</main>
+</body>
+</html>
+`
 }
