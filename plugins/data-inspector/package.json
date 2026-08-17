@@ -60,8 +60,7 @@
   "dependencies": {
     "cac": "catalog:deps",
     "get-port-please": "catalog:deps",
-    "jora": "catalog:deps",
-    "nostics": "catalog:deps"
+    "jora": "catalog:deps"
   },
   "devDependencies": {
     "@antfu/design": "catalog:frontend",

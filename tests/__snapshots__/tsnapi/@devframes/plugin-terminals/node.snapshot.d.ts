@@ -50,7 +50,7 @@ export declare function setupTerminals(_: DevframeNodeContext, _?: TerminalsOpti
 // #endregion
 
 // #region Variables
-export declare const diagnostics: import("nostics").Diagnostics<{
+export declare const diagnostics: Diagnostics<{
   readonly DP_TERMINALS_0001: {
     readonly why: (p: {
       id: string;
@@ -88,5 +88,7 @@ export declare const diagnostics: import("nostics").Diagnostics<{
     readonly why: "Terminals manager is not initialised on this context";
     readonly fix: "Call setupTerminals(ctx) (or use createTerminalsDevframe) before invoking terminal RPCs.";
   };
-}, readonly [typeof reporter]>;
+}, readonly [(d: Diagnostic, { method }?: {
+  method?: "log" | "warn" | "error";
+}) => void]>;
 // #endregion

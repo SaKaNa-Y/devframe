@@ -59,8 +59,7 @@
     }
   },
   "dependencies": {
-    "cac": "catalog:deps",
-    "nostics": "catalog:deps"
+    "cac": "catalog:deps"
   },
   "devDependencies": {
     "@antfu/design": "catalog:frontend",

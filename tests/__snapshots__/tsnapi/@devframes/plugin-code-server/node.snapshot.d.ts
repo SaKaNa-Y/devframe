@@ -89,7 +89,7 @@ export declare function setupCodeServer(_: DevframeNodeContext, _?: CodeServerOp
 // #endregion
 
 // #region Variables
-export declare const diagnostics: import("nostics").Diagnostics<{
+export declare const diagnostics: Diagnostics<{
   readonly DP_CODE_SERVER_0001: {
     readonly why: (p: {
       bin: string;
@@ -125,5 +125,7 @@ export declare const diagnostics: import("nostics").Diagnostics<{
     }) => string;
     readonly fix: "Check the tunnel logs, ensure the `code` CLI is signed in, or raise `startTimeout`.";
   };
-}, readonly [typeof reporter]>;
+}, readonly [(d: Diagnostic, { method }?: {
+  method?: "log" | "warn" | "error";
+}) => void]>;
 // #endregion

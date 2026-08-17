@@ -58,7 +58,6 @@
   },
   "dependencies": {
     "cac": "catalog:deps",
-    "nostics": "catalog:deps",
     "parse5": "catalog:deps"
   },
   "devDependencies": {

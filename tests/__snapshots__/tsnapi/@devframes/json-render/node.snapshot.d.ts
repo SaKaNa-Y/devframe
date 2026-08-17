@@ -15,7 +15,7 @@ export declare function createJsonRenderView(_: AnyContext, _: CreateJsonRenderV
 // #endregion
 
 // #region Variables
-export declare const jsonRenderDiagnostics: import("nostics").Diagnostics<{
+export declare const jsonRenderDiagnostics: Diagnostics<{
   readonly DF0038: {
     readonly why: (p: {
       id: string;
@@ -44,5 +44,7 @@ export declare const jsonRenderDiagnostics: import("nostics").Diagnostics<{
     }) => string;
     readonly fix: "Specs and state travel as strict JSON — remove functions, symbols, class instances, Map/Set, or circular references.";
   };
-}, readonly [typeof jsonRenderReporter]>;
+}, readonly [(d: Diagnostic, { method }?: {
+  method?: "log" | "warn" | "error";
+}) => void]>;
 // #endregion
