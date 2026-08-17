@@ -61,6 +61,14 @@ Honor `when` / `visibility` clauses, `category` grouping (order from
 `DEFAULT_CATEGORIES_ORDER` in `@devframes/hub/constants`), and the
 `hub:docks:activate` broadcast.
 
+An `iframe` entry whose devframe serves its UI from a [remote assets
+package](./client-assets) can also report that those assets are unreachable: its
+fallback page posts a `RemoteAssetsErrorMessage`
+(`DEVFRAME_REMOTE_ASSETS_ERROR_MESSAGE_TYPE`, both re-exported from
+`@devframes/hub/constants`) to `window.parent`. Match the message against the
+frame's own `contentWindow` and you can offer the install command and a retry in
+your own UI; leaving it alone keeps the fallback page visible inside the frame.
+
 ### The renderer registry and its fallback
 
 **Every other dock type routes through the dock-renderer registry** — build it

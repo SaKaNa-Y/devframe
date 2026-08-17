@@ -10,10 +10,26 @@ import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { Readable } from 'node:stream'
 import { lookup } from 'mrmime'
+import { createDebug } from 'obug'
 import { dirname, extname, join, normalize, sep } from 'pathe'
 import { diagnostics } from '../node/diagnostics'
 
+const debugFetch = createDebug('devframe:remote-assets:fetch')
+const debugCache = createDebug('devframe:remote-assets:cache')
+
 const MANIFEST_FILENAME = '.manifest.json'
+
+/**
+ * Upstream response headers replayed to the browser. Everything outside this
+ * list is dropped, because it describes the *provider's* transfer rather than
+ * the file: hop-by-hop and encoding headers no longer match the body `fetch`
+ * already decoded, and a CDN's policy headers (`set-cookie`, `cache-control`,
+ * framing/CSP) belong to its origin — replaying them under the dev server's
+ * origin could just as well break the iframe these assets render in.
+ */
+const PROXIED_HEADERS = ['content-language', 'etag', 'last-modified'] as const
+
+const CACHE_CONTROL_HEADER = 'no-store'
 
 // ---------------------------------------------------------------------------
 // Providers
@@ -48,18 +64,22 @@ const providers: Record<'jsdelivr' | 'unpkg', Required<RemoteAssetsProviderCusto
   jsdelivr: {
     fileUrl: (pkg, version, filePath) => `https://cdn.jsdelivr.net/npm/${pkg}@${version}/${filePath}`,
     listFiles: async (pkg, version, fetchImpl) => {
-      const res = await fetchImpl(`https://data.jsdelivr.com/v1/packages/npm/${pkg}@${version}`)
+      const url = `https://data.jsdelivr.com/v1/packages/npm/${pkg}@${version}`
+      debugFetch('listing files for %s@%s from %s', pkg, version, url)
+      const res = await fetchImpl(url)
       if (!res.ok)
-        throw new Error(`HTTP ${res.status} from data.jsdelivr.com`)
+        throw new Error(`HTTP ${res.status} from ${url}`)
       return flattenTree((await res.json() as { files?: TreeNode[] }).files ?? [], 'name')
     },
   },
   unpkg: {
     fileUrl: (pkg, version, filePath) => `https://unpkg.com/${pkg}@${version}/${filePath}`,
     listFiles: async (pkg, version, fetchImpl) => {
-      const res = await fetchImpl(`https://unpkg.com/${pkg}@${version}/?meta`)
+      const url = `https://unpkg.com/${pkg}@${version}/?meta`
+      debugFetch('listing files for %s@%s from %s', pkg, version, url)
+      const res = await fetchImpl(url)
       if (!res.ok)
-        throw new Error(`HTTP ${res.status} from unpkg.com`)
+        throw new Error(`HTTP ${res.status} from ${url}`)
       return flattenTree([await res.json() as TreeNode], 'path')
     },
   },
@@ -81,7 +101,7 @@ function resolveProvider(assets: RemoteAssets): { provider: RemoteAssetsProvider
  * installed version warns (`DF0062`); a different major throws (`DF0061`).
  */
 function resolveInstalled(assets: RemoteAssets): string | undefined {
-  if (!assets.resolveFrom)
+  if (assets.resolveFrom == null)
     return undefined
   let pkgJsonPath: string
   let installed: unknown
@@ -114,6 +134,30 @@ function contentTypeFor(filePath: string): string {
   if (!type)
     return 'application/octet-stream'
   return type === 'text/html' ? 'text/html; charset=utf-8' : type
+}
+
+/**
+ * Headers for a file streamed through from the provider. `Content-Type` and
+ * `Cache-Control` are ours, so a file looks identical whether it came from the
+ * provider or from the cache ({@link createStore}'s `serveCached`).
+ */
+function proxyHeaders(filePath: string, upstream: Headers): Headers {
+  const headers = new Headers({
+    'Content-Type': contentTypeFor(filePath),
+    'Cache-Control': CACHE_CONTROL_HEADER,
+  })
+  // `fetch` decodes the body, so an encoded response's `Content-Length`
+  // counts bytes the browser will never see — it only survives verbatim.
+  const encoding = upstream.get('content-encoding')
+  const length = upstream.get('content-length')
+  if (length && (!encoding || encoding === 'identity'))
+    headers.set('Content-Length', length)
+  for (const name of PROXIED_HEADERS) {
+    const value = upstream.get(name)
+    if (value != null)
+      headers.set(name, value)
+  }
+  return headers
 }
 
 /** Clean a request path into a safe package-relative POSIX path, or `null` if it escapes root. */
@@ -155,13 +199,19 @@ function createStore(assets: RemoteAssets, cacheDir: string): RemoteAssetsStore 
 
   async function loadManifest(): Promise<Set<string> | null> {
     const manifestFile = join(cacheDir, MANIFEST_FILENAME)
-    try {
-      return new Set(JSON.parse(await readFile(manifestFile, 'utf8')) as string[])
+    if (existsSync(manifestFile)) {
+      try {
+        return new Set(JSON.parse(await readFile(manifestFile, 'utf8')) as string[])
+      }
+      catch {}
     }
-    catch {}
     if (assets.offline || !provider.listFiles)
       return null
     try {
+      // A listing failure is not fatal — requests degrade to probing the
+      // provider per candidate. Only a file that can't be fetched at all
+      // surfaces to the user (`DF0060`, and the fallback page that carries
+      // it into the viewer — see `remoteErrorPage` in `serve-static`).
       const files = await provider.listFiles(normalized.package, normalized.version, fetchImpl)
       await mkdir(cacheDir, { recursive: true })
       await writeFile(manifestFile, JSON.stringify(files), 'utf8').catch(() => {})
@@ -188,8 +238,13 @@ function createStore(assets: RemoteAssets, cacheDir: string): RemoteAssetsStore 
     catch {
       return null
     }
+    debugCache('serving %s from cache (%d bytes)', filePath, size)
     return new Response(Readable.toWeb(createReadStream(abs)) as ReadableStream<Uint8Array>, {
-      headers: { 'Content-Type': contentTypeFor(filePath), 'Content-Length': String(size), 'Cache-Control': 'no-store' },
+      headers: {
+        'Content-Type': contentTypeFor(filePath),
+        'Content-Length': String(size),
+        'Cache-Control': CACHE_CONTROL_HEADER,
+      },
     })
   }
 
@@ -213,6 +268,7 @@ function createStore(assets: RemoteAssets, cacheDir: string): RemoteAssetsStore 
     const url = provider.fileUrl(normalized.package, normalized.version, filePath)
     let res: Response
     try {
+      debugFetch('fetching %s from %s', filePath, url)
       res = await fetchImpl(url)
     }
     catch (error) {
@@ -226,11 +282,15 @@ function createStore(assets: RemoteAssets, cacheDir: string): RemoteAssetsStore 
       await res.body?.cancel().catch(() => {})
       throw diagnostics.DF0060({ url, package: normalized.package, reason: `HTTP ${res.status}` })
     }
+    // The body is consumed twice — once by the client, once by the cache
+    // writer — so the client gets a fresh `Response` over its own branch of
+    // the tee; `res` itself is unusable from here on (the tee locked its body).
     const [toClient, toCache] = res.body.tee()
     void persist(filePath, toCache)
-    const length = res.headers.get('content-length')
     return new Response(toClient, {
-      headers: { 'Content-Type': contentTypeFor(filePath), 'Cache-Control': 'no-store', ...(length ? { 'Content-Length': length } : {}) },
+      status: res.status,
+      statusText: res.statusText,
+      headers: proxyHeaders(filePath, res.headers),
     })
   }
 

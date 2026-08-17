@@ -81,6 +81,16 @@ export const DEVFRAME_VIEWER_ORIGIN_QUERY_PARAM = 'devframe_viewer_origin'
 export const DEVFRAME_VIEWER_ORIGIN_TOKEN_QUERY_PARAM = 'devframe_viewer_origin_token'
 
 /**
+ * `postMessage` type the remote-assets fallback page posts to `window.parent`
+ * on load. That page is what a devframe serves (with a 502) when its client
+ * assets can be reached neither locally nor through their CDN provider — the
+ * message lets an embedding viewer replace the bare page with its own UI
+ * (`@devframes/hub-ui` does, in its iframe view). Payload shape:
+ * `RemoteAssetsErrorMessage` (`devframe/types`).
+ */
+export const DEVFRAME_REMOTE_ASSETS_ERROR_MESSAGE_TYPE = 'devframe:remote-assets-error'
+
+/**
  * Prefix that marks an RPC method as callable before a connection is
  * trusted. This is the *only* rule the pre-trust gate applies — there is no
  * per-method allowlist. Any handshake method a host adapter needs to reach

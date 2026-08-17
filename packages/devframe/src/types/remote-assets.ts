@@ -41,7 +41,7 @@ export interface RemoteAssets {
    * with zero network. Omitting it skips the installed-package step —
    * cache + CDN still work.
    */
-  resolveFrom?: string
+  resolveFrom?: string | null
   /** Custom fetch implementation (proxies, tests). Defaults to the global `fetch`. */
   fetch?: typeof globalThis.fetch
   /**
@@ -81,6 +81,24 @@ export interface RemoteAssetsProviderCustom {
  * {@link RemoteAssets} pointer served through the caching back-proxy.
  */
 export type StaticAssetsSource = string | RemoteAssets
+
+/**
+ * What the remote-assets fallback page posts to `window.parent` when a
+ * devframe's client assets could be served from neither a local install nor
+ * their provider. A viewer embedding the devframe in an iframe listens for
+ * `DEVFRAME_REMOTE_ASSETS_ERROR_MESSAGE_TYPE` (`devframe/constants`) and can
+ * render the failure in its own design, with the two ways out the page also
+ * spells out: install `package@version` locally, or restore network access.
+ */
+export interface RemoteAssetsErrorMessage {
+  type: 'devframe:remote-assets-error'
+  /** npm package the assets are published as. */
+  package: string
+  /** Exact version the devframe asked for. */
+  version: string
+  /** Why the fetch failed, as reported by the provider or the network stack. */
+  reason: string
+}
 
 /**
  * A resolved, servable handle over a {@link RemoteAssets} declaration —

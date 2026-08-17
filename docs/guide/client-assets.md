@@ -95,6 +95,12 @@ npm install @acme/my-tool-assets
 
 Set `offline: true` to guarantee the CDN is never contacted, or point `provider` at an internal npm mirror.
 
+### When the assets can't be reached
+
+A file that is in neither a local install nor the cache, with the provider unreachable, raises [`DF0060`](../errors/DF0060). An HTML navigation gets a self-contained page naming the assets package, the install command that makes it work offline, and the provider's own error, with a retry button.
+
+That page also posts its failure to `window.parent` (`DEVFRAME_REMOTE_ASSETS_ERROR_MESSAGE_TYPE` from `devframe/constants`, payload `RemoteAssetsErrorMessage`), so a viewer embedding the tool in an iframe can render the same thing in its own design — `@devframes/hub-ui` shows it as a panel over the dock's frame ([building your own](./build-your-own-hub-ui)).
+
 ### Custom provider
 
 A custom provider supplies the file URL, and optionally a file listing (used for correct 404s, SPA fallback, and static builds):

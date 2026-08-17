@@ -1,6 +1,6 @@
 import type { AddressInfo } from 'node:net'
 import type { MockInstance } from 'vitest'
-import type { RemoteAssets, RemoteAssetsStore } from '../types/remote-assets'
+import type { RemoteAssets, RemoteAssetsErrorMessage, RemoteAssetsStore } from '../types/remote-assets'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { H3, toNodeHandler } from 'h3'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { DEVFRAME_REMOTE_ASSETS_ERROR_MESSAGE_TYPE } from '../constants'
 import { resolveStaticAssetsSource } from './remote-assets'
 import { serveStaticHandler } from './serve-static'
 
@@ -99,6 +100,43 @@ describe('resolveStaticAssetsSource (remote store)', () => {
     const before = cdn.calls.filter(u => u.includes('app.js')).length
     await expect((await store.serve('/assets/app.js'))!.text()).resolves.toBe('console.log("app")')
     expect(cdn.calls.filter(u => u.includes('app.js')).length).toBe(before)
+  })
+
+  it('proxies the provider response: own content headers, no transfer-level ones', async () => {
+    const upstream = (): Response => new Response('console.log("app")', {
+      status: 200,
+      headers: {
+        'content-type': 'application/octet-stream',
+        'content-encoding': 'gzip',
+        'content-length': '11',
+        'etag': 'W/"abc"',
+        'set-cookie': 'session=1',
+        'x-frame-options': 'DENY',
+        'cache-control': 'public, max-age=31536000',
+      },
+    })
+    const store = storeFor({ fetch: async () => upstream() }, makeTmp())
+
+    const res = (await store.serve('/assets/app.js'))!
+    // `fetch` hands over a decoded body, so the encoded length would be a lie.
+    expect(res.headers.get('content-encoding')).toBeNull()
+    expect(res.headers.get('content-length')).toBeNull()
+    // The provider's policy headers stay with the provider.
+    expect(res.headers.get('set-cookie')).toBeNull()
+    expect(res.headers.get('x-frame-options')).toBeNull()
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toBe('text/javascript')
+    expect(res.headers.get('cache-control')).toBe('no-store')
+    expect(res.headers.get('etag')).toBe('W/"abc"')
+    await expect(res.text()).resolves.toBe('console.log("app")')
+  })
+
+  it('keeps the upstream content-length when the body arrived unencoded', async () => {
+    const store = storeFor(
+      { fetch: async () => new Response('hello', { headers: { 'content-length': '5' } }) },
+      makeTmp(),
+    )
+    expect((await store.serve('/assets/app.js'))!.headers.get('content-length')).toBe('5')
   })
 
   it('resolves the manifest: index fallback, SPA fallback, and extension-ed 404', async () => {
@@ -273,6 +311,13 @@ describe('serveStaticHandler with a remote store', () => {
       const body = await res.text()
       expect(body).toContain('Client assets unavailable')
       expect(body).toContain('@scope/demo-client')
+      // The page reports itself to an embedding viewer, which renders the
+      // same failure in its own UI (`@devframes/hub-ui`'s iframe view).
+      expect(body).toContain('window.parent.postMessage(')
+      expect(body).toContain(DEVFRAME_REMOTE_ASSETS_ERROR_MESSAGE_TYPE)
+      const payload = JSON.parse(/postMessage\((\{.*?\}), '\*'\)/.exec(body)![1]) as RemoteAssetsErrorMessage
+      expect(payload).toMatchObject({ package: '@scope/demo-client', version: '1.2.3' })
+      expect(payload.reason).toContain('network down')
 
       const asset = await fetch(`${url}/app.js`, { headers: { accept: '*/*' } })
       expect(asset.status).toBe(502)

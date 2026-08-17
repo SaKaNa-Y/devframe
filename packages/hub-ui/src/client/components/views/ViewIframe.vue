@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type { DevframeViewIframe } from '@devframes/hub'
 import type { DocksContext } from '@devframes/hub/client'
+import type { RemoteAssetsErrorMessage } from 'devframe/types'
 import type { IframePanes } from 'iframe-pane'
 import type { CSSProperties } from 'vue'
-import { REMOTE_CONNECTION_KEY } from '@devframes/hub/constants'
+import { DEVFRAME_REMOTE_ASSETS_ERROR_MESSAGE_TYPE, REMOTE_CONNECTION_KEY } from '@devframes/hub/constants'
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watchEffect } from 'vue'
 import { sharedStateToRef } from '../../state/docks'
+import ViewAssetsError from './ViewAssetsError.vue'
 
 const props = defineProps<{
   context: DocksContext
@@ -50,6 +52,13 @@ const ADDRESS_BAR_HEIGHT = 40
 
 const isLoading = ref(true)
 const isIframeLoading = ref(false)
+
+// A devframe whose client assets are published as their own npm package
+// answers with a fallback page when it can reach neither a local install nor
+// the CDN they live on. That page reports itself over `postMessage`, so the
+// failure renders as a hub panel — with the install command and a retry —
+// rather than as a bare page inside the frame.
+const assetsError = ref<RemoteAssetsErrorMessage | null>(null)
 const viewFrame = useTemplateRef<HTMLDivElement>('viewFrame')
 const urlInputRef = useTemplateRef<HTMLInputElement>('urlInput')
 
@@ -120,10 +129,28 @@ function updateCurrentUrl() {
   }
 }
 
+function onWindowMessage(event: MessageEvent) {
+  const data = event.data as Partial<RemoteAssetsErrorMessage> | null
+  if (typeof data !== 'object' || data === null || data.type !== DEVFRAME_REMOTE_ASSETS_ERROR_MESSAGE_TYPE)
+    return
+  // Only this view's own frame — a page nested inside it reporting the same
+  // failure is that page's business, not this dock's.
+  if (event.source !== iframeElement.value?.contentWindow)
+    return
+  assetsError.value = {
+    type: DEVFRAME_REMOTE_ASSETS_ERROR_MESSAGE_TYPE,
+    package: String(data.package ?? ''),
+    version: String(data.version ?? ''),
+    reason: String(data.reason ?? ''),
+  }
+}
+
 function navigateTo(url: string) {
   const iframe = iframeElement.value
   if (!iframe)
     return
+
+  assetsError.value = null
 
   // Ensure URL has protocol
   let normalizedUrl = url.trim()
@@ -185,6 +212,7 @@ function refresh() {
   if (!iframe)
     return
 
+  assetsError.value = null
   isIframeLoading.value = true
   // Reload by reassigning the src
   const src = iframe.src
@@ -239,6 +267,18 @@ onMounted(() => {
     }
   })
 
+  // The iframe lives in its own layer stacked over this view, so the error
+  // panel is only visible once the pane steps aside. `hide()` keeps the frame
+  // alive (and its state intact) for the retry.
+  watchEffect(() => {
+    if (assetsError.value)
+      pane.hide()
+    else if (pane.isMounted)
+      pane.show()
+  })
+
+  window.addEventListener('message', onWindowMessage)
+
   pane.mount(viewFrame.value!)
   isLoading.value = false
   nextTick(() => {
@@ -247,6 +287,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('message', onWindowMessage)
   const pane = props.panes.get(paneKey.value)
   if (pane && onIframeLoad)
     pane.iframe?.removeEventListener('load', onIframeLoad)
@@ -321,11 +362,16 @@ onUnmounted(() => {
     </div>
     <div
       ref="viewFrame"
-      class="devframes-view-iframe w-full h-full flex-1 items-center justify-center"
+      class="devframes-view-iframe relative w-full h-full flex-1 items-center justify-center"
     >
       <div v-if="isLoading" class="op50 z--1">
         Loading iframe...
       </div>
+      <ViewAssetsError
+        v-if="assetsError"
+        :error="assetsError"
+        @retry="refresh"
+      />
     </div>
   </div>
 </template>
