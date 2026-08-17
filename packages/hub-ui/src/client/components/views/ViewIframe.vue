@@ -8,6 +8,7 @@ import { DEVFRAME_REMOTE_ASSETS_ERROR_MESSAGE_TYPE, REMOTE_CONNECTION_KEY } from
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watchEffect } from 'vue'
 import { sharedStateToRef } from '../../state/docks'
 import ViewAssetsError from './ViewAssetsError.vue'
+import ViewIframeLoading from './ViewIframeLoading.vue'
 
 const props = defineProps<{
   context: DocksContext
@@ -52,6 +53,9 @@ const ADDRESS_BAR_HEIGHT = 40
 
 const isLoading = ref(true)
 const isIframeLoading = ref(false)
+// Flips true once the pane is mounted so the hide/show effect can run — a plain
+// `pane.isMounted` read isn't reactive.
+const paneReady = ref(false)
 
 // A devframe whose client assets are published as their own npm package
 // answers with a fallback page when it can reach neither a local install nor
@@ -59,6 +63,14 @@ const isIframeLoading = ref(false)
 // failure renders as a hub panel — with the install command and a retry —
 // rather than as a bare page inside the frame.
 const assetsError = ref<RemoteAssetsErrorMessage | null>(null)
+
+// The blank iframe paints white while its content loads, so a placeholder is
+// only useful when the pane steps aside (`pane.hide()`) to reveal it — the same
+// layering trick `ViewAssetsError` relies on. Show it during the initial load
+// and any hard navigation/refresh, but never on top of the assets-error panel.
+const showLoadingPlaceholder = computed(
+  () => !assetsError.value && (isLoading.value || isIframeLoading.value),
+)
 const viewFrame = useTemplateRef<HTMLDivElement>('viewFrame')
 const urlInputRef = useTemplateRef<HTMLInputElement>('urlInput')
 
@@ -245,6 +257,10 @@ onMounted(() => {
 
   if (existed)
     updateCurrentUrl()
+  else
+    // A freshly created pane is loading its initial content — reflect it so the
+    // placeholder covers the first paint, not just later navigations.
+    isIframeLoading.value = true
 
   // Persist this dock's live route while it is the selected one, so the next
   // reload can restore it. Only the selected dock writes, so switching docks
@@ -286,12 +302,15 @@ onMounted(() => {
   })
 
   // The iframe lives in its own layer stacked over this view, so the error
-  // panel is only visible once the pane steps aside. `hide()` keeps the frame
-  // alive (and its state intact) for the retry.
+  // panel and the loading placeholder are only visible once the pane steps
+  // aside. `hide()` keeps the frame alive (and its state intact) so the content
+  // keeps loading behind the placeholder and survives a retry.
   watchEffect(() => {
-    if (assetsError.value)
+    if (!paneReady.value)
+      return
+    if (assetsError.value || isIframeLoading.value)
       pane.hide()
-    else if (pane.isMounted)
+    else
       pane.show()
   })
 
@@ -299,6 +318,7 @@ onMounted(() => {
 
   pane.mount(viewFrame.value!)
   isLoading.value = false
+  paneReady.value = true
   nextTick(() => {
     pane.update()
   })
@@ -382,9 +402,7 @@ onUnmounted(() => {
       ref="viewFrame"
       class="devframes-view-iframe relative w-full h-full flex-1 items-center justify-center"
     >
-      <div v-if="isLoading" class="op50 z--1">
-        Loading iframe...
-      </div>
+      <ViewIframeLoading v-if="showLoadingPlaceholder" />
       <ViewAssetsError
         v-if="assetsError"
         :error="assetsError"
