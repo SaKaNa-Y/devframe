@@ -107,5 +107,11 @@ export async function installDevframe(
     url: base,
   } as DevframeViewIframe)
 
+  // Queue the definition's declarative wire services ahead of its setup so
+  // their option sets precede setup-time installs in the merge order. The
+  // hub fires the `ctx.services.ready()` barrier once every devframe (and
+  // the host's own configuration) has installed.
+  for (const input of d.services ?? [])
+    void ctx.services.install(input, { resolveFrom: d.packageName })
   await d.setup(ctx)
 }

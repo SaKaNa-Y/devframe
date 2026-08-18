@@ -289,7 +289,12 @@ export function initDevframe(
         host: hostImpl,
       })
       const setupInfo: DevframeSetupInfo = { flags: options.flags ?? {} }
+      // Declarative services queue ahead of setup (their promises resolve at
+      // the ready() barrier below), resolving against the plugin's own deps.
+      for (const input of def.services ?? [])
+        void context.services.install(input, { resolveFrom: def.packageName })
       await def.setup(context, setupInfo)
+      await context.services.ready()
 
       // Route-based MCP server (opt-in). Mounted before the SPA static
       // catch-all so the exact `<base>__mcp` route wins, and advertised in

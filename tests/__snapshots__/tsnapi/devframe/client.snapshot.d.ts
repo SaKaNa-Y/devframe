@@ -24,6 +24,7 @@ export interface DevframeRpcClient {
   callOptional: DevframeRpcClientCallOptional;
   client: DevframeClientRpcHost;
   sharedState: RpcSharedStateHost;
+  services: DevframeServicesClient;
   streaming: RpcStreamingClientHost;
   cacheManager: RpcCacheManager;
   scope: {
@@ -94,6 +95,16 @@ export interface DevframeScopedClientRpc<NS extends string = string> {
 export interface DevframeScopedClientStreamingHost {
   subscribe: <T = unknown>(_: string, _: string, _?: StreamingSubscribeOptions) => StreamReader<T>;
   upload: <T = unknown>(_: string, _: string) => StreamSink<T>;
+}
+export interface DevframeServiceClientHandle<NS extends string = string> extends DevframeServiceMeta {
+  readonly scope: NS;
+  readonly rpc: DevframeScopedClientRpc<NS>;
+}
+export interface DevframeServicesClient {
+  has: (_: string) => boolean;
+  get: <PKG extends string>(_: PKG) => DevframeServiceClientHandle<DevframeServiceScopeOf<PKG>> | undefined;
+  keys: () => string[];
+  state: () => Promise<SharedState<DevframeServicesState>>;
 }
 export interface RpcClientEvents {
   'rpc:is-trusted:updated': (_: boolean) => void;

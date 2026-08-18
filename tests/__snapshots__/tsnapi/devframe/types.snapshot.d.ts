@@ -39,10 +39,17 @@ export { DevframeRpcTransportKind }
 export { DevframeScopedNodeContext }
 export { DevframeScopedNodeRpc }
 export { DevframeScopedStreamingHost }
+export { DevframeServiceDefinition }
+export { DevframeServiceDescriptor }
 export { DevframeServiceId }
+export { DevframeServiceInput }
+export { DevframeServiceMeta }
 export { DevframeServiceOf }
+export { DevframeServiceScopeOf }
 export { DevframeServicesHost }
 export { DevframeServicesRegistry }
+export { DevframeServicesScopeRegistry }
+export { DevframeServicesState }
 export { DevframeSettings }
 export { DevframeSettingsRegistry }
 export { DevframeSettingsStore }
