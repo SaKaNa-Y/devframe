@@ -8,6 +8,7 @@ import type { InstallDevframeOptions } from './install-devframe'
 import { createHostContext } from 'devframe/node'
 import { getInternalContext } from 'devframe/node/hub-internals'
 import { debounce } from 'perfect-debounce'
+import { HUB_EVENTS } from '../events'
 import { DevframeCommandsHost as CommandsHostImpl } from './host-commands'
 import { DevframeDocksHost as DocksHostImpl } from './host-docks'
 import { DevframeMessagesHost as MessagesHostImpl } from './host-messages'
@@ -151,11 +152,11 @@ export async function createHubContext(options: CreateHubContextOptions): Promis
 
   const debounceMs = options.mode === 'build' ? 0 : 10
 
-  const docksSharedState = await context.rpc.sharedState.get('devframe:docks', { initialValue: [] })
+  const docksSharedState = await context.rpc.sharedState.get(HUB_EVENTS.sharedState.docks, { initialValue: [] })
   const refreshDocks = debounce(() => {
     docksSharedState.mutate(() => docks.values())
   }, debounceMs)
-  docks.events.on('dock:entry:updated', refreshDocks)
+  docks.events.on(HUB_EVENTS.bus.docksEntryUpdated, refreshDocks)
   // A remote iframe dock registered before the WS transport finishes binding
   // (the common case: `initHub` installs devframes — and their docks — before
   // resolving an async side-car/shared-server port) gets projected without a
@@ -171,46 +172,46 @@ export async function createHubContext(options: CreateHubContextOptions): Promis
   // switches its active dock — and into a shared-state slot, so a dock that
   // only mounts *because* of the switch still converges on the request.
   const activeDockSharedState = await context.rpc.sharedState.get<DevframeDocksActiveState>(
-    'devframe:docks:active',
+    HUB_EVENTS.sharedState.docksActive,
     { initialValue: { activation: null } },
   )
-  docks.events.on('dock:activate', (activation) => {
+  docks.events.on(HUB_EVENTS.bus.docksActivate, (activation) => {
     activeDockSharedState.mutate((state) => {
       state.activation = activation
     })
     context.rpc.broadcast({
-      method: 'devframe:docks:activate',
+      method: HUB_EVENTS.broadcast.docksActivate,
       args: [activation],
     })
   })
 
   const broadcastTerminals = debounce(() => {
     context.rpc.broadcast({
-      method: 'devframe:terminals:updated',
+      method: HUB_EVENTS.broadcast.terminalsUpdated,
       args: [],
     })
     docksSharedState.mutate(() => docks.values())
   }, debounceMs)
-  terminals.events.on('terminal:session:updated', broadcastTerminals)
+  terminals.events.on(HUB_EVENTS.bus.terminalsSessionUpdated, broadcastTerminals)
 
   const broadcastMessages = debounce(() => {
     context.rpc.broadcast({
-      method: 'devframe:messages:updated',
+      method: HUB_EVENTS.broadcast.messagesUpdated,
       args: [],
     })
     docksSharedState.mutate(() => docks.values())
   }, debounceMs)
-  messages.events.on('message:added', broadcastMessages)
-  messages.events.on('message:updated', broadcastMessages)
-  messages.events.on('message:removed', broadcastMessages)
-  messages.events.on('message:cleared', broadcastMessages)
+  messages.events.on(HUB_EVENTS.bus.messagesAdded, broadcastMessages)
+  messages.events.on(HUB_EVENTS.bus.messagesUpdated, broadcastMessages)
+  messages.events.on(HUB_EVENTS.bus.messagesRemoved, broadcastMessages)
+  messages.events.on(HUB_EVENTS.bus.messagesCleared, broadcastMessages)
 
-  const commandsSharedState = await context.rpc.sharedState.get('devframe:commands', { initialValue: [] })
+  const commandsSharedState = await context.rpc.sharedState.get(HUB_EVENTS.sharedState.commands, { initialValue: [] })
   const syncCommands = debounce(() => {
     commandsSharedState.mutate(() => commands.list())
   }, debounceMs)
-  commands.events.on('command:registered', syncCommands)
-  commands.events.on('command:unregistered', syncCommands)
+  commands.events.on(HUB_EVENTS.bus.commandsRegistered, syncCommands)
+  commands.events.on(HUB_EVENTS.bus.commandsUnregistered, syncCommands)
 
   commandsSharedState.mutate(() => commands.list())
 
