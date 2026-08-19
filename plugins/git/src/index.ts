@@ -75,8 +75,15 @@ export function createGitDevframe(options: GitDevframeOptions = {}): DevframeDef
       // current OTP into the `--open` URL so the tab lands already trusted.
       auth: options.auth ?? true,
     },
-    // The git service backs every panel; the SPA calls it directly.
-    services: [{ package: GIT_SERVICE, ...(cwd ? { options: { cwd } } : {}) }],
+    // Declared, not imperatively installed: devframe constructs each (merging
+    // options across every declarer) before setup. `service-git` backs every
+    // panel; the SPA calls it directly. `service-shiki` highlights diff patches
+    // via its `codeToTokens`; when a host doesn't advertise it, the client
+    // falls back to a plain, un-highlighted diff.
+    services: [
+      { package: GIT_SERVICE, ...(cwd ? { options: { cwd } } : {}) },
+      { package: '@devframes/service-shiki' },
+    ],
     // Bake repo state into the static build. The service defines no dump of
     // its own, so the read ops are opted in here: status/branches/diff bake
     // their no-arg call; log bakes the 200-commit head; show bakes one
