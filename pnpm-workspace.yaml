@@ -33,7 +33,7 @@ packages:
 
 refs:
   nuxt: &nuxt ^4.5.2
-  storybook: &storybook ^10.5.7
+  storybook: &storybook ^10.5.8
   unocss: &unocss ^66.7.5
   vueuse: &vueuse ^14.4.0
 
@@ -62,15 +62,15 @@ catalogs:
   build:
     '@nuxt/kit': *nuxt
     '@preact/preset-vite': ^2.10.6
-    '@rsbuild/core': ^2.1.11
+    '@rsbuild/core': ^2.1.13
     '@vitejs/plugin-vue': ^6.0.8
     lightningcss: ^1.33.0
-    magic-string: ^1.1.1
+    magic-string: ^1.2.0
     mlly: ^1.8.2
     nuxt: ^4.5.2
     tsdown: ^0.22.14
     tsx: ^4.23.12
-    turbo: ^2.10.9
+    turbo: ^2.10.10
     vite: ^8.2.1
     vite-plugin-solid: ^2.11.14
   deps:
@@ -86,15 +86,15 @@ catalogs:
     destr: ^2.0.5
     get-port-please: ^3.2.0
     h3: ^2.0.1-rc.26
-    hono: ^4.13.1
+    hono: ^4.13.2
     image-meta: ^0.2.2
-    immer: ^11.1.16
+    immer: ^11.1.17
     launch-editor: ^2.14.1
     mrmime: ^2.0.1
     nitro: ^3.0.260610-beta
     nostics: ^1.2.0
     obug: ^2.1.4
-    ohash: ^2.0.11
+    ohash: ^2.0.12
     p-limit: ^7.3.1
     parse5: ^8.0.1
     pathe: ^2.0.3
@@ -111,6 +111,7 @@ catalogs:
   docs:
     mermaid: ^11.16.1
     vitepress: ^2.0.0-alpha.19
+    vitepress-plugin-group-icons: ^1.7.6
     vitepress-plugin-mermaid: ^2.0.17
   frontend:
     '@antfu/design': ^0.3.4
@@ -138,14 +139,14 @@ catalogs:
     fuse.js: ^7.5.0
     iframe-pane: ^1.1.0
     nanoevents: ^10.0.0
-    next: ^16.3.0
+    next: ^16.3.1
     preact: ^10.29.8
     react: ^19.2.8
     react-dom: ^19.2.8
     reka-ui: ^2.10.3
-    solid-js: ^1.9.14
+    solid-js: ^1.9.15
     splitpanes: ^4.1.2
-    svelte: ^5.56.8
+    svelte: ^5.56.9
     tailwind-merge: ^3.6.0
     unocss: *unocss
     vite-plugin-css-injected-by-js: ^5.0.2
@@ -169,7 +170,7 @@ catalogs:
     vitest: ^4.1.10
   tooling:
     '@antfu/eslint-config': ^9.3.0
-    bumpp: ^12.2.0
+    bumpp: ^12.2.1
     eslint: ^10.8.1
     knip: ^6.32.2
     nano-staged: ^1.0.2
