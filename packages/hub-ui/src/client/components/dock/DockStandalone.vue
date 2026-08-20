@@ -80,7 +80,6 @@ function switchEntry(id: string | undefined) {
           :selected-id="context.docks.selected?.id ?? null"
         />
         <div class="relative flex-1 min-w-0 min-h-0">
-          <div id="devframes-views-container" ref="viewsContainer" class="pointer-events-auto" />
           <ViewEntry
             v-if="context.docks.selected && panes"
             :key="context.docks.selected.id"
@@ -88,6 +87,7 @@ function switchEntry(id: string | undefined) {
             :context
             :panes="panes"
           />
+          <div id="devframes-views-container" ref="viewsContainer" class="pointer-events-auto" />
         </div>
       </div>
     </div>
