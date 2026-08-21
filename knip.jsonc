@@ -37,10 +37,10 @@
       "entry": ["design/*.ts", "skills/devframe/templates/*.ts", "scripts/smoke-bun.ts"]
     },
     "docs": {
-      // `devframe` is referenced only inside fenced code samples in the
-      // guide markdown (e.g. `docs/guide/rpc.md`), which knip doesn't parse
-      // as source - not a real unused dependency.
-      "ignoreDependencies": ["devframe"]
+      // Nuxt auto-registers `app/components` and `app/composables`; the files
+      // here shadow same-named pieces of the comark-docs layer (AppHeaderBrand,
+      // useFilteredNavigation, ...), so nothing imports them explicitly.
+      "entry": ["app/components/*.vue", "app/composables/*.ts"]
     },
     "examples/hub-next": {
       // The React client build's root sits at `src/client` (`next dev
