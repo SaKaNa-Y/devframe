@@ -4,15 +4,11 @@ outline: deep
 
 # Agent-Native Devframe
 
-Devframe can expose the same surface a browser UI consumes — RPC functions, resources, and shared state — to coding agents (Claude Desktop / Cursor / Zed / Claude Code, or any MCP-speaking client). Agent exposure is opt-in per function; functions stay private by default.
+Devframe exposes its browser-UI surface — RPC functions, resources, shared state — to agents over MCP, opt-in per function.
 
 ## How it works
 
-Three building blocks:
-
-1. **An `agent` field on `defineRpcFunction`.** Add `agent: { description, ... }` to opt a function in. Functions without the field stay private.
-2. **`ctx.agent`** — a host exposed on `DevframeNodeContext`. Plugins register tools that aren't backed by an RPC, and expose readable resources (e.g. a Markdown build summary).
-3. **The MCP adapter** (`devframe/adapters/mcp`) — translates the agent host into a [Model Context Protocol](https://modelcontextprotocol.io) server, over `stdio` (`devframe mcp`) or as a Streamable-HTTP route on the dev server (`--mcp`, advertised in `__connection.json`).
+Three pieces: the **`agent` field** on `defineRpcFunction`, **`ctx.agent`** (non-RPC tools + resources), and the **MCP adapter** (`devframe/adapters/mcp`) serving an [MCP](https://modelcontextprotocol.io) server.
 
 ## Exposing an RPC function
 
@@ -37,14 +33,10 @@ export const getSessionSummary = defineRpcFunction({
 })
 ```
 
-Agent tools take a single object input. The MCP adapter synthesises `arg0`, `arg1`, … from positional args (`args: [A, B]`); a single object schema (`args: [v.object({ ... })]`) reads better at the agent boundary because property names are self-describing.
-
 ## Tool ids and wire names
 
-Every agent tool has two names:
-
-- **The id** — how the tool is registered and invoked inside devframe. Ids are colon-namespaced by convention: `devframes:plugin:<slug>:<fn>` for plugin RPCs, `devframe:<area>:<fn>` for built-ins, and command ids for hub-command-derived tools.
-- **The wire name** — what MCP clients see and call. Clients constrain tool names to `^[a-zA-Z0-9_-]{1,128}$`, so the MCP adapter derives the wire name automatically: every run of characters outside `[a-zA-Z0-9_-]` becomes a single `_`, truncated to 128 characters.
+- **The id** — registers/invokes in devframe, colon-namespaced: `devframes:plugin:<slug>:<fn>` (plugin RPCs), `devframe:<area>:<fn>` (built-ins), command ids.
+- **The wire name** — what MCP clients call, constrained to `^[a-zA-Z0-9_-]{1,128}$`; runs outside that set collapse to `_`, truncated to 128.
 
 ```
 devframe:state:read          → devframe_state_read
@@ -52,11 +44,11 @@ devframes:plugin:git:status  → devframes_plugin_git_status
 my-plugin:summarize          → my-plugin_summarize
 ```
 
-The convention applies uniformly to `agent`-flagged RPCs, tools registered via `registerTool` / `registerToolProvider`, and the hub's command-derived tools — keep registering with namespaced ids and let the boundary derive the name. `toAgentToolName` (from `devframe/utils/agent-tool-name` — a plain string transform, safe to import client-side too, e.g. from a UI that displays a tool's id) computes the mapping when you need to predict a wire name (e.g. in a client config, a test, or an inspector view). Calls resolve back to the id at the boundary; two ids that sanitize to the same wire name keep the first registration and hide the later one with a `DF0047` warning.
+`toAgentToolName` (`devframe/utils/agent-tool-name`, client-safe) predicts a wire name; two ids sanitizing alike keep the first, the later hidden with `DF0047`.
 
 ## Registering a plugin tool
 
-For tools without a matching RPC — say, an on-demand narrative summary — register them directly:
+Tools without a matching RPC register directly.
 
 ```ts
 export default defineDevframe({
@@ -76,7 +68,7 @@ export default defineDevframe({
 
 ## Deriving tools from other state
 
-When tools derive from state you already maintain — a command registry, a plugin catalog — register a **provider** instead of mirroring registrations. The host queries it at list/invoke time (the same lazy projection it applies to `agent`-flagged RPCs), so your source of truth stays the only copy:
+Register a **provider** for tools derived from state, queried at list/invoke time:
 
 ```ts
 const handle = ctx.agent.registerToolProvider(() =>
@@ -89,11 +81,9 @@ const handle = ctx.agent.registerToolProvider(() =>
 handle.notifyChanged() // fires tools/list_changed
 ```
 
-The hub's commands host uses exactly this to project agent-flagged palette commands.
-
 ## Registering a resource
 
-Resources surface readable snapshots of state, identified by URI:
+Readable snapshots by URI:
 
 ```ts
 ctx.agent.registerResource({
@@ -105,20 +95,18 @@ ctx.agent.registerResource({
 })
 ```
 
-Every `ctx.rpc.sharedState` key is also automatically exposed to MCP as `devframe://state/<key>`. Pass `exposeSharedState: false` (or a filter function) to `createMcpServer` to opt out.
-
-Shared state is additionally reachable through the built-in **`devframe:state:read` tool** (wire name `devframe_state_read`) — call it without arguments for the key list, with a `key` for that value — since many MCP clients only consume tools. It honors the same `exposeSharedState` filter as the resource projection.
+Every `ctx.rpc.sharedState` key is exposed as a `devframe://state/<key>` resource and via the **`devframe:state:read` tool** (wire `devframe_state_read`): no args → key list, `key` → its value. `exposeSharedState: false` (or a filter) on `createMcpServer` opts out.
 
 ## Starting the MCP server
 
-The simplest path is the CLI:
+CLI:
 
 ```sh
 # Run your devtool with an MCP stdio server attached.
 devframe mcp
 ```
 
-Programmatic equivalent:
+Programmatically:
 
 ```ts
 import { defineDevframe } from 'devframe'
@@ -129,11 +117,11 @@ const devframe = defineDevframe({ /* … */ })
 await createMcpServer(devframe, { transport: 'stdio' })
 ```
 
-`@modelcontextprotocol/server` is a peer dependency — add it to your package when you want to ship an MCP-enabled devframe.
+`@modelcontextprotocol/server` is a peer dependency.
 
 ## Connecting Claude Desktop
 
-Add an entry to `claude_desktop_config.json`:
+In `claude_desktop_config.json`:
 
 ```json
 {
@@ -146,11 +134,11 @@ Add an entry to `claude_desktop_config.json`:
 }
 ```
 
-Restart Claude Desktop. The tools you flagged with `agent: { ... }` (plus any `registerTool` calls) show up in the MCP tool drawer. Resources are reachable as `devframe://resource/<id>` and `devframe://state/<key>` URIs.
+Restart; tools appear in the drawer, resources as `devframe://resource/<id>` / `devframe://state/<key>` URIs.
 
 ## Writing descriptions agents act on
 
-A tool description is a prompt, not documentation. The agent decides *when* to call your tool from the description alone, so tell it — state when to reach for the tool, not just what it returns:
+Describe *when* to use a tool, not just its return:
 
 <!-- eslint-skip -->
 
@@ -161,14 +149,9 @@ agent: { description: 'Returns the session summary object.' }
 agent: { description: 'Summarize the current build session — durations, chunk counts, warnings. Call this before proposing any build-config change.' }
 ```
 
-Two conventions:
-
-- **Lead with the action and the trigger.** "Call this before/after/when …" steers proactive use; a bare noun phrase gets ignored.
-- **State freshness and cost.** "Safe to call freely" / "expensive, call once per session" lets the agent budget calls.
-
 ## Gateway tools
 
-A gateway tool returns *instructions and locations* instead of doing the work — the pattern for anything the agent can do better directly (reading bundled docs, running a CLI it has shell access to):
+A gateway tool returns *instructions and locations*, not work agents do better:
 
 ```ts
 ctx.agent.registerTool({
@@ -182,28 +165,25 @@ ctx.agent.registerTool({
 })
 ```
 
-The agent gets a path and a next step; the actual reading happens with its own tools, which are faster and keep large content out of the MCP payload.
-
 ## Structured errors
 
-A coded devframe diagnostic thrown from a tool handler crosses the MCP boundary as structured JSON rather than a flattened message:
+A coded diagnostic thrown from a handler crosses the MCP boundary as JSON:
 
 ```json
 { "error": { "code": "DF0017", "message": "…", "fix": "…", "docs": "https://devfra.me/errors/df0017" } }
 ```
 
-Agents can act on `fix` directly and follow `docs` for detail — prefer throwing coded diagnostics from anything agent-reachable.
+Prefer coded diagnostics anywhere agent-reachable: agents act on `fix` and follow `docs`.
 
 ## Safety model
 
-- **Opt-in exposure.** Functions opt in via the `agent` field; everything else stays private.
-- **`safety`** — one of `'read'`, `'action'`, `'destructive'`. Inferred from the RPC `type` (`static`/`query` → `read`, `action`/`event` → `action`), with explicit override available.
-- The MCP adapter maps `safety` to tool annotations (`readOnlyHint`, `destructiveHint`). MCP clients use these to decide whether to prompt for confirmation before calling.
+- **`safety`** — `'read'`, `'action'`, or `'destructive'`. Inferred from the RPC `type` (`static`/`query` → `read`, `action`/`event` → `action`), overridable.
+- The adapter maps `safety` to tool annotations (`readOnlyHint`, `destructiveHint`).
 
 ## CLI
 
 | Command | Description |
 |---------|-------------|
-| `<your-app> mcp` | Start your app's MCP server on `stdio` (from the `createCac` shell). |
-| `<your-app> dev --mcp` | Serve the agent surface on the dev server's `/__mcp` route. |
-| `devframe connect` | Run the app-independent MCP connector: discover running devframes and proxy their tools — see [MCP adapter](/adapters/mcp#discovery-devframe-connect). |
+| `<your-app> mcp` | Start the MCP server on `stdio`. |
+| `<your-app> dev --mcp` | Serve the agent surface on `/__mcp`. |
+| `devframe connect` | Discover running devframes and proxy their tools — see [MCP adapter](/adapters/mcp#discovery-devframe-connect). |

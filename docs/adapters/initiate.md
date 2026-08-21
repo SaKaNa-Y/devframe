@@ -1,6 +1,6 @@
-# Initiate (standard middleware)
+# The Standard Handler
 
-Serve a devframe from inside any app that can mount a catch-all route: `initDevframe(def, { base })` returns a live instance whose `.handler` — a web-standard `(request: Request) => Promise<Response>` — carries the whole surface (the SPA, `__connection.json` discovery, the WebSocket RPC endpoint, the auth gate, and the optional MCP route) under one mount base.
+`initDevframe()` turns a `DevframeDefinition` into a live instance whose `.handler` — a Web Standard `(request: Request) => Promise<Response>` — carries the entire surface (SPA, `__connection.json` discovery, RPC socket, auth gate, MCP route) under one mount base. Every other serving path — [adapters](./), [framework packages](/frameworks/), [hub](../guide/hub-initiate) — is assembled from it. Mount it with a catch-all route.
 
 ```ts
 import { initDevframe } from 'devframe/initiate'
@@ -12,7 +12,7 @@ const devtools = initDevframe(myDevframe, { base: '/__my-tool/' })
 // devtools.connectionMeta(), devtools.close()
 ```
 
-`base` is required, so the mount path is explicit at the call site — pass the conventional `resolveBasePath(def, 'hosted')` (i.e. `def.basePath ?? /__<id>/`) if you don't want to pick one. The instance echoes the normalized value back as `devtools.base`, so route guards and middleware reference it instead of repeating the string. The factory is synchronous and initializes eagerly; `handler`/`nodeMiddleware` await readiness internally, so hosts never race the boot. Creating an instance binds no port on its own — [the WebSocket binding](#the-websocket-binding) is the host's call.
+`base` is required — pass `resolveBasePath(def, 'hosted')` (`def.basePath ?? /__<id>/`) to default it; the instance echoes it back as `devtools.base`. `handler`/`nodeMiddleware` await readiness internally. The instance binds no port — [the WebSocket binding](#the-websocket-binding) is the host's call.
 
 ## Mount the handler
 
@@ -108,25 +108,25 @@ export const GET = ({ request }) => devtools.handler(request)
 
 :::
 
-Frameworks with dev-time module reloading (Next, Nitro, SvelteKit) re-evaluate the module that calls `initDevframe`, so memoize the instance on `globalThis` as above — otherwise every reload builds a second instance and leaks the first one's WebSocket server. `@devframes/next`'s `createDevframeNextHandler` does this for you.
+Frameworks with dev-time module reloading (Next, Nitro, SvelteKit) re-evaluate the calling module, so memoize the instance on `globalThis` to avoid leaking a socket per reload. `@devframes/next`'s `createDevframeNextHandler` handles this.
 
 ## The WebSocket binding
 
-Fetch handlers hand over `Request`s, so the RPC socket needs a binding of its own, and the host picks it explicitly. The **local binding** resolves in precedence order:
+Fetch handlers only hand over `Request`s, so the host binds the RPC socket. The **local binding** resolves in this order:
 
 1. **`ws.port`** — a side-car server on that exact port.
-2. **`server`** — share the host's `node:http` server; the upgrade binds at `<base>__ws`. Zero extra ports, and the socket follows the app through proxies and HTTPS.
+2. **`server`** — share the host's `node:http` server; the upgrade binds at `<base>__ws`. No extra ports.
 3. **`ws: { sidecar: true }`** — a side-car server on a free port, for hosts whose handlers never see upgrades (Next.js route handlers, Nitro, Rsbuild).
-4. **The host's own upgrades** — with none of the above, the socket waits for the host to hand upgrade events over: `devtools.attach(server)` routes a server's `upgrade` events (returning a detach function), and `devtools.handleUpgrade(req, socket, head)` completes a single one from a listener you already own. This is the tier for hosts whose server exists only after the instance does, and it builds the transport lazily — an instance nobody attaches costs nothing.
+4. **The host's own upgrades** — with none set, the socket waits: `devtools.attach(server)` routes a server's `upgrade` events (returning a detach fn); `devtools.handleUpgrade(req, socket, head)` completes a single one from a listener you own.
 
-`ws.url` controls the *advertisement* instead: the browser dials it verbatim. On its own it means an external server owns the transport and its auth (wire the instance's `context` into that server by composing `createContextRpcServer` with a WS transport); alongside a local binding it overrides only what is advertised — the tunnel pattern, where a relay forwards to the socket bound here.
+`ws.url` controls the *advertisement* instead — the browser dials it verbatim. Alone, an external server owns the transport and its auth (wire the instance's `context` via `createContextRpcServer` + a WS transport); alongside a local binding it overrides only the advertisement (the tunnel pattern).
 
-Whichever combination is active, `__connection.json` describes it and the browser client follows. Asking a configured instance to also take over host upgrades reports `DF0055` (a local binding already owns the socket) or `DF0056` (`ws.url` handed it to someone else).
+`__connection.json` describes the active combination. Asking a configured instance to take over host upgrades reports `DF0055` (a local binding owns the socket) or `DF0056` (`ws.url` handed it off).
 
 ## Auth
 
-The instance **gates by default** — a handler mounted inside an app server is reachable by anything that can open its socket. Devframe's interactive OTP handler is wired automatically and prints its code/magic-link banner once the public origin is known (derived from the first request, or the `origin` option). Pass `auth: false` for a single-user localhost setup, or a `DevframeAuthHandler` for a custom scheme.
+The instance **gates by default**. The interactive OTP handler wires automatically, printing its code/magic-link banner once the public origin is known (the first request, or the `origin` option). Pass `auth: false` for single-user localhost, or a `DevframeAuthHandler` for a custom scheme.
 
 ## Relation to the other adapters
 
-`createDevServer`, `devframeViteBridge` (`@devframes/vite`), and `@devframes/next` are assembled from this instance internally — the handler is the one wiring underneath every serving path. To host **many** devframes behind one namespace with shared transport and docks, use the hub's counterpart: [`initHub`](../guide/hub-initiate).
+`createDevServer`, `devframeViteBridge` (`@devframes/vite`), and `@devframes/next` are assembled from it internally. To host **many** devframes, use [`initHub`](../guide/hub-initiate).

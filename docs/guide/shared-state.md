@@ -4,9 +4,7 @@ outline: deep
 
 # Shared State
 
-Shared state is observable, immutable-by-default state synced between the server and every connected client. Mutate a draft, and Devframe computes the patches to broadcast.
-
-Shared state survives reconnects — a newly connected client receives the current snapshot before any further updates. Use it for anything that should stay reactive.
+Shared state is observable, immutable-by-default state synced between server and every client, surviving reconnects — a new client gets the snapshot.
 
 ## Overview
 
@@ -27,7 +25,7 @@ flowchart LR
 
 ## Creating state
 
-Use a [scoped context](./scoped-context) in your `setup` — `rpc.sharedState(key, options)` namespaces the key for you:
+A [scoped context](./scoped-context)'s `rpc.sharedState(key, options)` namespaces it:
 
 ```ts
 import { defineDevframe } from 'devframe'
@@ -50,11 +48,11 @@ export default defineDevframe({
 })
 ```
 
-This wraps `ctx.rpc.sharedState.get('my-devframe:state', options)`. Keys are namespaced as `<devframe-id>:<key>` to avoid collisions when multiple devframes share a host; the scope applies that prefix so you pass a bare key.
+The scope prefixes `<devframe-id>:` (wrapping `ctx.rpc.sharedState.get(...)`), so pass a bare key.
 
 ## Reading
 
-`state.value()` returns an immutable snapshot:
+`state.value()` returns an immutable snapshot.
 
 ```ts
 const current = state.value()
@@ -64,7 +62,7 @@ console.log(current.count)
 
 ## Mutating
 
-Pass a recipe function to `state.mutate()`:
+Pass a recipe to `state.mutate()`:
 
 ```ts
 state.mutate((draft) => {
@@ -73,17 +71,11 @@ state.mutate((draft) => {
 })
 ```
 
-Under the hood, Devframe:
-
-1. Applies the recipe to a draft of the current state, producing a new immutable snapshot.
-2. Emits an `updated` event with the new state (and `SharedStatePatch[]`, if enabled).
-3. Broadcasts the update to all connected clients.
-
-Mutations are idempotent across replay — Devframe tracks a `syncIds` set internally so a patch round-tripped back from a client applies once.
+Devframe applies the recipe to a draft, emits `updated` (with `SharedStatePatch[]` if enabled), and broadcasts to clients; a `syncIds` set keeps mutations idempotent on replay.
 
 ## Patches (advanced)
 
-Enable patches for minimal network diffs instead of full snapshots:
+Enable patches for minimal network diffs; `updated` then carries `Patch[]`:
 
 ```ts
 const state = await ctx.rpc.sharedState.get('my-devframe:big-state', {
@@ -92,8 +84,6 @@ const state = await ctx.rpc.sharedState.get('my-devframe:big-state', {
   sharedState: createSharedState({ initialValue: largeTree, enablePatches: true }),
 })
 ```
-
-With patches enabled, the `updated` event carries a `Patch[]` alongside the new state so listeners can apply incremental updates.
 
 ## Subscribing
 
@@ -105,7 +95,7 @@ state.on('updated', (fullState, patches, syncId) => {
 
 ## Client-side access
 
-The same key is available on the RPC client in the browser — scope it the same way:
+The same key is on the browser RPC client, scoped identically; client mutations round-trip the server, keeping `state.value()` authoritative.
 
 ```ts
 import { connectDevframe } from 'devframe/client'
@@ -121,11 +111,9 @@ state.mutate((draft) => {
 })
 ```
 
-Client-side mutations round-trip through the server before reappearing locally, so `state.value()` always reflects the authoritative source.
-
 ## Enumerating keys
 
-Both server and client hosts expose `keys()` and `onKeyAdded`:
+Both hosts expose `keys()` and `onKeyAdded`:
 
 ```ts
 for (const key of ctx.rpc.sharedState.keys()) {
@@ -137,11 +125,11 @@ const unsubscribe = ctx.rpc.sharedState.onKeyAdded((key) => {
 })
 ```
 
-Protocol adapters (the [MCP adapter](./agent-native), for example) use this to surface shared state as dynamic resources.
+Protocol adapters (e.g. [MCP](./agent-native)) surface shared state as dynamic resources.
 
 ## Type-safe keys
 
-Augment `DevframeRpcSharedStates` to type each shared-state key once, then both server and client lookups stay typed without per-call generics:
+Augment `DevframeRpcSharedStates` to type each key once; lookups stay typed:
 
 ```ts
 declare module 'devframe' {
@@ -154,8 +142,6 @@ declare module 'devframe' {
 }
 ```
 
-After this declaration, `ctx.rpc.sharedState.get('my-devframe:state')` and the scoped `my.rpc.sharedState('state')` both return a state typed to the declared shape, on the server and the client.
-
 ## When to use shared state vs RPC
 
 | Use shared state for | Use RPC for |
@@ -164,4 +150,4 @@ After this declaration, `ctx.rpc.sharedState.get('my-devframe:state')` and the s
 | Cross-client coordination | Commands / actions with side effects |
 | Data that should reappear after reconnect | Event streams (prefer `broadcast` / `callEvent`) |
 
-For short-lived actions and events, use `ctx.rpc.register` + `ctx.rpc.broadcast` from the [RPC](./rpc) page.
+For actions and events, use `ctx.rpc.register` + `broadcast` ([RPC](./rpc)).

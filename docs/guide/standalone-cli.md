@@ -4,9 +4,7 @@ outline: deep
 
 # Standalone CLI with Devframe
 
-This recipe walks through building a standalone CLI devframe on top of Devframe — the shape where a user runs `npx my-tool` and gets a local dev server serving a Vue / Nuxt / React SPA backed by type-safe RPC, plus `build` / `mcp` subcommands for free.
-
-It's the pattern used by tools like an ESLint config inspector or a bundler-config viewer: a binary that opens a browser.
+`npx my-tool` starts a dev server serving a Vue/Nuxt/React SPA over type-safe RPC, plus `build`/`mcp`.
 
 ## What you ship
 
@@ -85,7 +83,7 @@ my-tool mcp                                 # agent exposure
 
 ## Nuxt SPA setup
 
-For the Nuxt side, add the devframe helper module — it sets `app.baseURL: './'` / `vite.base: './'`, injects a client plugin that wires `connectDevframe()` into `useNuxtApp().$rpc`, and exposes the typed RPC client to the whole app:
+The Nuxt helper sets `app.baseURL: './'` / `vite.base: './'` and wires `connectDevframe()` into `$rpc` ([Nuxt docs](/frameworks/nuxt)).
 
 ```ts [nuxt.config.ts]
 export default defineNuxtConfig({
@@ -98,11 +96,9 @@ export default defineNuxtConfig({
 })
 ```
 
-Build with `nuxt build` and point `clientAssets` at `./dist/public`. The SPA discovers its effective base at runtime — no `--base` rewrite needed. See the [Nuxt docs](/frameworks/nuxt) for the full reference.
-
 ## Next.js SPA setup
 
-For a Next.js App Router SPA, the integration is plain Next.js static export — devframe owns the HTTP and RPC server, Next.js produces the static bundle and stops there. Three config settings cover the integration:
+For a Next.js App Router SPA, static export needs:
 
 ```js [next.config.mjs]
 /** @type {import('next').NextConfig} */
@@ -114,11 +110,7 @@ export default {
 }
 ```
 
-- **`output: 'export'`** emits the SPA as static HTML/JS/CSS — no Next.js runtime is needed at serve time. Server Components are pre-rendered at build; Client Components hydrate against the devframe RPC connection.
-- **`assetPrefix: '.'`** is the setting that makes the build base-agnostic. Assets are referenced as `./_next/...` so the same bundle works at `/`, `/__my-tool/`, and any other mount path the host adapter chooses. Without it, Next.js bakes in `/_next/...` and the build only works at the root.
-- **`trailingSlash: true`** emits `foo/index.html` rather than `foo.html`, which composes cleanly with devframe's static-handler directory-with-index resolution.
-
-`next build` writes the export to `<project>/out/` next to `next.config.mjs`. Copy or move that to wherever you point `clientAssets`:
+`assetPrefix: '.'` keeps assets base-agnostic; `trailingSlash: true` emits `foo/index.html` for directory-with-index resolution. Copy `next build`'s `out/` to `clientAssets`:
 
 ```json [package.json]
 {
@@ -138,13 +130,11 @@ defineDevframe({
 })
 ```
 
-Inside Client Components, call `connectDevframe()` once and share the result via React context. See [Client](./client) for the full reference — the Next.js side is plain React, with no devframe-specific wrapper.
-
-End-to-end example: [`examples/next-runtime-snapshot`](https://github.com/devframes/devframe/tree/main/examples/next-runtime-snapshot).
+Call `connectDevframe()` in a Client Component — see [Client](./client) and [`examples/next-runtime-snapshot`](https://github.com/devframes/devframe/tree/main/examples/next-runtime-snapshot).
 
 ## Connecting from the client
 
-With the Nuxt helper installed, use `$rpc` directly:
+With the Nuxt helper, use `$rpc`:
 
 ```ts [app/composables/payload.ts]
 export async function fetchPayload() {
@@ -153,7 +143,7 @@ export async function fetchPayload() {
 }
 ```
 
-For non-Nuxt frontends (Vite + Vue, React, plain HTML, etc.), call `connectDevframe()` yourself:
+Otherwise call `connectDevframe()`, which auto-resolves the connection descriptor relative to the page — dev (WebSocket) and static snapshot alike:
 
 ```ts
 import { connectDevframe } from 'devframe/client'
@@ -162,11 +152,9 @@ const my = (await connectDevframe()).scope('my-tool')
 const payload = await my.rpc.call('get-payload')
 ```
 
-`connectDevframe` auto-resolves the connection descriptor relative to the current page — it works both in dev (WebSocket backend) and in the built static snapshot (`static` backend reads the baked RPC dump).
-
 ## Typed CLI flags
 
-For flags that are specific to your tool, declare them with any [Standard Schema](https://standardschema.dev/) validator (valibot below — `npm i valibot`, the lightest option — or zod / arktype) so they're validated at parse time and typed at the call site. If you already depend on zod through the JSON-render or MCP integrations, prefer zod here to avoid adding a second validator:
+Declare tool flags with any [Standard Schema](https://standardschema.dev/) validator (valibot/zod/arktype), validated at parse and typed at the call site:
 
 ```ts
 import type { InferCliFlags } from 'devframe/adapters/cac'
@@ -195,15 +183,15 @@ defineDevframe({
 })
 ```
 
-The adapter derives each flag's CAC option from its schema — booleans become `--verbose` / `--no-verbose`; everything else becomes `--depth <value>`. Keys are camelCase in TypeScript, kebab-case on the command line (`configFile` → `--config-file`). Flags that aren't in your schema (`--host`, `--port`, or anything added via `cli.configure`) still pass through untouched.
+Booleans become `--verbose` / `--no-verbose`, else `--depth <value>`; keys are camelCase in TS, kebab-case on the CLI (`configFile` → `--config-file`). Flags outside the schema pass through.
 
 ## Common RPC functions
 
-For the two actions every CLI devtool needs — open a file in the editor, reveal a path in the OS file explorer — use the prebuilt recipes from `devframe/recipes/common-rpc-functions` instead of re-implementing them. See [Helpers → Common RPC Functions](/helpers/common-rpc-functions) for the full reference.
+Recipes for opening files in the editor or OS explorer live in `devframe/recipes/common-rpc-functions` ([Common RPC Functions](/helpers/common-rpc-functions)).
 
 ## Snapshot queries for static builds
 
-When an RPC function's single job is to return one payload per build (no arguments that vary), set `snapshot: true` so the build adapter runs the handler once and bakes the result into the dump:
+For an RPC function returning one payload per build, set `snapshot: true`; the build adapter runs the handler once, baking the result in:
 
 ```ts
 defineRpcFunction({
@@ -216,11 +204,11 @@ defineRpcFunction({
 })
 ```
 
-At build time the handler runs once with no arguments; the result is stored as both the no-args record and the fallback, so `rpc.call('my-tool:get-payload', anything)` from the deployed SPA resolves to the same snapshot. In dev mode the function behaves as a normal `query` over WebSocket — call variants with different args invoke the live handler.
+It's the no-args fallback for any deployed `rpc.call('my-tool:get-payload', …)`; a normal `query` in dev.
 
 ## On-disk caching
 
-Persistence between runs is the application's job — [`unstorage`](https://unstorage.unjs.io/) is the recommended pattern. Keep cache paths under `node_modules/.cache/<your-devtool-id>/` so the cache rotates with the project's `pnpm install`:
+Persistence is the app's job ([`unstorage`](https://unstorage.unjs.io/) recommended); keep cache paths under `node_modules/.cache/<your-devtool-id>/` to rotate with `pnpm install`.
 
 ```ts
 import { resolve } from 'pathe'
@@ -251,7 +239,7 @@ defineDevframe({
 
 ## Live-reload on config changes
 
-Filesystem watching belongs to the application layer — wire your own chokidar and signal the client via shared state:
+Filesystem watching is the app's job — wire chokidar, signal the client via shared state.
 
 ```ts [src/cli.ts]
 defineDevframe({
@@ -280,7 +268,7 @@ defineDevframe({
 })
 ```
 
-On the client, subscribe to the version key and refetch:
+On the client:
 
 ```ts
 const my = (await connectDevframe()).scope('my-tool')
@@ -290,15 +278,13 @@ version.on('updated', () => fetchPayload().then(setData))
 
 ## Use your own CLI framework
 
-`createCac` is a convenience wrapper around three lower-level factories — reach for them directly when you already own a CLI framework (commander, yargs, oclif, hand-rolled cac) or want a different command structure:
+Own a CLI framework (commander, yargs, oclif)? Use the three factories `createCac` wraps, against one `DevframeDefinition`:
 
 | Building block | Entry |
 |----------------|-------|
 | `createDevServer(def, opts?)` | `devframe/adapters/dev` |
 | `createBuild(def, opts?)`     | `devframe/adapters/build` |
 | `createMcpServer(def, opts?)` | `devframe/adapters/mcp` |
-
-Each one runs against the same `DevframeDefinition` you'd pass to `createCac`. A commander example:
 
 ```ts [src/cli.ts]
 import process from 'node:process'
@@ -338,22 +324,12 @@ program
 await program.parseAsync()
 ```
 
-`createDevServer` returns the underlying `StartedServer` handle (`origin`, `port`, `app`, `ws`, `rpcGroup`, `connectionMeta()`, `close()`) so the surrounding program can drive graceful shutdown — SIGINT, hot reload, integration tests.
-
-For typed flag schemas, `parseCliFlags(schema, rawBag)` (from `devframe/adapters/cac`) validates a commander/yargs flag bag against a `CliFlagsSchema` (the same `defineCliFlags(...)` value you'd put on `cli.flags`). The helper is framework-agnostic, so typed-schema validation works with any CLI framework.
-
-## Why this shape
-
-- **One command, one binary.** `createCac` is a complete CLI — dev, build, mcp all from a single `defineDevframe` value.
-- **Headless.** Your `onReady` callback owns startup output, so your tool's stdout stays yours.
-- **Base-agnostic.** Same SPA build works at `/` (dev, standalone static) and at any deployment base.
-- **Typed end-to-end.** RPC function definitions flow their types through to the client `rpc.call` site.
-- **Agent-ready.** Add `agent: { description }` to any RPC function to expose it through the `mcp` subcommand.
+`createDevServer` returns a `StartedServer` handle (`origin`, `port`, `app`, `ws`, `rpcGroup`, `connectionMeta()`, `close()`). For typed flags, `parseCliFlags(schema, rawBag)` (`devframe/adapters/cac`) validates a commander/yargs bag against the `cli.flags` `CliFlagsSchema`.
 
 ## See also
 
-- [Devframe Definition](./devframe-definition) — field reference
-- [Adapters → CLI (cac)](/adapters/cac) — full CLI adapter reference including `configureCli` and mount-path rules
-- [Adapters → Dev](/adapters/dev) — `createDevServer` reference for bring-your-own-CLI integration
-- [Client](./client) — `connectDevframe`, shared state, caching
-- [Agent-Native](./agent-native) — exposing your tool to Claude Desktop, Cursor, etc.
+- [Devframe Definition](./devframe-definition)
+- [Adapters → CLI (cac)](/adapters/cac) — `configureCli`, mount-path rules
+- [Adapters → Dev](/adapters/dev)
+- [Client](./client)
+- [Agent-Native](./agent-native)

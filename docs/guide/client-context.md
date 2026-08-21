@@ -4,21 +4,14 @@ outline: deep
 
 # Client Scripts & Client Context
 
-In a hub, a plugin can run code inside the **host page** — the page being inspected — through a dock **client script**. The **client context** is the object every client-side surface (dock client scripts, viewer UIs, your own app code) uses to talk to the hub: RPC, dock state, the command palette, and the when-clause context.
+A dock **client script** runs a plugin's code inside the **host page**; the **client context** is how client surfaces reach the hub.
 
 > [!WARNING] Experimental
 > The hub API surface is still being refined. Names may change before 1.0.
 
 ## The client host runtime
 
-`createDevframeClientHost()` from `@devframes/hub/client` is the headless browser runtime a host page boots. When it runs it:
-
-1. Connects an RPC client — or adopts one you already made.
-2. Assembles the `DevframeClientContext` (panel, docks, commands, when) from the hub's shared state.
-3. Publishes the context to a global slot, so `getDevframeClientContext()` can read it from anywhere in the page.
-4. Imports each dock entry's client script into the page and calls it with the context.
-
-The host page owns the boot — one import from its own browser entry starts the runtime, and your HTML stays untouched:
+`createDevframeClientHost()` (`@devframes/hub/client`) boots the host page: it connects (or adopts) an RPC client, publishes the `DevframeClientContext`, and imports each dock's client script:
 
 ```ts
 // main.ts — the host app / hub page's browser entry
@@ -28,87 +21,44 @@ const rpc = await connectDevframe({ baseURL: '/__hub/' })
 const { context, dispose } = await createDevframeClientHost({ rpc })
 ```
 
-Viewers with an HTML pipeline layer injection on top: `@vitejs/devtools` wraps this boot in the client entry its Vite plugin injects through `transformIndexHtml`, while the devframe examples import it from the app entry directly. Either way the same runtime executes in the page.
-
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `rpc` | An already-connected `DevframeRpcClient`. When omitted, one is created via `connectDevframe(connect)`. |
-| `connect` | Options forwarded to `connectDevframe` when `rpc` is not supplied — pass `baseURL` to point at the hub's connection-meta mount (e.g. `/__hub/`). |
-| `clientType` | `'standalone'` (default) — the runtime owns the whole page (a hub UI). `'embedded'` — the runtime lives inside a user app alongside a panel. |
-| `loadClientScripts` | Import and run dock entries' client scripts. Default `true`. |
-| `renderers` | Dock renderers to register at boot, keyed by dock `type` (e.g. `{ 'json-render': myRenderer }` — any implementation of the dock-renderer contract the host bundles). Local registrations take precedence over the hub's [renderer manifest](./hub-initiate#renderer-modules). |
+| `rpc` | An already-connected `DevframeRpcClient`; when omitted, created via `connectDevframe(connect)`. |
+| `connect` | Forwarded to `connectDevframe` when `rpc` is omitted (e.g. `baseURL`). |
+| `clientType` | `'standalone'` (default) — owns the page; `'embedded'` — inside a user app alongside a panel. |
+| `loadClientScripts` | Import and run dock client scripts (default `true`). |
+| `renderers` | Dock renderers registered at boot, keyed by dock `type`; local wins over the hub's [renderer manifest](./hub-initiate#renderer-modules). |
 
-Boot the host once per page: a second boot replaces the published context and logs a warning. `dispose()` tears down its listeners and unpublishes the context it owns.
+A second boot replaces the context and warns; `dispose()` tears down listeners and unpublishes it.
 
 ## The client context
 
-`DevframeClientContext` is the client-side counterpart of the hub's node context: one object carrying everything a client surface needs.
-
 | Property | Description |
 |----------|-------------|
-| `rpc` | The [RPC client](./client) — call server functions, register client-side functions, access shared state. |
-| `clientType` | `'embedded'` (runtime inside your app) or `'standalone'` (independent hub page). |
-| `docks` | Dock entries and selection — `entries`, `selected`, `groupedEntries`, `switchEntry()`, `toggleEntry()`, `getStateById()`, plus `register()` / `update()` for [client-only docks](#client-only-docks). |
-| `panel` | Dock panel state: position, size, drag/resize flags. |
-| `commands` | The command palette: `register()`, `execute()`, `getKeybindings()`. |
-| `renderers` | Dock-renderer registry — `register()`, `get()`, `has()`, `mount(entry, container)`. Routes a dock `type` to a renderer: one registered locally at boot, or a prebuilt module lazy-imported from the hub's [renderer manifest](./hub-initiate#renderer-modules) (local wins). `mount()` resolves a typed result — `{ status: 'mounted', dispose }`, `{ status: 'missing-renderer' }`, or `{ status: 'load-error', error }` — so a viewer renders a visible fallback for a type nothing covers instead of a dead panel; `has()` answers for both sources so the fallback can render without a mount attempt. |
-| `when` | The [when-clause](./when-clauses) evaluation context. |
-| `connection` | The client's live [connection status](./client#handling-connection-and-auth-errors) — `status`, `error`, and `events` — so a viewer can render one central connection indicator for every docked plugin. |
+| `rpc` | The [RPC client](./client) — server/client functions, shared state. |
+| `clientType` | `'embedded'` (inside your app) or `'standalone'` (independent hub page). |
+| `docks` | `entries`, `selected`, `groupedEntries`, `switchEntry()`, `toggleEntry()`, `getStateById()`, `register()` / `update()` for [client-only docks](#client-only-docks). |
+| `panel` | Dock panel state: position, size, drag/resize. |
+| `commands` | Command palette: `register()`, `execute()`, `getKeybindings()`. |
+| `renderers` | Dock-renderer registry — `register()`, `get()`, `has()`, `mount(entry, container)`. Routes a dock `type` to a renderer (local boot or the hub's [manifest](./hub-initiate#renderer-modules); local wins). `mount()` resolves a `status`: `mounted` (with `dispose`), `missing-renderer`, or `load-error` (with `error`). |
+| `when` | The [when-clause](./when-clauses) context. |
+| `connection` | Live [connection status](./client#handling-connection-and-auth-errors) — `status`, `error`, `events`. |
 
 ### Accessing the context
 
-From anywhere in the host page, use `getDevframeClientContext()`. It returns `undefined` until the client host finishes booting:
-
-```ts
-import { getDevframeClientContext } from '@devframes/hub/client'
-
-const ctx = getDevframeClientContext()
-if (ctx) {
-  const modules = await ctx.rpc.call('my-plugin:get-modules')
-  ctx.docks.switchEntry('my-plugin')
-}
-```
+`getDevframeClientContext()` returns the context anywhere; `undefined` before boot.
 
 ### Client-only docks
 
-The [node hub context](./hub) registers docks that flow into the `devframe:docks` shared state and reach every connected viewer. A client host can also register a dock that lives only in this page, for a view a host page synthesizes itself:
+A client host can register a dock local to this page (unlike [node hub context](./hub) docks synced via `devframe:docks`). `ctx.docks.register(entry)` — e.g. `type: 'custom-render'` with `renderer: { importFrom }` — returns a handle whose `update({ badge })` patches in place (id immutable) and `dispose()` removes it. One sharing a server dock's id overrides it locally; re-registering an owned id throws unless you pass `register(entry, true)`.
 
-```ts
-const handle = ctx.docks.register({
-  id: 'my-local-view',
-  title: 'Local',
-  icon: 'ph:cube-duotone',
-  type: 'custom-render',
-  renderer: { importFrom: '/my-view.mjs' },
-})
-
-handle.update({ badge: '3' }) // patch it in place (the id is immutable)
-handle.dispose() // remove it
-```
-
-Client-only docks merge into the same `docks.entries` list, group, select, and load their client scripts exactly like server docks — they just never sync to the hub or other viewers. A client dock sharing an id with a server dock overrides it locally. `ctx.docks.update(entry)` replaces a previously registered client dock wholesale. Registering an id that a client dock already owns throws unless you pass `register(entry, true)`.
-
-A client-only dock can render a [JSON-render](./json-render) view the page authors itself. Carry the spec **inline** in the dock's `view` — no shared state, no server round-trip — and register a `json-render` dock. With a `json-render` renderer registered at boot, it renders through the same path as a server-authored view:
-
-```ts
-const spec = { /* a DevframeJsonRenderSpec built in the browser */ }
-
-ctx.docks.register({
-  id: 'client-playground',
-  title: 'Client Playground',
-  icon: 'ph:sliders-horizontal-duotone',
-  type: 'json-render',
-  view: { spec },
-})
-```
-
-The `view` field accepts either `{ spec }` (the spec rendered inline) or `{ stateKey }` (subscribed to a live shared state, the shape `createJsonRenderView` produces server-side). An inline view still runs its own state: `{ $bindState }` inputs and `{ $state }` reads work against the spec's `state`, and the built-in `setState` / `pushState` / `removeState` actions mutate it — so a client-authored view is interactive with no server and no shared state. What `{ spec }` lacks versus `{ stateKey }` is a server-driven update stream.
+A client-only dock can also carry `type: 'json-render'` with an inline [JSON-render](./json-render) `view: { spec }` (a `DevframeJsonRenderSpec` built in-browser), rendered when a `json-render` renderer is registered at boot. `view` also accepts `{ stateKey }` for live shared state (from `createJsonRenderView`).
 
 ## Dock client scripts
 
-A dock entry declares its client script as a `ClientScriptEntry` — `{ importFrom, importName? }`, where `importName` defaults to `'default'`. The field depends on the entry kind:
+A client script is a `ClientScriptEntry` — `{ importFrom, importName? }` (`importName` defaults `'default'`); the field varies by entry kind:
 
 | Entry kind | Field | Runs |
 |---|---|---|
@@ -116,108 +66,48 @@ A dock entry declares its client script as a `ClientScriptEntry` — `{ importFr
 | `custom-render` | `renderer` | to render the entry's panel |
 | `iframe` | `clientScript` (optional) | alongside the iframe panel, inside the host page |
 
-The client host imports `importFrom` with a native dynamic import at runtime — the specifier is a URL served by the host, not a build-time module — and calls the exported function with the client context, extended with two dock-scoped extras:
+The exported function (`DockClientScriptContext`) receives the client context and two dock-scoped extras:
 
-- **`current`** — this entry's state: `entryMeta`, `isActive`, `domElements`, and `events` (`entry:activated`, `entry:deactivated`, `entry:updated`, `dom:panel:mounted`, `dom:iframe:mounted`).
-- **`messages`** — a messages client scoped to the entry: messages it adds default their `category` to the entry id, and the per-level shortcuts (`info` / `warn` / `error` / `success` / `debug`) delegate to `add()`.
+- **`current`** — this entry's state: `entryMeta`, `isActive`, `domElements`, `events` (`entry:activated`, `entry:deactivated`, `entry:updated`, `dom:panel:mounted`, `dom:iframe:mounted`).
+- **`messages`** — an entry-scoped messages client (`category` defaults to the entry id; `info`/`warn`/`error`/`success`/`debug` shortcuts for `add()`).
 
-```ts
-import type { DockClientScriptContext } from '@devframes/hub/client'
-
-export default async function setup(ctx: DockClientScriptContext) {
-  ctx.current.events.on('entry:activated', async () => {
-    const data = await ctx.rpc.call('my-plugin:get-modules')
-    ctx.messages.info(`Loaded ${data.length} modules`)
-  })
-}
-```
-
-A script that fails to import is logged and retried on the next dock update.
+A failed import retries on the next dock update.
 
 ### Shipping a client script
 
 `importFrom` accepts two shapes:
 
-- **A URL the host serves** — a single self-contained ES module, loading outside any chunk graph. Works on every host.
-- **A bare npm specifier** (`'vite-plugin-vue-tracer/client/vite-devtools'`) — resolved through the host runtime, where supported.
+- **A host-served URL** — a self-contained ES module; works on every host.
+- **A bare npm specifier** (`'vite-plugin-vue-tracer/client/vite-devtools'`) — resolved through the host runtime.
 
-For the URL shape, attach the built bundle when mounting the devframe:
-
-```ts
-await ctx.install(myDevframe, {
-  dock: { clientScript: { importFrom: `/@fs/${myAgentBundlePath}` } },
-})
-```
-
-Under Vite, `/@fs/<absolute path>` serves the built bundle directly; other hosts mount the bundle's directory statically and pass that URL instead.
+For a URL, attach it via `ctx.install(myDevframe, { dock: { clientScript: { importFrom } } })`. Under Vite `/@fs/<absolute path>` serves it; other hosts mount the directory statically.
 
 ### Bare npm specifiers
 
-Bare specifiers are a **host-runtime capability**. A host that can serve npm modules to the browser advertises a resolution template as `ConnectionMeta.configs.dock.clientModuleResolution` — the `{specifier}` token is replaced with the specifier, and every client-script loader (the client host, the hub-ui viewers, `__client-imports.js`) applies it before importing:
+Bare specifiers are a **host-runtime capability**: a host advertises a resolution template at `ConnectionMeta.configs.dock.clientModuleResolution` (loaders replace `{specifier}` before import). A Vite host declares this by default (`@devframes/vite/hub`) as `initHub({ clientModuleResolution: '/@id/{specifier}' })`; then use the specifier alone as `importFrom`. A host with no template (Next.js) supports the URL shape only, warning [`DF8111`](/errors/DF8111) on a specifier. A viewer can override with `createDevframeClientHost({ resolveClientModule })`.
 
-```ts
-// A Vite host resolves bare specifiers through its own module graph.
-// `@devframes/vite/hub` declares this by default.
-initHub({ clientModuleResolution: '/@id/{specifier}' })
-```
-
-On a Vite host, `/@id/<specifier>` routes the import through Vite's own resolution and import-analysis, so the script's transitive bare imports work too and resolve in the same module graph as the inspected app — a plugin whose injected app-side code and dock client script import the same modules shares their instances. A plugin can then declare its dock with just the specifier:
-
-```ts
-ctx.docks.register({
-  type: 'action',
-  id: 'vue-tracer',
-  title: 'Vue Tracer',
-  icon: 'ph:crosshair-simple-duotone',
-  action: { importFrom: 'vite-plugin-vue-tracer/client/vite-devtools' },
-})
-```
-
-A host that declares no template (Next.js today) supports the URL shape only — registering a bare specifier there warns [`DF8111`](/errors/DF8111). A viewer can also resolve bare specifiers itself with `createDevframeClientHost({ resolveClientModule })`, which wins over the host template.
-
-Two guarantees to design against:
-
-- **Client scripts always execute in the inspected page's realm** — the same `window` as the app being inspected.
-- **Module identity is best-effort, realm identity is the contract.** On Vite hosts a bare specifier shares the app's module graph; elsewhere a script ships as its own bundle. A plugin keeping shared state between its injected app code and its dock script should anchor that state on `globalThis` (vue-tracer's `__vue_tracer__` store is the reference pattern) rather than rely on both sides importing one module instance.
+Client scripts execute in the inspected page's realm (`window`); anchor shared state on `globalThis`.
 
 ### Dual boots
 
-The [a11y inspector](/plugins/a11y)'s in-page agent is the canonical client script, and it boots both ways from one bundle: the default export accepts the client-script context (mirroring each scan into the hub's messages feed), while a deferred, globally-guarded self-boot lets a plain `<script type="module">` start the same agent outside a hub. The context-ful call wins because the hub invokes the default export before the deferred self-boot runs.
+One bundle can serve as both a client script (default export) and, via a globally-guarded self-boot, a standalone in-page agent ([a11y inspector](/plugins/a11y)).
 
 ## Iframe panels
 
-Dock iframes are their own documents, so they connect themselves instead of reading the host page's context: the panel SPA calls `connectDevframe()`, which discovers `./__connection.json` relative to its own base — `ctx.install` serves the hub's connection meta under every dock base for exactly this. The client script (host page) and the iframe panel then share the server through RPC and shared state, or a same-origin `BroadcastChannel` when the loop must survive static builds.
+Dock iframes are their own documents: the panel SPA calls `connectDevframe()`, discovering `./__connection.json` from its base. Host script and iframe share the server via RPC and shared state, or a same-origin `BroadcastChannel` for static builds.
 
 ## Shared-iframe soft navigation
 
-A tool with many internal views — Nuxt DevTools' tabs, say — can surface each view as its own hub dock while they all share **one** live iframe, switching between them with client-side (soft) navigation instead of reloading. One iframe dock is the **anchor**: it owns a `frameId` and opts in with `subTabs`.
-
-```ts
-await ctx.install(nuxtDevtools, {
-  dock: { frameId: 'nuxt-devtools', subTabs: { protocol: 'postmessage' } },
-})
-```
-
-When the anchor's iframe mounts, the client host attaches a **frame-nav adapter** that speaks a small, versioned, origin-locked `postMessage` protocol with the embedded app. The app ships a ~40-line shim on the `devframe:frame-nav` channel:
+A tool with many internal views (Nuxt DevTools' tabs) can surface each as a hub dock sharing **one** live iframe — the **anchor** owns a `frameId` and opts in via `ctx.install(…, { dock: { frameId, subTabs: { protocol: 'postmessage' } } })`. On mount, the host attaches a **frame-nav adapter** speaking an origin-locked `postMessage` protocol on `devframe:frame-nav`.
 
 | Message | Direction | Meaning |
 |---|---|---|
-| `ready` / `manifest` | frame → host | the current tab list (`{ tabs, current }`), on load and whenever it changes |
-| `navigate` | host → frame | show this view (`{ tabId, navTarget }`) — the app routes client-side |
-| `navigated` | frame → host | the app navigated internally, so the host highlights the matching dock |
+| `ready` / `manifest` | frame → host | tab list (`{ tabs, current }`), on load and change |
+| `navigate` | host → frame | show a view (`{ tabId, navTarget }`); app routes client-side |
+| `navigated` | frame → host | app navigated internally; host highlights the dock |
 
-The adapter materializes one [client-only dock](#client-only-docks) per reported tab (id `<frameId>:<tabId>`), each sharing the anchor's `frameId` and carrying a `navTarget`. Selecting a member soft-navigates the shared iframe; navigating inside the iframe moves the hub's active dock — the loop runs both ways with an idempotent guard against echoes. The embedded app needs no hub or RPC dependency, only the shim; a plain iframe with no shim simply stays a single dock.
-
-`frameId` is independent of [`groupId`](./hub#grouping-dock-entries): members sharing one iframe may live in a group, several groups, or none.
+It materializes a [client-only dock](#client-only-docks) per tab (id `<frameId>:<tabId>`) sharing the anchor's `frameId` and a `navTarget`, independent of [`groupId`](./hub#grouping-dock-entries).
 
 ### The viewer's part
 
-A viewer keeps one iframe alive per `frameId` (shown/hidden across switches, never re-`src`'d) and, when it mounts that element, sets it on the anchor's dock state and announces it:
-
-```ts
-const state = ctx.docks.getStateById(anchorId)!
-state.domElements.iframe = iframeEl
-state.events.emit('dom:iframe:mounted', iframeEl)
-```
-
-That announcement is what the adapter attaches to. Both minimal hubs wire this end to end — see the "Tabbed Tool" in [`examples/hub-vite`](https://github.com/devframes/devframe/tree/main/examples/hub-vite) and [`examples/hub-next`](https://github.com/devframes/devframe/tree/main/examples/hub-next), including the SPA's `postMessage` shim.
+A viewer keeps one iframe alive per `frameId` (shown/hidden); on mount, it sets the element on the anchor's `docks.getStateById(anchorId)` state (`domElements.iframe`) and emits `dom:iframe:mounted`. See the "Tabbed Tool" in [`examples/hub-vite`](https://github.com/devframes/devframe/tree/main/examples/hub-vite) / [`hub-next`](https://github.com/devframes/devframe/tree/main/examples/hub-next).
