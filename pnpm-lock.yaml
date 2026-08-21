@@ -367,20 +367,25 @@ catalogs:
       version: 8.18.1
 
 overrides:
-  '@devframe/hub': workspace:*
-  '@devframe/json-render': workspace:*
-  '@devframe/json-render-ui': workspace:*
-  '@devframe/next': workspace:*
-  '@devframe/nuxt': workspace:*
-  '@devframe/plugin-a11y': workspace:*
-  '@devframe/plugin-assets': workspace:*
-  '@devframe/plugin-code-server': workspace:*
-  '@devframe/plugin-data-inspector': workspace:*
-  '@devframe/plugin-git': workspace:*
-  '@devframe/plugin-inspect': workspace:*
-  '@devframe/plugin-messages': workspace:*
-  '@devframe/plugin-og': workspace:*
-  '@devframe/plugin-terminals': workspace:*
+  '@devframes/hub': workspace:*
+  '@devframes/hub-ui': workspace:*
+  '@devframes/json-render': workspace:*
+  '@devframes/json-render-ui': workspace:*
+  '@devframes/next': workspace:*
+  '@devframes/nuxt': workspace:*
+  '@devframes/plugin-a11y': workspace:*
+  '@devframes/plugin-assets': workspace:*
+  '@devframes/plugin-code-server': workspace:*
+  '@devframes/plugin-data-inspector': workspace:*
+  '@devframes/plugin-git': workspace:*
+  '@devframes/plugin-inspect': workspace:*
+  '@devframes/plugin-messages': workspace:*
+  '@devframes/plugin-og': workspace:*
+  '@devframes/plugin-terminals': workspace:*
+  '@devframes/service-git': workspace:*
+  '@devframes/service-open': workspace:*
+  '@devframes/service-shiki': workspace:*
+  '@devframes/vite': workspace:*
   chokidar: ^5.0.0
   crossws: ^0.4.10
   devframe: workspace:*
@@ -2402,14 +2407,14 @@ importers:
   starter:
     dependencies:
       '@devframes/hub':
-        specifier: ^0.9.4
-        version: 0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe)
+        specifier: workspace:*
+        version: link:../packages/hub
       '@devframes/hub-ui':
-        specifier: ^0.9.4
-        version: 0.9.4(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(@devframes/json-render@0.9.4(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(devframe@packages+devframe))(devframe@packages+devframe)
+        specifier: workspace:*
+        version: link:../packages/hub-ui
       '@devframes/vite':
-        specifier: ^0.9.4
-        version: 0.9.4(@devframes/hub-ui@0.9.4(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(@devframes/json-render@0.9.4(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(devframe@packages+devframe))(devframe@packages+devframe))(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(devframe@packages+devframe)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: workspace:*
+        version: link:../packages/vite
       devframe:
         specifier: workspace:*
         version: link:../packages/devframe
@@ -2841,59 +2846,6 @@ packages:
       katex:
         optional: true
       shiki:
-        optional: true
-
-  '@devframes/hub-ui@0.9.4':
-    resolution: {integrity: sha512-KKg0w+LHJd6IZOiwQd5oX2URT8xBw/zmyWGCwnAfDjagLPhgYhwWTsviRYsFYl+odsm08IdnKT6tACzNqUlt7A==}
-    peerDependencies:
-      '@devframes/hub': 0.9.4
-      '@devframes/json-render': 0.9.4
-      devframe: workspace:*
-    peerDependenciesMeta:
-      '@devframes/json-render':
-        optional: true
-
-  '@devframes/hub@0.7.14':
-    resolution: {integrity: sha512-Ym3YHkBnpdwhPw7y4YgURZYntQPShb9raRfo60D1Yk4jb1OlnL2GGHw6pt4iLZqHL4vp1P4T6YpBFPPVx4G38A==}
-    peerDependencies:
-      devframe: workspace:*
-
-  '@devframes/hub@0.9.4':
-    resolution: {integrity: sha512-Yn4V+HavKm/aTdZOPhT+bD7L1cCt/bYKTmXuh2do1ol6YwHaSl6+C1WZDxthl6HWcevpOEwwBwNa9kZAeMFkOQ==}
-    peerDependencies:
-      devframe: workspace:*
-
-  '@devframes/json-render@0.7.14':
-    resolution: {integrity: sha512-Bo+IiRpEdceQjLr/tcFNXFYlBkSeUv7PWsFc4Fu5PLUyxnnqciLVyFjZz6IlEtKrBIA667L4QbQe5ZExlPhlPA==}
-    peerDependencies:
-      '@devframes/hub': 0.7.14
-      devframe: workspace:*
-    peerDependenciesMeta:
-      '@devframes/hub':
-        optional: true
-
-  '@devframes/json-render@0.9.4':
-    resolution: {integrity: sha512-G31AY9evtDehW9OYtmRhkzeFasYGV9XNZ1qZYh5GmiPYY88IZrqSBvyz+tYUca/Wx34JgrwL8vmGRycUuT8haQ==}
-    peerDependencies:
-      '@devframes/hub': 0.9.4
-      devframe: workspace:*
-    peerDependenciesMeta:
-      '@devframes/hub':
-        optional: true
-
-  '@devframes/vite@0.9.4':
-    resolution: {integrity: sha512-OYMHXBzBKtPc1rdYIPoYSPdFZL+B52YmjPkM/L6qSUI5AfqdtVyO87ydwgTbWkL8Q2HqUXXiSsR8FUfj6iUIDw==}
-    peerDependencies:
-      '@devframes/hub': 0.9.4
-      '@devframes/hub-ui': 0.9.4
-      devframe: workspace:*
-      vite: ^7.0.0 || ^8.0.0
-    peerDependenciesMeta:
-      '@devframes/hub':
-        optional: true
-      '@devframes/hub-ui':
-        optional: true
-      vite:
         optional: true
 
   '@discoveryjs/discovery@1.0.0-beta.99':
@@ -12571,67 +12523,6 @@ snapshots:
     transitivePeerDependencies:
       - rangi
 
-  '@devframes/hub-ui@0.9.4(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(@devframes/json-render@0.9.4(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(devframe@packages+devframe))(devframe@packages+devframe)':
-    dependencies:
-      '@devframes/hub': 0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe)
-      devframe: link:packages/devframe
-    optionalDependencies:
-      '@devframes/json-render': 0.9.4(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(devframe@packages+devframe)
-
-  '@devframes/hub@0.7.14(devframe@packages+devframe)':
-    dependencies:
-      birpc: 4.1.0
-      destr: 2.0.5
-      devframe: link:packages/devframe
-      nostics: 1.2.0
-      pathe: 2.0.3
-      perfect-debounce: 2.1.0
-      tinyexec: 1.3.0
-      zigpty: 0.2.1
-    optional: true
-
-  '@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe)':
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-      destr: 2.0.5
-      devframe: link:packages/devframe
-      h3: 2.0.1-rc.26(crossws@0.4.10(srvx@0.12.4))
-      pathe: 2.0.3
-      perfect-debounce: 2.1.0
-      tinyexec: 1.3.0
-      ufo: 1.6.4
-      zigpty: 0.2.1
-    transitivePeerDependencies:
-      - crossws
-
-  '@devframes/json-render@0.7.14(@devframes/hub@0.7.14(devframe@packages+devframe))(devframe@packages+devframe)':
-    dependencies:
-      '@json-render/core': 0.19.0(zod@4.4.3)
-      devframe: link:packages/devframe
-      nostics: 1.2.0
-      zod: 4.4.3
-    optionalDependencies:
-      '@devframes/hub': 0.7.14(devframe@packages+devframe)
-    optional: true
-
-  '@devframes/json-render@0.9.4(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(devframe@packages+devframe)':
-    dependencies:
-      '@json-render/core': 0.19.0(zod@4.4.3)
-      devframe: link:packages/devframe
-      zod: 4.4.3
-    optionalDependencies:
-      '@devframes/hub': 0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe)
-    optional: true
-
-  '@devframes/vite@0.9.4(@devframes/hub-ui@0.9.4(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(@devframes/json-render@0.9.4(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(devframe@packages+devframe))(devframe@packages+devframe))(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(devframe@packages+devframe)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(tsx@4.23.12)(yaml@2.9.0))':
-    dependencies:
-      devframe: link:packages/devframe
-      pathe: 2.0.3
-    optionalDependencies:
-      '@devframes/hub': 0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe)
-      '@devframes/hub-ui': 0.9.4(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(@devframes/json-render@0.9.4(@devframes/hub@0.9.4(crossws@0.4.10(srvx@0.12.4))(devframe@packages+devframe))(devframe@packages+devframe))(devframe@packages+devframe)
-      vite: 8.2.1(@types/node@26.2.0)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(tsx@4.23.12)(yaml@2.9.0)
-
   '@discoveryjs/discovery@1.0.0-beta.99':
     dependencies:
       '@discoveryjs/json-ext': 0.6.3
@@ -16492,8 +16383,8 @@ snapshots:
 
   '@vitejs/devtools-kit@0.4.9(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(tsx@4.23.12)(yaml@2.9.0))':
     dependencies:
-      '@devframes/hub': 0.7.14(devframe@packages+devframe)
-      '@devframes/json-render': 0.7.14(@devframes/hub@0.7.14(devframe@packages+devframe))(devframe@packages+devframe)
+      '@devframes/hub': link:packages/hub
+      '@devframes/json-render': link:packages/json-render
       devframe: link:packages/devframe
       local-pkg: 1.2.1
       mlly: 1.8.2
