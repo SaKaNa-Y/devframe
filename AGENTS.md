@@ -76,6 +76,7 @@ All five built-in plugins - and every example under `examples/` - share one desi
 - **A surface keeping its own component CSS** (inspect, a11y) sources every color from `@antfu/design`'s semantic shortcuts via `--at-apply` (expanded by `transformerDirectives`) rather than hardcoding a palette, so it tracks the shared theme and the `.dark` class.
 - **Plain `.ts`/vanilla views** must opt `.ts` into UnoCSS extraction (`content.pipeline.include` for Vite, or `content.filesystem` globs for the `@unocss/postcss` setup Next uses), since UnoCSS only scans framework files by default.
 - **Storybook.** Each plugin's storybook follows one setup - co-located `*.stories.*`, a `viteFinal` that adds the framework plugin + `unocss/vite` (pointed at the plugin's `uno.config`), `@antfu/design/styles.css`, a `theme` toggle on the `.dark` class, and a `bg-base color-base` decorator. The Vue surface (inspect, `@storybook/vue3-vite`) showcases the `@antfu/design` components in real use - the visual reference the React/Svelte/Solid/vanilla ports match, mirroring [`@antfu/design`'s own storybook](https://github.com/antfu/design/tree/main/storybook).
+- When making UI or using components, always check if components from `@antfu/design` can be reused, before making new components or creating inline DOM elements.
 
 ### Devframe design principles
 
