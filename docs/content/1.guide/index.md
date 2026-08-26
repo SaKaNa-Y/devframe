@@ -169,6 +169,7 @@ The CLI adapter serves the SPA at `/`; embedded in a host (`vite`, `embedded`) t
 
 ## What's next
 
+- [Tutorial: Build a Server Data Inspector](/guide/tutorial-server-data-inspector) — go from an empty folder to a shippable devtool, one capability at a time
 - [Devframe Definition](/guide/devframe-definition) — `defineDevframe` and `DevframeNodeContext`
 - [The Standard Handler](/adapters/initiate) — mount into any host
 - [Adapters](/adapters) — convenience entry points
