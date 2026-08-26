@@ -69,7 +69,13 @@ export default defineAppConfig({
     // `useFilteredNavigation` composable (mirrors the old VitePress sidebar).
     sidebarGroups: {
       guide: [
-        { title: 'Introduction', items: ['/guide'] },
+        {
+          title: 'Introduction',
+          items: [
+            '/guide',
+            '/guide/tutorial-server-data-inspector',
+          ],
+        },
         {
           title: 'Define your tool',
           items: [
@@ -114,7 +120,10 @@ export default defineAppConfig({
             '/guide/build-your-own-hub-ui',
           ],
         },
-        { title: 'Ecosystem', items: ['/guide/built-with'] },
+        {
+          title: 'Ecosystem',
+          items: ['/guide/built-with'],
+        },
       ],
     },
     ogImage: {
