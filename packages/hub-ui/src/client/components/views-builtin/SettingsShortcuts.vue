@@ -3,8 +3,8 @@ import type { DevframeCommandEntry, DevframeCommandKeybinding } from '@devframes
 import type { DocksContext } from '@devframes/hub/client'
 import DisplayKbd from '@antfu/design/components/Display/DisplayKbd.vue'
 import { computed, nextTick, ref, watch } from 'vue'
-import { sharedStateToRef } from '../../state/docks'
 import { filterCommandsByWhen, formatKeybinding, isKeybindingOverrideDifferentFromDefault, isMac, KNOWN_BROWSER_SHORTCUTS } from '../../state/keybindings'
+import { useSettings } from '../../state/settings-defaults'
 import DockIcon from '../dock/DockIcon.vue'
 
 const props = defineProps<{
@@ -12,7 +12,7 @@ const props = defineProps<{
 }>()
 
 const commandsCtx = props.context.commands
-const settings = sharedStateToRef(commandsCtx.settings)
+const settings = useSettings(props.context)
 const shortcutOverrides = computed(() => settings.value.commandShortcuts ?? {})
 const shortcutSearch = ref('')
 

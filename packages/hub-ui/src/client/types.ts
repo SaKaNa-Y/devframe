@@ -13,26 +13,27 @@ import '@devframes/json-render/hub'
  * hub-ui's own reference-UI settings, merged onto the hub's generic
  * {@link DevframeDocksUserSettings} — the hub core stays unaware of them.
  * Every field is optional so the hub's `DEFAULT_STATE_USER_SETTINGS()` (which
- * knows nothing about them) stays assignable; an absent value reads as the
- * documented default.
+ * knows nothing about them) stays assignable; what an absent value means lives
+ * in one place, `HUB_UI_SETTINGS_DEFAULTS` (`state/settings-defaults.ts`),
+ * merged in once by `useSettings()` so readers see resolved values rather than
+ * repeating a per-call-site fallback.
  */
 declare module '@devframes/hub/types' {
   interface DevframeDocksUserSettings {
-    /** Show the address-bar chrome on iframe dock views. Defaults to shown. */
+    /** Show the address-bar chrome on iframe dock views. */
     showIframeAddressBar?: boolean
     /** Close the floating dock panel when clicking outside it. */
     closeOnOutsideClick?: boolean
     /**
      * Auto-collapse the edge-mode toolbar to a small handle when idle (no
      * hover or drag) and the panel content is closed, instead of permanently
-     * spanning the full edge. Off by default — an absent value preserves the
-     * default edge-mode behavior; opt in from Settings → Appearance.
+     * spanning the full edge.
      */
     autoCollapseEdgeToolbar?: boolean
     /**
      * Reveal the Devframe Inspector dock (the "devtools for the devtools"
-     * meta-introspection panel). Hidden by default — an absent value keeps the
-     * dock out of the dock bar until the user opts in from Settings → Advanced.
+     * meta-introspection panel) on the dock bar. Users opt in from
+     * Settings → Advanced.
      */
     showDevframeInspector?: boolean
   }

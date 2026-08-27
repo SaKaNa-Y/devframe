@@ -7,7 +7,7 @@ import SettingsAppearance from './SettingsAppearance.vue'
 import SettingsDocks from './SettingsDocks.vue'
 import SettingsShortcuts from './SettingsShortcuts.vue'
 
-const props = defineProps<{
+defineProps<{
   context: DocksContext
   entry: DevframeViewBuiltin
 }>()
@@ -21,8 +21,6 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]['id']
 const activeTab = ref<TabId>('appearance')
-
-const settingsStore = props.context.docks.settings
 </script>
 
 <template>
@@ -53,7 +51,6 @@ const settingsStore = props.context.docks.settings
         <SettingsAppearance
           v-if="activeTab === 'appearance'"
           :context="context"
-          :settings-store="settingsStore"
         />
         <SettingsShortcuts
           v-if="activeTab === 'shortcuts'"
@@ -62,12 +59,10 @@ const settingsStore = props.context.docks.settings
         <SettingsDocks
           v-if="activeTab === 'docks'"
           :context="context"
-          :settings-store="settingsStore"
         />
         <SettingsAdvanced
           v-if="activeTab === 'advanced'"
           :context="context"
-          :settings-store="settingsStore"
         />
       </div>
     </div>

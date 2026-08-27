@@ -4,7 +4,7 @@ import type { DocksContext } from '@devframes/hub/client'
 import { evaluateWhen } from 'devframe/utils/when'
 import { toRefs } from 'vue'
 import { getGroupMembers, resolveGroupDefaultChild } from '../../state/dock-settings'
-import { sharedStateToRef } from '../../state/docks'
+import { useSettings } from '../../state/settings-defaults'
 import DockEntry from './DockEntry.vue'
 import DockGroupButton from './DockGroupButton.vue'
 
@@ -24,7 +24,7 @@ const emit = defineEmits<{
 
 const { selected, isVertical, entries } = toRefs(props)
 
-const settings = sharedStateToRef(props.context.docks.settings)
+const settings = useSettings(props.context)
 
 function isDockVisible(dock: DevframeDockEntry): boolean {
   // Hide empty groups — a group button with no members has nothing to reveal.

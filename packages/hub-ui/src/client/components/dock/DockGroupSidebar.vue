@@ -4,8 +4,8 @@ import type { DocksContext } from '@devframes/hub/client'
 import { watchDebounced } from '@vueuse/core'
 import { computed, h, ref, useTemplateRef, watch } from 'vue'
 import { deriveSidebarCapacity, docksSplitGroupsWithCapacity, getGroupMembersGrouped } from '../../state/dock-settings'
-import { sharedStateToRef } from '../../state/docks'
 import { setDocksSidebarOverflowPanel, setFloatingTooltip, useDocksSidebarOverflowPanel } from '../../state/floating-tooltip'
+import { useSettings } from '../../state/settings-defaults'
 import { accentVarStyle } from '../../utils/accent-color'
 import DockGroupPopover from './DockGroupPopover.vue'
 import DockIcon from './DockIcon.vue'
@@ -25,7 +25,7 @@ const DIVIDER_HEIGHT = 7 // 5 divider + 2 gap
 // Root padding (12) + anchor (32) + gap (2) + anchor divider (5) + gap (2).
 const RESERVED_HEIGHT = 53
 
-const settings = sharedStateToRef(props.context.docks.settings)
+const settings = useSettings(props.context)
 
 // Members split by in-group sub-category so the sidebar can divide sections.
 const memberGroups = computed(() => getGroupMembersGrouped(

@@ -4,8 +4,8 @@ import type { DocksContext } from '@devframes/hub/client'
 import { watchDebounced } from '@vueuse/core'
 import { computed, h, ref, useTemplateRef } from 'vue'
 import { getGroupMembers, getGroupMembersGrouped, resolveGroupDefaultChild } from '../../state/dock-settings'
-import { sharedStateToRef } from '../../state/docks'
 import { setDocksGroupPanel, useDocksGroupPanel } from '../../state/floating-tooltip'
+import { useSettings } from '../../state/settings-defaults'
 import { accentVarStyle } from '../../utils/accent-color'
 import DockEntry from './DockEntry.vue'
 import DockGroupPopover from './DockGroupPopover.vue'
@@ -24,7 +24,7 @@ const emit = defineEmits<{
   (e: 'select', entry: DevframeDockEntry): void
 }>()
 
-const settings = sharedStateToRef(props.context.docks.settings)
+const settings = useSettings(props.context)
 
 const members = computed(() => getGroupMembers(
   props.context.docks.entries,

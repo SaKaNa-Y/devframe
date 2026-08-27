@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import type { DocksContext } from '@devframes/hub/client'
 import type { CSSProperties } from 'vue'
-import type { DevframeDocksUserSettings } from '../../state/dock-settings'
 import type { DockEdge as DockEdgePosition, DockLayout } from './dock-layout'
 import { useEventListener } from '@vueuse/core'
 import { computed, h, onMounted, ref, useTemplateRef } from 'vue'
 import { getEntryGroup } from '../../state/dock-settings'
-import { sharedStateToRef } from '../../state/docks'
 import { setEdgePositionDropdown, setFloatingTooltip, useDocksGroupPanel, useEdgePositionDropdown } from '../../state/floating-tooltip'
+import { useSettings } from '../../state/settings-defaults'
 import { useIframePanes } from '../../utils/useIframePanes'
 import BrandMark from '../icons/BrandMark.vue'
 import ViewEntry from '../views/ViewEntry.vue'
@@ -24,7 +23,7 @@ const props = defineProps<{
 
 const context = props.context
 const store = context.panel.store
-const settings = sharedStateToRef<DevframeDocksUserSettings>(context.docks.settings)
+const settings = useSettings(context)
 const layout = computed(() => resolveDockLayout(props.layout))
 
 const viewsContainer = useTemplateRef<HTMLElement>('viewsContainer')
@@ -42,11 +41,11 @@ const hasPanelContent = computed(() => {
     && entry.type !== 'action'
 })
 
-// Auto-collapse (opt-in via `settings.autoCollapseEdgeToolbar`): idle-timeout +
-// hover tracking, mirroring Dock.vue's own float-bar minimize mechanism
-// (`isHovering`/`bringUp`/`isMinimized`). Kept entirely local/ephemeral — it's
-// not part of the hub-defined `DockPanelStorage`, same as Dock.vue's own
-// `isHovering` isn't either.
+// Auto-collapse (on by default, opt out via `settings.autoCollapseEdgeToolbar:
+// false`): idle-timeout + hover tracking, mirroring Dock.vue's own float-bar
+// minimize mechanism (`isHovering`/`bringUp`/`isMinimized`). Kept entirely
+// local/ephemeral — it's not part of the hub-defined `DockPanelStorage`, same
+// as Dock.vue's own `isHovering` isn't either.
 const isHovering = ref(false)
 let _idleTimer: ReturnType<typeof setTimeout> | null = null
 function bringUp() {

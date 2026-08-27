@@ -7,7 +7,7 @@ import type { CSSProperties } from 'vue'
 import { stripRemoteConnectionFromUrl, watchFrameLocation } from '@devframes/hub/client'
 import { DEVFRAME_REMOTE_ASSETS_ERROR_MESSAGE_TYPE } from '@devframes/hub/constants'
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watchEffect } from 'vue'
-import { sharedStateToRef } from '../../state/docks'
+import { useSettings } from '../../state/settings-defaults'
 import ViewAssetsError from './ViewAssetsError.vue'
 import ViewIframeLoading from './ViewIframeLoading.vue'
 
@@ -18,9 +18,9 @@ const props = defineProps<{
   iframeStyle?: CSSProperties
 }>()
 
-const settings = sharedStateToRef(props.context.docks.settings)
+const settings = useSettings(props.context)
 const isEdgeMode = computed(() => props.context.panel.store.mode === 'edge')
-const showAddressBar = computed(() => settings.value.showIframeAddressBar ?? true)
+const showAddressBar = computed(() => settings.value.showIframeAddressBar)
 
 const ADDRESS_BAR_HEIGHT = 40
 

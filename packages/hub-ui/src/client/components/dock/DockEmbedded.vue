@@ -3,8 +3,8 @@ import type { DocksContext } from '@devframes/hub/client'
 import type { DockLayout } from './dock-layout'
 import { useEventListener } from '@vueuse/core'
 import { onUnmounted } from 'vue'
-import { sharedStateToRef } from '../../state/docks'
 import { closeDockPopup, useIsDockPopupOpen } from '../../state/popup'
+import { useSettings } from '../../state/settings-defaults'
 import { useIsRpcTrusted } from '../../utils/useIsRpcTrusted'
 import CommandPalette from '../command-palette/CommandPalette.vue'
 import Confirm from '../display/Confirm.vue'
@@ -22,7 +22,7 @@ const props = defineProps<{
 }>()
 
 const isDockPopupOpen = useIsDockPopupOpen()
-const settings = sharedStateToRef(props.context.docks.settings)
+const settings = useSettings(props.context)
 
 // Force float mode when unauthorized, regardless of store setting
 const isRpcTrusted = useIsRpcTrusted(props.context)

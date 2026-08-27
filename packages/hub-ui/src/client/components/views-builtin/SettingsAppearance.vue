@@ -1,19 +1,17 @@
 <script setup lang="ts">
 import type { DocksContext } from '@devframes/hub/client'
-import type { SharedState } from 'devframe/utils/shared-state'
-import type { DevframeDocksUserSettings } from '../../state/dock-settings'
 import { computed } from 'vue'
 import { useBranding } from '../../state/branding'
 import { colorSchemePreference, setColorSchemePreference } from '../../state/color-mode'
-import { sharedStateToRef } from '../../state/docks'
 import { isDockPopupSupported, requestDockPopupOpen, useIsDockPopupOpen } from '../../state/popup'
+import { useSettings } from '../../state/settings-defaults'
 
 const props = defineProps<{
   context: DocksContext
-  settingsStore: SharedState<DevframeDocksUserSettings>
 }>()
 
-const settings = sharedStateToRef(props.settingsStore)
+const settings = useSettings(props.context)
+const settingsStore = props.context.docks.settings
 const branding = useBranding()
 const panelStore = props.context.panel.store
 const isEmbedded = props.context.clientType === 'embedded'
@@ -99,7 +97,7 @@ function setDockMode(mode: string) {
       <button
         class="w-10 h-6 rounded-full transition-colors relative shrink-0"
         :class="settings.showIframeAddressBar ? 'bg-primary' : 'bg-gray/30'"
-        @click="settingsStore.mutate((s) => { s.showIframeAddressBar = !s.showIframeAddressBar })"
+        @click="settingsStore.mutate((s) => { s.showIframeAddressBar = !settings.showIframeAddressBar })"
       >
         <div
           class="absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform"
@@ -117,7 +115,7 @@ function setDockMode(mode: string) {
       <button
         class="w-10 h-6 rounded-full transition-colors relative shrink-0"
         :class="settings.closeOnOutsideClick ? 'bg-primary' : 'bg-gray/30'"
-        @click="settingsStore.mutate((s) => { s.closeOnOutsideClick = !s.closeOnOutsideClick })"
+        @click="settingsStore.mutate((s) => { s.closeOnOutsideClick = !settings.closeOnOutsideClick })"
       >
         <div
           class="absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform"
@@ -135,7 +133,7 @@ function setDockMode(mode: string) {
       <button
         class="w-10 h-6 rounded-full transition-colors relative shrink-0"
         :class="settings.autoCollapseEdgeToolbar ? 'bg-primary' : 'bg-gray/30'"
-        @click="settingsStore.mutate((s) => { s.autoCollapseEdgeToolbar = !s.autoCollapseEdgeToolbar })"
+        @click="settingsStore.mutate((s) => { s.autoCollapseEdgeToolbar = !settings.autoCollapseEdgeToolbar })"
       >
         <div
           class="absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform"

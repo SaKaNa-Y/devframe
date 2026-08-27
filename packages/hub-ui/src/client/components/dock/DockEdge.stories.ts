@@ -42,6 +42,9 @@ function edgeStory(position: 'top' | 'right' | 'bottom' | 'left', open = true) {
           selectedId: open ? 'overview' : null,
           panel: { mode: 'edge', position, height: 40, width: 30 },
           session: { open },
+          // Pinned off so the toolbar stays expanded — `CollapsedIdle` below
+          // covers the on-by-default auto-collapse behavior.
+          settings: { autoCollapseEdgeToolbar: false },
         },
         ctx => [
           h(DockEdge, { context: ctx }, { view: ({ entry }: any) => body(entry) }),
@@ -68,9 +71,9 @@ export const Right: Story = edgeStory('right')
 export const ToolbarOnly: Story = edgeStory('bottom', false)
 
 /**
- * Idle-collapsed: `autoCollapseEdgeToolbar` enabled with `inactiveTimeout: 0`
- * (the same trick `Dock.stories.ts`'s own `Minimized` story uses) shrinks the
- * toolbar down to a small corner pill immediately, with nothing selected.
+ * Idle-collapsed: the default `autoCollapseEdgeToolbar` with `inactiveTimeout:
+ * 0` (the same trick `Dock.stories.ts`'s own `Minimized` story uses) shrinks
+ * the toolbar down to a small corner pill immediately, with nothing selected.
  */
 export const CollapsedIdle: Story = {
   render: () => ({
@@ -80,7 +83,6 @@ export const CollapsedIdle: Story = {
         selectedId: null,
         panel: { mode: 'edge', position: 'bottom', inactiveTimeout: 0 },
         session: { open: false },
-        settings: { autoCollapseEdgeToolbar: true },
       },
       ctx => [
         h(DockEdge, { context: ctx }, { view: ({ entry }: any) => body(entry) }),

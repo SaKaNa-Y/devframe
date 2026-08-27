@@ -3,6 +3,7 @@ import type { Immutable } from 'devframe/utils/shared-state'
 import type { WhenContext } from 'devframe/utils/when'
 import { evaluateWhen } from 'devframe/utils/when'
 import { DEFAULT_CATEGORIES_ORDER, INSPECTOR_DOCK_ID } from '../constants'
+import { hubUiSetting } from './settings-defaults'
 // Registers hub-ui's reference-viewer settings onto DevframeDocksUserSettings.
 import '../types'
 
@@ -296,7 +297,10 @@ export function docksGroupByCategories(
     // The Devframe Inspector is hidden by default; it only joins the dock bar
     // once opted into via Settings → Advanced. The settings management view
     // (`includeHidden`) still lists it so users can discover the toggle.
-    if (!includeHidden && entry.id === INSPECTOR_DOCK_ID && !settings.showDevframeInspector)
+    // Resolved through `hubUiSetting` rather than read directly: `settings` here
+    // is caller-supplied and may be a bare `DEFAULT_STATE_USER_SETTINGS()` with
+    // no hub-ui fields, unlike the resolved ref every component reads.
+    if (!includeHidden && entry.id === INSPECTOR_DOCK_ID && !hubUiSetting(settings, 'showDevframeInspector'))
       continue
     if (!includeHidden && docksHidden.includes(entry.id))
       continue

@@ -1,21 +1,20 @@
 <script setup lang="ts">
 import type { DevframeDockEntry } from '@devframes/hub'
 import type { DocksContext } from '@devframes/hub/client'
-import type { SharedState } from 'devframe/utils/shared-state'
-import type { DevframeDockEntriesGrouped, DevframeDocksUserSettings } from '../../state/dock-settings'
+import type { DevframeDockEntriesGrouped } from '../../state/dock-settings'
 import { useDraggable } from '@vueuse/core'
 import { computed, ref, useTemplateRef } from 'vue'
 import { docksGroupByCategories, getCategoryLabel, getGroupMembers, getGroupMembersGrouped, isCategoryHideable } from '../../state/dock-settings'
-import { sharedStateToRef } from '../../state/docks'
+import { useSettings } from '../../state/settings-defaults'
 import HashBadge from '../display/HashBadge.vue'
 import DockIcon from '../dock/DockIcon.vue'
 
 const props = defineProps<{
   context: DocksContext
-  settingsStore: SharedState<DevframeDocksUserSettings>
 }>()
 
-const settings = sharedStateToRef(props.settingsStore)
+const settings = useSettings(props.context)
+const settingsStore = props.context.docks.settings
 
 // Top-level rows are grouped by category with members collapsed under their
 // group button. A group's members are split by their in-group sub-category, and
@@ -106,7 +105,7 @@ function isInteractiveElement(el: HTMLElement | null): boolean {
 function applyOrder(container: string, items: DevframeDockEntry[]) {
   const def = defaultItemsOfContainer(container).map(i => i.id)
   const isDefault = items.length === def.length && items.every((item, i) => item.id === def[i])
-  props.settingsStore.mutate((state) => {
+  settingsStore.mutate((state) => {
     items.forEach((item, index) => {
       if (isDefault)
         delete state.docksCustomOrder[item.id]
@@ -185,12 +184,12 @@ function toggleDock(id: string, visible?: boolean) {
   const shouldShow = visible ?? isHidden
 
   if (shouldShow) {
-    props.settingsStore.mutate((state) => {
+    settingsStore.mutate((state) => {
       state.docksHidden = state.docksHidden.filter((i: string) => i !== id)
     })
   }
   else {
-    props.settingsStore.mutate((state) => {
+    settingsStore.mutate((state) => {
       state.docksHidden = [...state.docksHidden, id]
     })
   }
@@ -204,12 +203,12 @@ function toggleCategory(category: string, visible?: boolean) {
   const shouldShow = visible ?? isHidden
 
   if (shouldShow) {
-    props.settingsStore.mutate((state) => {
+    settingsStore.mutate((state) => {
       state.docksCategoriesHidden = state.docksCategoriesHidden.filter((i: string) => i !== category)
     })
   }
   else {
-    props.settingsStore.mutate((state) => {
+    settingsStore.mutate((state) => {
       state.docksCategoriesHidden = [...state.docksCategoriesHidden, category]
     })
   }
@@ -218,12 +217,12 @@ function toggleCategory(category: string, visible?: boolean) {
 function togglePin(id: string) {
   const pinned = settings.value.docksPinned
   if (pinned.includes(id)) {
-    props.settingsStore.mutate((state) => {
+    settingsStore.mutate((state) => {
       state.docksPinned = state.docksPinned.filter((i: string) => i !== id)
     })
   }
   else {
-    props.settingsStore.mutate((state) => {
+    settingsStore.mutate((state) => {
       state.docksPinned = [...state.docksPinned, id]
     })
   }
@@ -273,7 +272,7 @@ function doesContainerHaveCustomOrder(container: string): boolean {
 
 function resetCustomOrderForContainer(container: string) {
   const ids = customOrderIdsForContainer(container)
-  props.settingsStore.mutate((state) => {
+  settingsStore.mutate((state) => {
     ids.forEach((id) => {
       delete state.docksCustomOrder[id]
     })

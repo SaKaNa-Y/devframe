@@ -188,6 +188,9 @@ export async function createDocksContext(
   // Get settings store ahead of `switchEntry` — its group→member resolution
   // needs `getWhenContext` to honor a `defaultChildId` target's `when` clause.
   const settingsStore = markRaw(await getSettingsStore())
+  // Raw, not `useSettings`: the context this would key off doesn't exist yet,
+  // and the only consumers are the `dock-settings.ts` helpers below, which
+  // resolve hub-ui's own defaults themselves.
   const settings = sharedStateToRef(settingsStore)
 
   // Shared when-context provider — used by both commands and docks

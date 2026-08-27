@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import type { DocksContext } from '@devframes/hub/client'
-import type { SharedState } from 'devframe/utils/shared-state'
-import type { DevframeDocksUserSettings } from '../../state/dock-settings'
 import { DEFAULT_STATE_USER_SETTINGS } from '@devframes/hub/constants'
 import { useBranding } from '../../state/branding'
 import { useConfirm } from '../../state/confirm'
-import { sharedStateToRef } from '../../state/docks'
+import { useSettings } from '../../state/settings-defaults'
 
 const props = defineProps<{
   context: DocksContext
-  settingsStore: SharedState<DevframeDocksUserSettings>
 }>()
 
-const settings = sharedStateToRef(props.settingsStore)
+const settings = useSettings(props.context)
+const settingsStore = props.context.docks.settings
 const branding = useBranding()
 const confirm = useConfirm()
 
@@ -21,7 +19,7 @@ async function resetAllSettings() {
     title: 'Reset All Settings',
     message: 'Reset all settings to defaults? This includes appearance, docks, and shortcuts.',
   })) {
-    props.settingsStore.mutate(() => {
+    settingsStore.mutate(() => {
       return DEFAULT_STATE_USER_SETTINGS()
     })
   }
@@ -32,7 +30,7 @@ async function resetShortcuts() {
     title: 'Reset Keyboard Shortcuts',
     message: 'Reset all keyboard shortcuts to defaults?',
   })) {
-    props.settingsStore.mutate((state) => {
+    settingsStore.mutate((state) => {
       state.commandShortcuts = {}
     })
   }
@@ -43,7 +41,7 @@ async function resetDocks() {
     title: 'Reset Dock Settings',
     message: 'Reset dock visibility, order, and pinning to defaults?',
   })) {
-    props.settingsStore.mutate((state) => {
+    settingsStore.mutate((state) => {
       const defaults = DEFAULT_STATE_USER_SETTINGS()
       state.docksHidden = defaults.docksHidden
       state.docksCategoriesHidden = defaults.docksCategoriesHidden
@@ -73,7 +71,7 @@ async function deauthorize() {
       <button
         class="w-10 h-6 rounded-full transition-colors relative shrink-0"
         :class="settings.showDevframeInspector ? 'bg-primary' : 'bg-gray/30'"
-        @click="settingsStore.mutate((s) => { s.showDevframeInspector = !s.showDevframeInspector })"
+        @click="settingsStore.mutate((s) => { s.showDevframeInspector = !settings.showDevframeInspector })"
       >
         <div
           class="absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform"
