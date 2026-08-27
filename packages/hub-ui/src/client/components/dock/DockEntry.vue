@@ -110,7 +110,7 @@ useEventListener('pointerdown', () => {
       <div
         v-if="badge"
         class="absolute top-0.5 right-0 text-0.6em px-1 rounded-full shadow"
-        :class="badgeStyle ? '' : 'bg-primary text-white'"
+        :class="badgeStyle ? '' : 'bg-gray-500 text-white'"
         :style="badgeStyle"
       >
         {{ badge }}

@@ -101,7 +101,7 @@ async function submit() {
             type="submit"
             variant="primary"
             icon="i-ph-shield-check-duotone"
-            class="w-full justify-center text-base py-2!"
+            class="w-full justify-center text-base py-2! disabled:saturate-0"
             :loading="verifying"
             :disabled="code.length < CODE_LENGTH"
           >

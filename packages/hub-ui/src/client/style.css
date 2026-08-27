@@ -68,7 +68,7 @@
 }
 
 #devframes-anchor #devframes-dock {
-  --uno: h-full rounded-full select-none touch-none ma flex;
+  --uno: h-full rounded-lg select-none touch-none ma flex border border-base;
   --uno: "shadow text-[#333] dark:text-white  bg-glass:80";
   --uno: transition-all duration-500;
   height: var(--devframes-dock-height, 40px);
@@ -76,7 +76,7 @@
 }
 
 #devframes-anchor.devframes-minimized #devframes-dock {
-  --uno: px-0 py-[2px];
+  --uno: px-0 py-[2px] rounded-full;
   width: var(--devframes-dock-minimized-size, 22px);
   height: var(--devframes-dock-minimized-size, 22px);
 }
