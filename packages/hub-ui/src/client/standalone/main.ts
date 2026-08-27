@@ -2,7 +2,7 @@ import type { DockSessionStorage } from '@devframes/hub/client'
 import { getDevframeRpcClient, setDevframeClientContext } from '@devframes/hub/client'
 import { useSessionStorage } from '@vueuse/core'
 import { watchEffect } from 'vue'
-import { applyDocumentHead, applyPrimaryColor, setBranding } from '../state/branding'
+import { applyDocumentHead, applyPrimaryColor, setBranding, useBrandingBackground } from '../state/branding'
 import { isDark } from '../state/color-mode'
 import { DEFAULT_DOCK_SESSION_STORE } from '../state/docks'
 
@@ -12,14 +12,28 @@ import { DEFAULT_DOCK_SESSION_STORE } from '../state/docks'
 // shell stays frameworkless on purpose; everything visual lives inside the
 // custom element's shadow root.
 
-// The standalone page runs in the light DOM, so mirror the color mode onto the
-// document element — its background and native controls follow the
-// Auto/Light/Dark choice.
+// The standalone viewer runs in the light DOM, so mirror the color mode onto the
+// document element — its background follows the Auto/Light/Dark choice. The
+// component tree carries `color-scheme` for its native controls; keeping that
+// off the document lets custom backgrounds composite with the host page.
+const brandingBackground = useBrandingBackground()
+
+function applyViewerBackground(documentElement: HTMLElement, background: string | undefined): void {
+  if (background === undefined || !CSS.supports('background', background)) {
+    documentElement.classList.remove('viewer-background-custom')
+    documentElement.style.removeProperty('--devframes-viewer-background')
+    return
+  }
+
+  documentElement.classList.add('viewer-background-custom')
+  documentElement.style.setProperty('--devframes-viewer-background', background)
+}
+
 watchEffect(() => {
   const el = document.documentElement
   el.classList.toggle('dark', isDark.value)
   el.classList.toggle('light', !isDark.value)
-  el.style.colorScheme = isDark.value ? 'dark' : 'light'
+  applyViewerBackground(el, brandingBackground.value)
 })
 
 async function main(): Promise<void> {

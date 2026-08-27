@@ -6,15 +6,22 @@
     <title>Devframes</title>
     <meta name="description" content="Devframes hub" />
     <style>
+      :root {
+        color-scheme: light;
+        --devframes-viewer-background: #fff;
+      }
+      html.dark {
+        color-scheme: dark;
+        --devframes-viewer-background: #111;
+      }
+      html.viewer-background-custom {
+        color-scheme: normal;
+      }
       html,
       body {
         margin: 0;
         height: 100%;
-        background: #fff;
-      }
-      html.dark,
-      html.dark body {
-        background: #111;
+        background: var(--devframes-viewer-background);
       }
       #app {
         height: 100%;
