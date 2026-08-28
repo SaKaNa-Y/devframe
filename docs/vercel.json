@@ -17,9 +17,12 @@
     { "source": "/plugins/terminals", "destination": "/add-ons/devframes/terminals", "permanent": true },
     { "source": "/plugins/code-server", "destination": "/add-ons/devframes/code-server", "permanent": true },
     { "source": "/plugins/assets", "destination": "/add-ons/devframes/assets", "permanent": true },
-    { "source": "/helpers", "destination": "/references/helpers", "permanent": true },
+    { "source": "/helpers", "destination": "/references", "permanent": true },
     { "source": "/helpers/utilities", "destination": "/references/utilities", "permanent": true },
-    { "source": "/helpers/common-rpc-functions", "destination": "/references/common-rpc-functions", "permanent": true },
-    { "source": "/helpers/interactive-auth", "destination": "/references/interactive-auth", "permanent": true }
+    { "source": "/helpers/common-rpc-functions", "destination": "/add-ons/services/open", "permanent": true },
+    { "source": "/helpers/interactive-auth", "destination": "/references/interactive-auth", "permanent": true },
+    { "source": "/references/helpers", "destination": "/references", "permanent": true },
+    { "source": "/references/common-rpc-functions", "destination": "/add-ons/services/open", "permanent": true },
+    { "source": "/references/services", "destination": "/references/node-api", "permanent": true }
   ]
 }

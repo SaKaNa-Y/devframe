@@ -27,7 +27,7 @@ Complete tools, each picking its own UI framework yet sharing one node-side API 
 
 ## Services
 
-Shared node-side capabilities other devframes install and consume — see [Cross-Devframe Services](/guide/services) for the mechanism, and the [Services reference](/references/services) for the host API.
+Shared node-side capabilities other devframes install and consume — see [Cross-Devframe Services](/guide/services) for the mechanism, and the [Node-Side API reference](/references/node-api#devframeserviceshost) for the host API.
 
 | Service | Scope | What it does |
 |---------|-------|--------------|

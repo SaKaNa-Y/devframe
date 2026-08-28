@@ -5,7 +5,7 @@ navigation:
 description: 'Built-in wire services (@devframes/service-*): one node-side capability installed once per host and consumed by every devframe and RPC client, without re-implementing or re-bundling it.'
 ---
 
-Built-in [wire services](/guide/services#wire-services) (`@devframes/service-*`) — one node-side capability installed once per host and consumed by every devframe and RPC client, without re-implementing or re-bundling it. See [Cross-Devframe Services](/guide/services) for the mechanism and the [Services reference](/references/services) for the host API.
+Built-in [wire services](/guide/services#wire-services) (`@devframes/service-*`) — one node-side capability installed once per host and consumed by every devframe and RPC client, without re-implementing or re-bundling it. See [Cross-Devframe Services](/guide/services) for the mechanism and the [Node-Side API reference](/references/node-api#devframeserviceshost) for the host API.
 
 | Service | Scope | RPC functions | What it does |
 |---------|-------|---------------|--------------|
