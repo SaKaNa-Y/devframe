@@ -15,7 +15,7 @@ withDefaults(defineProps<{
     :href="href"
     target="_blank"
     rel="noopener noreferrer"
-    class="not-prose my-6 inline-flex items-center gap-3 rounded-lg text-inherit no-underline transition-opacity hover:opacity-80"
+    class="not-prose mt-6 inline-flex items-center gap-3 rounded-lg text-inherit no-underline transition-opacity hover:opacity-80"
   >
     <img
       src="https://github.com/antfu.png?size=96"
