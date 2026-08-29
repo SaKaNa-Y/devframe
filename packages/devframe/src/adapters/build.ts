@@ -9,12 +9,12 @@ import { colors as c } from 'devframe/utils/colors'
 import { resolveStaticAssetsSource } from 'devframe/utils/remote-assets'
 import { structuredCloneStringify } from 'devframe/utils/structured-clone'
 import { dirname, resolve } from 'pathe'
+import { resolveClientAssets } from '../client-assets'
 import {
   DEVFRAME_CONNECTION_META_FILENAME,
   DEVFRAME_RPC_DUMP_DIRNAME,
   DEVFRAME_RPC_DUMP_MANIFEST_FILENAME,
 } from '../constants'
-import { resolveClientAssets } from '../define'
 import { createHostContext } from '../node/context'
 import { diagnostics } from '../node/diagnostics'
 import { createH3DevframeHost } from '../node/host-h3'

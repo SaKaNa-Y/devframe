@@ -16,6 +16,7 @@ export { normalizeHttpServerUrl }
 export { peekRpcWireFrame }
 export { registerDevframeInstance }
 export { resolveBasePath }
+export { resolveClientAssets }
 export { resolveInstanceRegister }
 export { samePath }
 // #endregion

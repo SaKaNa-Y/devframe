@@ -3,8 +3,8 @@ import type { InitDevframeOptions } from 'devframe/initiate'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
-import { resolveClientAssets } from 'devframe'
 import { initDevframe } from 'devframe/initiate'
+import { resolveClientAssets } from 'devframe/internal'
 
 export interface CreateDevframeNextHandlerOptions {
   /**

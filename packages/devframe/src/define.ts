@@ -1,5 +1,6 @@
 import type { DevframeDefinition, DevframeNodeContext, StaticAssetsSource } from 'devframe/types'
 import { createDefineWrapperWithContext } from 'devframe/rpc'
+import { resolveClientAssets as resolveClientAssetsInternal } from './client-assets'
 
 export const defineRpcFunction = createDefineWrapperWithContext<DevframeNodeContext>()
 
@@ -12,12 +13,10 @@ export function defineDevframe(d: DevframeDefinition): DevframeDefinition {
 }
 
 /**
- * Resolve a definition's client assets source — the built SPA served as its
- * UI. Prefers the top-level {@link DevframeDefinition.clientAssets} and falls
- * back to the deprecated {@link DevframeCliOptions.distDir}, so both the new
- * and legacy shapes resolve. Returns `undefined` when neither is set (bridge
- * mode — the SPA is hosted elsewhere).
+ * @deprecated Read {@link DevframeDefinition.clientAssets} from the definition
+ * directly. This helper is internal machinery that was never meant to be part
+ * of the public API and is scheduled for removal.
  */
 export function resolveClientAssets(d: DevframeDefinition): StaticAssetsSource | undefined {
-  return d.clientAssets ?? d.cli?.distDir
+  return resolveClientAssetsInternal(d)
 }

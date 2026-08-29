@@ -56,6 +56,7 @@ export declare function peekRpcWireFrame(_: string): {
   t?: string;
   i?: string;
 };
+export declare function resolveClientAssets(_: DevframeDefinition): StaticAssetsSource | undefined;
 // #endregion
 
 // #region Variables

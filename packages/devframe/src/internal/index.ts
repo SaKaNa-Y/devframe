@@ -29,10 +29,16 @@
 // - `resolveBasePath` / `normalizeBasePath` — the mount-base resolution
 //   `initDevframe` itself uses; a bridge (`@devframes/vite`) that mounts a
 //   devframe onto a host it doesn't own reuses the exact same defaulting.
+// - `resolveClientAssets` — the definition → static-assets-source
+//   resolution every UI-serving adapter uses (`clientAssets`, falling back to
+//   the legacy `cli.distDir`), so a bridge that serves a devframe's SPA itself
+//   (`@devframes/vite`, `@devframes/next`, the hub's `ctx.install`) resolves it
+//   identically.
 // - `diagnostics` — devframe core's structured diagnostics instance
 //   (`DF00xx`), so a first-party integration built outside this package can
 //   report against the same registered codes instead of minting its own.
 export { normalizeBasePath, resolveBasePath } from '../adapters/_shared'
+export { resolveClientAssets } from '../client-assets'
 export { coerceAgentPositionalArgs } from '../node/agent-args'
 export type { AgentArgsFallback } from '../node/agent-args'
 export { diagnostics } from '../node/diagnostics'

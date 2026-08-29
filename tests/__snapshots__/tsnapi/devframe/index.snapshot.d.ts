@@ -511,6 +511,7 @@ export type StaticAssetsSource = string | RemoteAssets;
 
 // #region Functions
 export declare function defineDevframe(_: DevframeDefinition): DevframeDefinition;
+/** @deprecated */
 export declare function resolveClientAssets(_: DevframeDefinition): StaticAssetsSource | undefined;
 // #endregion
 
