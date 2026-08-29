@@ -341,13 +341,8 @@ When several devtools run at once, discovery becomes the problem. `@devframes/hu
   ```
 ::
 
-::landing-cta
----
-links:
-  - label: Get started
-    to: /guide
-    trailingIcon: i-lucide-arrow-right
-    size: lg
+
+<!--
   - label: Read the announcement
     to: https://antfu.me/posts/pluggable-extensible-playful-devtools
     target: _blank
@@ -355,6 +350,15 @@ links:
     variant: subtle
     size: lg
     icon: i-lucide-newspaper
+-->
+
+::landing-cta
+---
+links:
+  - label: Get started
+    to: /guide
+    trailingIcon: i-lucide-arrow-right
+    size: lg
 ---
 #title
 Ship your devtool everywhere
@@ -362,3 +366,4 @@ Ship your devtool everywhere
 #description
 Start from one `DevframeDefinition` and pick the entry points your package ships — hosted, standalone, embedded, or agentic.
 ::
+
