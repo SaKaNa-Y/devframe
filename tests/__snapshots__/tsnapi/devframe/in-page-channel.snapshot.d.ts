@@ -90,3 +90,36 @@ export declare function connectPanelChannel<P extends InPageChannelProtocol>(_: 
 export declare function createPageScriptChannel<P extends InPageChannelProtocol>(_: CreatePageScriptChannelOptions<P>): PageScriptChannel<P>;
 export declare function defineChannelFunction<NAME extends string, TYPE extends InPageFunctionType, ARGS extends any[], RETURN = void, const AS extends RpcArgsSchema | undefined = undefined, const RS extends RpcReturnSchema | undefined = undefined>(_: InPageFunctionDefinition<NAME, TYPE, ARGS, RETURN, AS, RS>): InPageFunctionDefinition<NAME, TYPE, ARGS, RETURN, AS, RS>;
 // #endregion
+
+// #region Referenced (internal)
+type ConnectPanelChannelOptionsFunctions<P extends InPageChannelProtocol> = { [NAME in keyof PanelFunctions<P> & string]: InPageFunctionOption<PanelFunctions<P>[NAME]>; };
+type CreatePageScriptChannelOptionsFunctions<P extends InPageChannelProtocol> = { [NAME in keyof PageScriptFunctions<P> & string]: InPageFunctionOption<PageScriptFunctions<P>[NAME]>; };
+type FnArgs<F> = F extends ((...args: infer A) => any) ? A : never;
+type FnReturn<F> = F extends ((...args: any[]) => infer R) ? Awaited<R> : never;
+interface InPageChannelCommonOptions {
+  name: string;
+  allowedOrigins?: string[];
+  callTimeoutMs?: number;
+  heartbeat?: {
+    intervalMs?: number;
+    timeoutMs?: number;
+  } | false;
+  serialize?: (_: unknown) => unknown;
+  deserialize?: (_: unknown) => unknown;
+}
+type InPageFunctionType = 'action' | 'event' | 'query';
+interface InPageSharedStateHost<P extends InPageChannelProtocol> {
+  get: <K extends keyof SharedStates<P> & string>(_: K, _?: {
+    initialValue?: SharedStates<P>[K];
+  }) => Promise<SharedState<SharedStates<P>[K]>>;
+}
+interface PageScriptChannelEvents<P extends InPageChannelProtocol> {
+  'panel:connected': (_: PanelPeer<P>) => void;
+  'panel:disconnected': (_: PanelPeer<P>) => void;
+}
+type PageScriptFunctions<P extends InPageChannelProtocol> = SideFunctions<NonNullable<P['pageScript']>>;
+interface PanelChannelEvents {
+  'status:updated': (_: InPageChannelStatus) => void;
+}
+type PanelFunctions<P extends InPageChannelProtocol> = SideFunctions<NonNullable<P['panel']>>;
+// #endregion

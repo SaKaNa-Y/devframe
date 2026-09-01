@@ -42,3 +42,10 @@ export type ViewerBackground = ColorSchemeValue | {
 // #region Functions
 export declare function createUi(_?: CreateUiOptions): DevframeHubUi;
 // #endregion
+
+// #region Referenced (internal)
+type BrandingLogo = string | {
+  light: string;
+  dark: string;
+};
+// #endregion
