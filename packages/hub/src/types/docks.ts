@@ -29,6 +29,12 @@ export interface DevframeDocksHost {
   activate: (dockId: string, params?: Record<string, unknown>) => void
 }
 
+/** Current state of one dock panel in a host page. */
+export interface DevframeDockPanelState {
+  state: 'open' | 'closed' | 'hidden'
+  selectedDockId?: string
+}
+
 /**
  * A request to switch the active dock. `params` is an opaque, serializable
  * bag the target dock interprets — the terminals dock reads `params.sessionId`

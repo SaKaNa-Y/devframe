@@ -101,6 +101,10 @@ export interface DevframeDockEntryRegistry {
   'group': DevframeViewGroup;
   '~builtin': DevframeViewBuiltin;
 }
+export interface DevframeDockPanelState {
+  state: 'open' | 'closed' | 'hidden';
+  selectedDockId?: string;
+}
 export interface DevframeDocksActiveState {
   activation: DevframeDockActivation | null;
 }
