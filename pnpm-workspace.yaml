@@ -74,11 +74,13 @@ overrides:
   '@devframes/service-open': 'workspace:*'
   '@devframes/service-shiki': 'workspace:*'
   '@devframes/vite': 'workspace:*'
+  '@unhead/vue': ^3.4.0
   chokidar: ^5.0.0
   crossws: ^0.4.12
   devframe: 'workspace:*'
   semver: ^7.8.5
   shell-quote: ^1.10.0
+  unhead: ^3.4.0
 
 update:
   ignoreDeps:
