@@ -20,6 +20,12 @@ export async function runDevframeCli(argv: string[] = process.argv): Promise<voi
         ports: parsePortsFlag(options.port),
         instancesDir: options.instancesDir,
         timeoutMs: options.timeout,
+        /**
+         * The bearer for authenticated instance MCP routes comes from the
+         * environment, never a CLI flag: command-line arguments are visible to
+         * any process on the machine (`ps`, `/proc`), which would defeat it.
+         */
+        authToken: process.env.DEVFRAME_MCP_AUTH_TOKEN,
       })
       keepAlive()
     })

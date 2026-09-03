@@ -212,13 +212,10 @@ export async function nextDevframeHub(
     origin,
     host: hostName,
     /**
-     * Gate access with devframe's interactive OTP (the default): the hub
-     * prints a 6-digit code + magic link on startup, and the client shell
-     * (`app/page.tsx`) drives its own authorization view to exchange the code
-     * for a bearer token. See `docs/content/1.guide/13.security.md`.
-     * The aggregate MCP endpoint at `/__devframes/__mcp` - the hub's agent
-     * surface (agent-flagged commands, plugin tools, `devframe:state:read`)
-     * over the same catch-all route as the SPAs.
+     * Aggregate MCP at `/__devframes/__mcp` (agent-flagged commands, plugin
+     * tools, `devframe:state:read`). `mcp: true` uses the loopback origin gate,
+     * trusting same-machine callers; harden with `mcp: { authorization }` when
+     * the app is reachable beyond localhost.
      */
     mcp: true,
     /**

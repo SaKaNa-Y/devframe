@@ -384,7 +384,9 @@ export { listLiveDevframeInstances }
 export { normalizeBasePath }
 export { registerDevframeInstance }
 export { resolveBasePath }
+export { ResolvedMcpConfig }
 export { resolveInstanceRegister }
+export { resolveMcpConfig }
 export { samePath }
 export { StartedServer }
 // #endregion

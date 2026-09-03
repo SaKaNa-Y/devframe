@@ -1,8 +1,10 @@
 import type { StartedServer } from '../../../node/instance-shell'
-import type { DevframeDefinition } from '../../../types/devframe'
+import type { DevframeDefinition, McpRouteOptions } from '../../../types/devframe'
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createDevServer } from '../../dev'
+
+const TOKEN = 'a-high-entropy-test-bearer-token'
 
 function defineTestDef(overrides?: Partial<DevframeDefinition>): DevframeDefinition {
   return {
@@ -32,13 +34,13 @@ describe('mcp adapter (streamable http route)', () => {
     server = undefined
   })
 
-  async function boot(def = defineTestDef()): Promise<StartedServer> {
+  async function boot(mcp: boolean | McpRouteOptions = true, def = defineTestDef()): Promise<StartedServer> {
     // `port: 0` gives each test a fresh ephemeral port. Sharing one default
     // port across tests lets undici's keep-alive pool (keyed per origin) hand
     // a later test a stale socket from an earlier torn-down server, failing
     // with a socket error, or hanging that server's `close()` until the
     // keep-alive timeout.
-    server = await createDevServer(def, { host: '127.0.0.1', port: 0, mcp: true })
+    server = await createDevServer(def, { host: '127.0.0.1', port: 0, mcp })
     return server
   }
 
@@ -58,14 +60,15 @@ describe('mcp adapter (streamable http route)', () => {
   })
 
   // A native MCP client must send a (loopback) Origin so the route's gate
-  // (which rejects Origin-less requests) accepts it.
-  function originTransport(started: StartedServer): StreamableHTTPClientTransport {
+  // (which rejects Origin-less requests) accepts it. `mcp: true` trusts
+  // same-machine callers, so no bearer is needed.
+  function originTransport(started: StartedServer, headers: Record<string, string> = {}): StreamableHTTPClientTransport {
     return new StreamableHTTPClientTransport(new URL(`${started.origin}/__mcp`), {
-      requestInit: { headers: { origin: started.origin } },
+      requestInit: { headers: { origin: started.origin, ...headers } },
     })
   }
 
-  it('serves the modern era statelessly and lists agent tools', async () => {
+  it('trusts same-machine callers by default (origin only) and lists agent tools', async () => {
     const started = await boot()
     const transport = originTransport(started)
     // Negotiate the 2026-07-28 era via `server/discover`.
@@ -105,44 +108,113 @@ describe('mcp adapter (streamable http route)', () => {
     expect(res.status).toBe(405)
   })
 
-  it('rejects an Origin-less request', async () => {
+  /** An `initialize` POST body for the origin/identity gate tests. */
+  function initRequest(started: StartedServer, headers: Record<string, string>): Promise<Response> {
+    return fetch(`${started.origin}/__mcp`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'accept': 'application/json, text/event-stream',
+        ...headers,
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'x', version: '0' } },
+      }),
+    })
+  }
+
+  it('rejects an Origin-less request with 403', async () => {
     const started = await boot()
     // Unlike the WS transport, the MCP route does not allow Origin-less
     // requests; a route-based endpoint would otherwise be reachable by any
     // local process.
-    const res = await fetch(`${started.origin}/__mcp`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json, text/event-stream',
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'initialize',
-        params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'x', version: '0' } },
-      }),
-    })
+    const res = await initRequest(started, {})
     await res.body?.cancel()
     expect(res.status).toBe(403)
   })
 
-  it('rejects a disallowed cross-origin request', async () => {
+  it('rejects a disallowed cross-origin request with 403', async () => {
     const started = await boot()
-    const res = await fetch(`${started.origin}/__mcp`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json, text/event-stream',
-        'origin': 'http://evil.example.com',
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'initialize',
-        params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'x', version: '0' } },
-      }),
-    })
+    const res = await initRequest(started, { origin: 'http://evil.example.com' })
+    await res.body?.cancel()
     expect(res.status).toBe(403)
+  })
+
+  describe('opt-in bearer (authorization: token)', () => {
+    it('accepts a request carrying the correct bearer', async () => {
+      const started = await boot({ authorization: TOKEN })
+      const client = new Client({ name: 'test-client', version: '0.0.0' }, { versionNegotiation: { mode: 'auto' } })
+      const transport = originTransport(started, { authorization: `Bearer ${TOKEN}` })
+      try {
+        await client.connect(transport)
+        const tools = await client.listTools()
+        expect(tools.tools.map(t => t.name)).toContain('greet')
+      }
+      finally {
+        await client.close()
+      }
+    })
+
+    it('rejects an allowed-origin request with no bearer as 401 + WWW-Authenticate', async () => {
+      const started = await boot({ authorization: TOKEN })
+      const res = await initRequest(started, { origin: started.origin })
+      await res.body?.cancel()
+      expect(res.status).toBe(401)
+      expect(res.headers.get('www-authenticate')).toBe('Bearer')
+    })
+
+    it('rejects the wrong bearer as 401', async () => {
+      const started = await boot({ authorization: TOKEN })
+      const res = await initRequest(started, { origin: started.origin, authorization: 'Bearer not-the-token' })
+      await res.body?.cancel()
+      expect(res.status).toBe(401)
+    })
+
+    it('rejects a malformed / multi-credential Authorization header as 401', async () => {
+      const started = await boot({ authorization: TOKEN })
+      const res = await initRequest(started, { origin: started.origin, authorization: `Bearer ${TOKEN}, Bearer other` })
+      await res.body?.cancel()
+      expect(res.status).toBe(401)
+    })
+
+    it('runs the origin gate before the bearer (disallowed origin still 403)', async () => {
+      const started = await boot({ authorization: TOKEN })
+      const res = await initRequest(started, { origin: 'http://evil.example.com', authorization: `Bearer ${TOKEN}` })
+      await res.body?.cancel()
+      expect(res.status).toBe(403)
+    })
+  })
+
+  describe('opt-in callback (authorization: fn)', () => {
+    it('allows when the callback returns true', async () => {
+      const started = await boot({ authorization: req => req.headers.get('x-secret') === 'open-sesame' })
+      const res = await initRequest(started, { 'origin': started.origin, 'x-secret': 'open-sesame' })
+      expect(res.status).toBe(200)
+      await res.body?.cancel()
+    })
+
+    it('denies with 401 when the callback returns false', async () => {
+      const started = await boot({ authorization: req => req.headers.get('x-secret') === 'open-sesame' })
+      const res = await initRequest(started, { 'origin': started.origin, 'x-secret': 'wrong' })
+      await res.body?.cancel()
+      expect(res.status).toBe(401)
+    })
+
+    it('cannot relax the origin gate (disallowed origin still 403)', async () => {
+      const started = await boot({ authorization: () => true })
+      const res = await initRequest(started, { origin: 'http://evil.example.com' })
+      await res.body?.cancel()
+      expect(res.status).toBe(403)
+    })
+  })
+
+  it('explicit authorization: false behaves like the origin-only default', async () => {
+    const started = await boot({ authorization: false })
+    const res = await initRequest(started, { origin: started.origin })
+    expect(res.status).toBe(200)
+    await res.body?.cancel()
   })
 })

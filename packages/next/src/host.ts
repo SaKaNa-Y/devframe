@@ -1,4 +1,4 @@
-import type { ConnectionMeta, DevframeHost, DevframeNodeContext, DevframeStorageScope } from 'devframe'
+import type { ConnectionMeta, DevframeHost, DevframeNodeContext, DevframeStorageScope, McpAuthorization } from 'devframe'
 import { DEVFRAME_CONNECTION_META_FILENAME } from 'devframe/constants'
 import { importRuntimeModule } from 'devframe/internal'
 import { serveStaticHandler } from 'devframe/utils/serve-static'
@@ -26,6 +26,15 @@ export interface CreateDevframeNextHostOptions {
 }
 
 export interface DevframeNextHostMcpOptions {
+  /**
+   * Optional identity check layered on the origin gate. Defaults to
+   * origin-only (`false`), trusting same-machine callers. A bearer token
+   * string (matched in constant time) or a `(request) => boolean` callback
+   * hardens the route when a same-machine process is not your trust boundary;
+   * see {@link McpAuthorization}. Back a bearer with an environment variable,
+   * never a literal.
+   */
+  authorization?: McpAuthorization
   /** Name reported in the MCP handshake. Default: `'devframe (next)'`. */
   serverName?: string
   /** Version reported in the MCP handshake. Default: `'0.0.0'`. */
@@ -35,7 +44,8 @@ export interface DevframeNextHostMcpOptions {
   /**
    * Origin allow-list beyond the loopback default. `false` disables the
    * origin gate entirely. Note the MCP route rejects `Origin`-less requests
-   * (see `createMcpFetchHandler`).
+   * (see `createMcpFetchHandler`). This hardens the request; `authorization`
+   * proves identity.
    */
   allowedOrigins?: readonly string[] | false
 }
@@ -169,6 +179,7 @@ export function createDevframeNextHost(
         serverName: mcpOptions.serverName ?? 'devframe (next)',
         serverVersion: mcpOptions.serverVersion ?? '0.0.0',
         exposeSharedState: mcpOptions.exposeSharedState ?? true,
+        authorization: mcpOptions.authorization,
         allowedOrigins: mcpOptions.allowedOrigins,
       })
       const key = stripTrailingSlash(path)

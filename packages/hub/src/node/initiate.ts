@@ -12,7 +12,7 @@ import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import process from 'node:process'
 import { DEVFRAME_CONNECTION_META_FILENAME, DEVFRAME_DOCK_IMPORTS_FILENAME, DEVFRAME_MCP_ROUTE, DEVFRAME_WS_ROUTE } from 'devframe/constants'
-import { createH3DevframeHost, createInstanceShell, importRuntimeModule, resolveInstanceRegister } from 'devframe/internal'
+import { createH3DevframeHost, createInstanceShell, importRuntimeModule, resolveInstanceRegister, resolveMcpConfig } from 'devframe/internal'
 import { mountStaticHandler } from 'devframe/utils/serve-static'
 import { H3 } from 'h3'
 import { resolve } from 'pathe'
@@ -255,7 +255,12 @@ export interface InitHubOptions {
   /**
    * Expose the **aggregate** MCP endpoint at `<base>__mcp`: one
    * Streamable-HTTP server over the shared context's whole tool registry
-   * (ids are already namespaced per plugin). Disabled by default.
+   * (ids are already namespaced per plugin). Disabled by default; `true`
+   * mounts it with the loopback origin gate (trusting same-machine callers),
+   * an object opts into an {@link McpRouteOptions.authorization} identity
+   * check. A mounted devframe's own `mcp` setting is ignored: the hub's
+   * aggregate route covers them all (`DF8005` warns when one asks for MCP
+   * while this is off).
    */
   mcp?: boolean | McpRouteOptions
   /**
@@ -463,6 +468,7 @@ async function mountDevframes(
   devframes: HubDevframeEntry[],
   base: string,
   frames: { id: string, base: string, title: string }[],
+  hubMcpEnabled: boolean,
 ): Promise<(() => Promise<void>)[]> {
   const setups: (() => Promise<void>)[] = []
   for (const { devframe: def, dock } of devframes) {
@@ -473,6 +479,12 @@ async function mountDevframes(
     // segment entirely.
     if (!/^[\w.-]+$/.test(def.id))
       throw diagnostics.DF8004({ id: def.id })
+    // A hub exposes one aggregate MCP route over every mounted devframe, so a
+    // devframe's own `mcp` request is only meaningful when the hub's own MCP is
+    // enabled. Warn when it isn't, rather than silently dropping the devframe's
+    // intended agent surface.
+    if (!hubMcpEnabled && def.cli?.mcp)
+      diagnostics.DF8005({ id: def.id })
     const frameBase = withTrailingSlash(joinURL(base, def.id))
     const run = await prepareDevframe(ctx, def, { base: frameBase, ...(dock ? { dock } : {}) })
     if (run)
@@ -554,7 +566,7 @@ export function initHub(options: InitHubOptions): HubInstance {
       // collection alongside every devframe's own declared services.
       for (const input of options.services ?? [])
         void ctx.services.install(input)
-      const setups = await mountDevframes(ctx, devframes, base, frames)
+      const setups = await mountDevframes(ctx, devframes, base, frames, !!options.mcp)
 
       // Construct every collected service once, then run the setups, so a
       // devframe's setup consumes services (its own or another devframe's)
@@ -590,8 +602,10 @@ export function initHub(options: InitHubOptions): HubInstance {
 
       // Aggregate MCP: one Streamable-HTTP endpoint over the shared
       // context's whole registry (tool ids are namespaced per plugin, and the
-      // wire-name collision policy is `createMcpFetchHandler`'s own).
-      const mcpConfig = options.mcp === true ? {} : options.mcp
+      // wire-name collision policy is `createMcpFetchHandler`'s own). The
+      // resolved config trusts same-machine callers by default (origin-only);
+      // an object config opts into a bearer/callback identity check.
+      const mcpConfig = resolveMcpConfig(options.mcp)
       if (!mcpConfig)
         return { context: ctx }
 
@@ -601,6 +615,7 @@ export function initHub(options: InitHubOptions): HubInstance {
         serverName: options.name ?? 'devframes-hub',
         serverVersion: options.version ?? '0.0.0',
         exposeSharedState: true,
+        authorization: mcpConfig.authorization,
         allowedOrigins: mcpConfig.allowedOrigins,
       })
       return { context: ctx, mcp: { path: mcpRoute }, dispose: mounted.dispose }

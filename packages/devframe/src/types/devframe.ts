@@ -85,6 +85,26 @@ export interface DevframeSseOptions {
 }
 
 /**
+ * An **optional** identity check layered on top of the origin gate. The
+ * route-based MCP endpoint trusts same-machine callers by default (the
+ * loopback origin gate is enough), so this is opt-in hardening for the cases
+ * where a same-machine process is not a trust boundary, like a LAN/tunnel
+ * origin, a shared/CI box, or a destructive tool surface:
+ *
+ * - a non-empty **bearer token string**: the request must carry
+ *   `Authorization: Bearer <token>`, compared in constant time. Back it with
+ *   an environment variable rather than a literal;
+ * - a **callback** `(request) => boolean | Promise<boolean>`: a custom
+ *   identity check (validate a signed header, an mTLS-derived claim, …). It
+ *   only governs identity and cannot relax the origin gate;
+ * - `false`, the default: **origin-only**, trusting same-machine callers.
+ */
+export type McpAuthorization
+  = | string
+    | ((request: Request) => boolean | Promise<boolean>)
+    | false
+
+/**
  * Configuration for the route-based MCP server mounted alongside the dev
  * server (opt-in via {@link DevframeCliOptions.mcp}). The endpoint speaks
  * the MCP Streamable-HTTP transport over the same origin as the SPA,
@@ -98,6 +118,16 @@ export interface McpRouteOptions {
    */
   path?: string
   /**
+   * Optional identity check, layered on top of the origin gate and checked
+   * **after** it. Defaults to origin-only (`false`): the route trusts
+   * same-machine callers, since the loopback origin gate already keeps
+   * arbitrary remote/browser callers out. Set a bearer token or a callback to
+   * harden the route when a same-machine process is not your trust boundary
+   * (LAN/tunnel origin, shared/CI host, destructive tools). See
+   * {@link McpAuthorization}.
+   */
+  authorization?: McpAuthorization
+  /**
    * Extra `Origin` header values to accept beyond the loopback default
    * (`localhost`/`127.0.0.1`/`::1` and any `Origin`-less native client).
    * Add your LAN/tunnel origin here when reaching the endpoint from another
@@ -107,7 +137,9 @@ export interface McpRouteOptions {
    * This is the endpoint's DNS-rebinding protection: the shared
    * `isAllowedOrigin` gate the WS upgrade already uses, applied as external
    * middleware (the approach the MCP SDK now recommends over its own
-   * deprecated `allowedHosts`/`allowedOrigins` transport flags).
+   * deprecated `allowedHosts`/`allowedOrigins` transport flags). When you
+   * widen it past loopback, layer on {@link McpRouteOptions.authorization} to
+   * prove identity too.
    */
   allowedOrigins?: readonly string[] | false
 }
@@ -152,17 +184,20 @@ export interface DevframeCliOptions {
    */
   auth?: boolean | DevframeAuthHandler
   /**
-   * Expose a route-based MCP server alongside the dev server, speaking the
-   * MCP Streamable-HTTP transport at `/__mcp` (relative to the base path).
-   * It surfaces the same `ctx.agent` tools + shared-state resources as the
-   * stdio `mcp` command, but against the live, running server.
+   * Expose a route-based MCP server alongside the standalone dev server,
+   * speaking the MCP Streamable-HTTP transport at `/__mcp` (relative to the
+   * base path). It surfaces the same `ctx.agent` tools + shared-state
+   * resources as the stdio `mcp` command, but against the live server.
    *
    * - `false` / omitted (default): no MCP route is mounted.
-   * - `true`: mount at the default `__mcp` route with the loopback-only
-   *   origin gate.
-   * - {@link McpRouteOptions}: customise the route path / allowed origins.
+   * - `true`: mount at the default `__mcp` route with the loopback origin
+   *   gate (trusting same-machine callers).
+   * - {@link McpRouteOptions}: customise the route path, origin allow-list,
+   *   and opt into an {@link McpAuthorization} identity check.
    *
-   * The `--mcp` / `--no-mcp` CLI flags override this per run.
+   * The `--mcp` / `--no-mcp` CLI flags override this per run. Whether to expose
+   * MCP is a hosting decision, so programmatic hosts pass it to
+   * `initDevframe` / `initHub` / `createDevServer` instead.
    */
   mcp?: boolean | McpRouteOptions
   /**

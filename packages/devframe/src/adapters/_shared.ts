@@ -1,5 +1,5 @@
 import type { ConnectionMeta } from '../types/context'
-import type { DevframeDefinition, DevframeDeploymentKind, McpRouteOptions } from '../types/devframe'
+import type { DevframeDefinition, DevframeDeploymentKind, McpAuthorization, McpRouteOptions } from '../types/devframe'
 import { getPort } from 'get-port-please'
 import { cleanDoubleSlashes, withLeadingSlash, withoutLeadingSlash, withTrailingSlash } from 'ufo'
 import { DEVFRAME_MCP_ROUTE } from '../constants'
@@ -56,13 +56,41 @@ export async function resolveDevServerPort(
 }
 
 /**
- * Normalize the `cli.mcp` / `mcp` option (`boolean | McpRouteOptions`) into
- * concrete options, or `undefined` when the MCP route is disabled.
+ * A fully-resolved MCP route configuration: the concrete authorization policy
+ * (never the `mcp: true` shorthand), plus the optional route path and origin
+ * allow-list. Every route mount consumes this shape.
  */
-function resolveMcpConfig(mcp: boolean | McpRouteOptions | undefined): McpRouteOptions | undefined {
+export interface ResolvedMcpConfig {
+  /** Route segment, relative to the base. Default resolved by the caller. */
+  path?: string
+  /** Origin allow-list, or `false` to disable the origin gate. */
+  allowedOrigins?: readonly string[] | false
+  /** The resolved identity policy: a bearer token, callback, or `false`. */
+  authorization: McpAuthorization
+}
+
+/**
+ * Normalize the `mcp` option (`boolean | McpRouteOptions`) into a
+ * fully-resolved config, or `undefined` when the MCP route is disabled.
+ *
+ * An enabled route trusts same-machine callers by default: the authorization
+ * resolves to origin-only (`false`) unless the object config opts into a
+ * bearer/callback identity check. An empty-string bearer is treated as no
+ * bearer (origin-only) rather than a usable credential.
+ */
+export function resolveMcpConfig(mcp: boolean | McpRouteOptions | undefined): ResolvedMcpConfig | undefined {
   if (!mcp)
     return undefined
-  return mcp === true ? {} : mcp
+  if (mcp === true)
+    return { authorization: false }
+  const authorization = typeof mcp.authorization === 'string' && mcp.authorization.length === 0
+    ? false
+    : mcp.authorization ?? false
+  return {
+    ...(mcp.path !== undefined ? { path: mcp.path } : {}),
+    ...(mcp.allowedOrigins !== undefined ? { allowedOrigins: mcp.allowedOrigins } : {}),
+    authorization,
+  }
 }
 
 /**

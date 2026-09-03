@@ -16,6 +16,7 @@ export interface DevframeNextHost {
   }>;
 }
 export interface DevframeNextHostMcpOptions {
+  authorization?: McpAuthorization;
   serverName?: string;
   serverVersion?: string;
   exposeSharedState?: boolean | ((_: string) => boolean);

@@ -26,8 +26,9 @@ export default defineDevframe({
      */
     auth: false,
     /**
-     * Serve the agent surface over the dev server's `/__mcp` route and
-     * register the instance for `devframe connect` discovery.
+     * Serve the agent surface at `/__mcp` and register for `devframe connect`
+     * discovery. This loopback demo trusts same-machine callers (`mcp: true`);
+     * a network-reachable tool would harden it with `mcp: { authorization }`.
      */
     mcp: true,
   },
