@@ -1,4 +1,5 @@
 import type { DevframeDefinition, RemoteAssets } from 'devframe'
+import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { defineDevframe } from 'devframe'
 import pkg from '../../package.json' with { type: 'json' }
@@ -27,8 +28,23 @@ const distDir: RemoteAssets = {
  * serves it with no host wiring. Exported for hosts that mount the module
  * themselves (e.g. via `/@fs/` under Vite). Requires the built bundle
  * (`pnpm -C plugins/a11y build`).
+ *
+ * Resolved through the package's own `./client-script` export, since a
+ * bundler may hoist this module into a shared chunk whose on-disk depth
+ * differs from the entry's, breaking an `import.meta.url`-relative path.
+ * The relative fallback covers an unbuilt bundle (resolution then fails),
+ * where downstream `existsSync` checks degrade gracefully.
  */
-export const a11yClientScriptBundlePath: string = fileURLToPath(new URL('../../dist/client-script/index.mjs', import.meta.url))
+export const a11yClientScriptBundlePath: string = resolveClientScriptBundle()
+
+function resolveClientScriptBundle(): string {
+  try {
+    return createRequire(import.meta.url).resolve(`${pkg.name}/client-script`)
+  }
+  catch {
+    return fileURLToPath(new URL('../../dist/client-script/index.mjs', import.meta.url))
+  }
+}
 
 /** @deprecated Renamed; use {@link a11yClientScriptBundlePath}. */
 export const a11yPageScriptBundlePath: string = a11yClientScriptBundlePath

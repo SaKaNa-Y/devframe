@@ -34,6 +34,10 @@ export const diagnostics = defineDiagnostics({
       why: (p: { id: string }) => `Devframe "${p.id}" requests an MCP route, but the hub's aggregate MCP is off (\`mcp: false\`), so its tools are not exposed over MCP.`,
       fix: 'A hub exposes one aggregate MCP endpoint over every mounted devframe, so per-devframe `mcp` settings are ignored. Drop `mcp: false` from `initHub` (the `\'auto\'` default mounts the aggregate route once agent tools exist) to surface this devframe\'s tools, or drop `mcp` from the devframe to silence this warning.',
     },
+    DF8006: {
+      why: (p: { urlBase: string, base: string }) => `A static hub build can only write mounts under its own base: "${p.urlBase}" escapes "${p.base}".`,
+      fix: 'buildHub maps each mount base to a directory under its `outDir`, so every mount must live under the hub base. Drop the `basePath` override (or the `ctx.install` base) that points outside it, or move the hub `base` up so it contains the mount.',
+    },
     DF8100: {
       why: (p: { id: string }) => `Dock with id "${p.id}" is already registered`,
       fix: 'Use the `force` parameter to overwrite an existing registration.',
