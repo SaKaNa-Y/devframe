@@ -51,6 +51,7 @@ export interface CodeServerServerInfo {
   pid?: number;
   error?: string;
   login?: CodeServerLogin;
+  terminalSessionId?: string;
 }
 export interface CodeServerSharedState {
   detection: CodeServerDetection;

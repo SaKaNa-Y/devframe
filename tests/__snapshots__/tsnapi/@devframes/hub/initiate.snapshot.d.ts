@@ -11,6 +11,7 @@ export interface DevframeHubUi {
   };
   assets?: Record<string, () => string | Uint8Array>;
   setup?: (_: DevframeHubContext) => void | Promise<void>;
+  authBanner?: AuthBannerFunction;
 }
 export interface DockRendererRegistration {
   type: string;

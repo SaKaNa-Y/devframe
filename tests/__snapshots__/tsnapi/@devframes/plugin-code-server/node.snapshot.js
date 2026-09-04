@@ -35,6 +35,7 @@ export class CodeServerSupervisor {
   async init() {}
   async detect() {}
   status() {}
+  serverInfo() {}
   async start(_) {}
   async tryAdopt(_) {}
   async resolveInitialPort(_) {}

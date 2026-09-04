@@ -59,6 +59,7 @@ export declare class CodeServerSupervisor {
   init(): Promise<void>;
   detect(): Promise<CodeServerDetection>;
   status(): CodeServerStatusResult;
+  private serverInfo;
   start(_?: CodeServerStartRequest): Promise<CodeServerStartResult>;
   private tryAdopt;
   private resolveInitialPort;
