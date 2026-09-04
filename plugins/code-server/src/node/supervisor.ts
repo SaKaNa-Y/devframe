@@ -299,15 +299,15 @@ export class CodeServerSupervisor {
     return this.status()
   }
 
-  /** Resolve the port to launch on: 0 for tunnels/dynamic, a forced port, or a free one. */
+  /**
+   * Resolve the port to launch on: 0 for tunnels/dynamic launches, otherwise a
+   * free port starting from the forced port (if any) or the default -
+   * verified free before it's ever handed to the editor binary's `--port`.
+   */
   private async resolveInitialPort(isLocal: boolean): Promise<number> {
-    if (!isLocal)
+    if (!isLocal || this.forcedPort === 0)
       return 0
-    if (this.forcedPort !== undefined && this.forcedPort !== 0)
-      return this.forcedPort
-    if (this.forcedPort === 0)
-      return 0
-    return getPort({ host: '127.0.0.1', port: DEFAULT_CODE_SERVER_PORT })
+    return getPort({ host: '127.0.0.1', port: this.forcedPort ?? DEFAULT_CODE_SERVER_PORT })
   }
 
   /** The child's environment: inherited env, caller overrides, then profile shaping. */
