@@ -1,4 +1,5 @@
 import type { DevframeNodeContext, DevframeNodeRpcSession } from 'devframe/types'
+import type { ColorFn } from 'devframe/utils/colors'
 import type { DevframeAuthHandler } from '../node/auth'
 import { colors } from 'devframe/utils/colors'
 import { s } from 'devframe/utils/simple-schema'
@@ -18,11 +19,12 @@ export interface CreateInteractiveAuthOptions {
   /**
    * Print the current code + magic-link URL. Devframe stays headless, so
    * there is no default banner printed automatically; call
-   * `auth.printBanner()` yourself once the server is listening. Override
-   * this to customize the format; defaults to a small boxed message on
-   * stdout.
+   * `auth.printBanner()` yourself once the server is listening. Defaults to
+   * {@link createAuthBanner}'s output; pass its result here directly to
+   * rebrand the box (title / colors), or your own function to replace the
+   * format outright.
    */
-  banner?: (info: { code: string, url: string }) => void
+  banner?: AuthBannerFunction
   /**
    * Called once a code exchange succeeds, so a host rendering its own
    * banner can retract it. Fires after the rotated code is printed, so
@@ -38,9 +40,68 @@ export interface CreateInteractiveAuthOptions {
   serverUrl?: () => string
 }
 
-function defaultBanner(info: { code: string, url: string }): void {
-  // eslint-disable-next-line no-console
-  console.log(`\n  ${colors.dim('devframe auth code')}  ${colors.bold(info.code)}\n  ${colors.dim('or open')}       ${colors.cyan(info.url)}\n`)
+/** Signature of `options.banner`: render the current auth code + magic-link URL. */
+export type AuthBannerFunction = (info: { code: string, url: string }) => void
+
+/** Palette for {@link createAuthBanner}'s box - one color per part, so a host can rebrand a subset. */
+export interface CreateAuthBannerColorsOptions {
+  border: ColorFn
+  title: ColorFn
+  label: ColorFn
+  code: ColorFn
+  url: ColorFn
+}
+
+export interface CreateAuthBannerOptions {
+  /** Box title. Defaults to `'Devframe'` - set to your product name for branding. */
+  title?: string
+  /** Palette overrides; unset colors fall back to dim/bold/cyan defaults. */
+  colors?: Partial<CreateAuthBannerColorsOptions>
+}
+
+/**
+ * Build a {@link AuthBannerFunction} that renders the auth code + magic-link
+ * URL as a small bordered box, its two rows label-aligned. `createInteractiveAuth`
+ * falls back to `createAuthBanner()` when no `banner` is given; call this
+ * yourself to rebrand the box (`title` / `colors`) and pass the result as
+ * `options.banner`.
+ */
+export function createAuthBanner(options: CreateAuthBannerOptions = {}): AuthBannerFunction {
+  const title = options.title ?? 'Devframe'
+  const palette: CreateAuthBannerColorsOptions = {
+    border: colors.dim,
+    title: colors.bold,
+    label: colors.dim,
+    code: colors.bold,
+    url: colors.cyan,
+    ...options.colors,
+  }
+
+  return (info) => {
+    const rows: [label: string, value: string, color: ColorFn][] = [
+      ['auth code', info.code, palette.code],
+      ['or open', info.url, palette.url],
+    ]
+    const labelWidth = Math.max(...rows.map(([label]) => label.length))
+    const contentWidth = Math.max(...rows.map(([, value]) => labelWidth + 2 + value.length))
+    const titleBarLength = title.length + 3
+    const lineWidth = Math.max(contentWidth, titleBarLength - 2)
+
+    const top = [
+      palette.border(`╭─`),
+      palette.title(title),
+      palette.border(`${'─'.repeat(Math.max(lineWidth + 2 - titleBarLength, 0))}╮`),
+    ].join(' ')
+    const bottom = `╰${'─'.repeat(lineWidth + 2)}╯`
+    const body = rows.map(([label, value, color]) => {
+      const plain = `${label.padEnd(labelWidth)}  ${value}`
+      const pad = ' '.repeat(lineWidth - plain.length)
+      return `${palette.border('│')} ${palette.label(label.padEnd(labelWidth))}  ${color(value)}${pad} ${palette.border('│')}`
+    })
+
+    // eslint-disable-next-line no-console
+    console.log(`\n${palette.border(top)}\n${body.join('\n')}\n${palette.border(bottom)}\n`)
+  }
 }
 
 /**
@@ -80,6 +141,8 @@ export function createInteractiveAuth(
     return options.serverUrl?.() ?? context.host.resolveOrigin()
   }
 
+  const banner = options.banner ?? createAuthBanner()
+
   let bannerPrintedForCode: string | undefined
   function printBanner(): void {
     const code = getTempAuthCode()
@@ -87,7 +150,7 @@ export function createInteractiveAuth(
       return
     bannerPrintedForCode = code
     const url = buildOtpAuthUrl(resolveServerUrl(), code)
-    ;(options.banner ?? defaultBanner)({ code, url })
+    banner({ code, url })
   }
 
   const anonymousAuth = defineRpcFunction({

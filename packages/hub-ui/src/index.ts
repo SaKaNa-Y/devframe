@@ -3,6 +3,7 @@ import type { DevframeBranding, DevframeDockPreferences, EmbeddedVisibility } fr
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createAuthBanner } from 'devframe/recipes/interactive-auth'
 
 export type { ColorSchemeValue, DevframeBranding, DevframeDockPreferences, EmbeddedVisibility, ViewerBackground } from './types'
 
@@ -106,5 +107,13 @@ export function createUi(options: CreateUiOptions = {}): DevframeHubUi {
         ...(options.dockPreferences ? { dockPreferences: options.dockPreferences } : {}),
       }
     },
+    /**
+     * Node-side counterpart to the browser rebrand above: the same
+     * `productName` titles the interactive-auth box printed to the terminal,
+     * so a rebranded hub doesn't print a stray "Devframe" code prompt.
+     */
+    authBanner: createAuthBanner({
+      title: options.branding?.productName,
+    }),
   }
 }

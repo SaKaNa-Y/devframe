@@ -1,5 +1,6 @@
 import type { DevframeInstanceRecord, InstanceShellApi, ResolvedMcpConfig } from 'devframe/internal'
 import type { DevframeAuthHandler } from 'devframe/node/auth'
+import type { AuthBannerFunction } from 'devframe/recipes/interactive-auth'
 import type { WsOriginRegistry } from 'devframe/rpc/transports/ws-server'
 import type { ConnectionMeta, DevframeDefinition, DevframeServiceInput, DevframeSseOptions, DevframeStorageScope, DevframeWsOptions, McpRouteOptions, McpSetting } from 'devframe/types'
 import type { Buffer } from 'node:buffer'
@@ -12,6 +13,7 @@ import { readFile } from 'node:fs/promises'
 import process from 'node:process'
 import { DEVFRAME_CONNECTION_META_FILENAME, DEVFRAME_DOCK_IMPORTS_FILENAME, DEVFRAME_MCP_ROUTE } from 'devframe/constants'
 import { createH3DevframeHost, createInstanceShell, importRuntimeModule, loadAutoMcpAdapter, resolveInstanceRegister, resolveMcpConfig } from 'devframe/internal'
+import { createInteractiveAuth } from 'devframe/recipes/interactive-auth'
 import { mountStaticHandler } from 'devframe/utils/serve-static'
 import { H3 } from 'h3'
 import { resolve } from 'pathe'
@@ -120,6 +122,17 @@ export interface DevframeHubUi {
    * The hub stays policy-free about what the UI writes.
    */
   setup?: (ctx: DevframeHubContext) => void | Promise<void>
+  /**
+   * The interactive OTP banner (auth code + magic-link URL) to print when
+   * {@link InitHubOptions.auth} is left at its default. A node-side
+   * counterpart to `setup`'s browser-facing branding: the reference UI's
+   * `createUi()` derives one from its own `branding.productName` via
+   * `createAuthBanner` (see `devframe/recipes/interactive-auth`), so the
+   * printed code matches the rebranded viewer without the caller wiring
+   * `auth` themselves. Ignored once `auth` is set explicitly - a `false` or
+   * a full {@link DevframeAuthHandler} both mean the caller owns the banner.
+   */
+  authBanner?: AuthBannerFunction
 }
 
 export type DevframesInput = Array<
@@ -398,7 +411,16 @@ export function initHub(options: InitHubOptions): HubInstance {
     app,
     host: options.host,
     origin: options.origin,
-    auth: options.auth,
+    /**
+     * `false`/an explicit handler are the caller's own call, passed through
+     * as-is; `true`/unset both mean "gate with the defaults", so the handler
+     * is built lazily from `ctx` either way, taking the UI slot's
+     * `authBanner` (e.g. `createUi()`'s branded box) without the caller
+     * wiring `auth` themselves.
+     */
+    auth: options.auth === false || typeof options.auth === 'object'
+      ? options.auth
+      : (ctx: DevframeHubContext) => createInteractiveAuth(ctx, { banner: options.ui?.authBanner }),
     server: options.server,
     ws: options.ws,
     sse: options.sse,

@@ -367,8 +367,15 @@ export interface CreateInstanceShellOptions<TContext extends DevframeNodeContext
   app?: H3
   /** Public origin, or a getter. Derived from the first request when omitted. */
   origin?: string | (() => string)
-  /** Resolved auth intent: `undefined`/`true` gates, `false` opts out, a handler installs a scheme. */
-  auth?: boolean | DevframeAuthHandler
+  /**
+   * Resolved auth intent: `undefined`/`true` gates with {@link createInteractiveAuth}'s
+   * defaults, `false` opts out, a handler installs a custom scheme outright.
+   * A function gates too, but builds the handler itself from the now-ready
+   * `ctx` - the seam a wrapping host (e.g. `@devframes/hub`'s UI slot) uses to
+   * hand `createInteractiveAuth` a branded `banner` while still leaving `auth`
+   * itself unset for the caller.
+   */
+  auth?: boolean | DevframeAuthHandler | ((ctx: TContext) => DevframeAuthHandler)
   /** Host `node:http` server to share the WS upgrade with. */
   server?: NodeHttpServer
   /** Explicit WebSocket control; see {@link DevframeWsOptions}. `false` disables the socket (SSE-only). */
@@ -632,12 +639,17 @@ export function createInstanceShell<TContext extends DevframeNodeContext>(
 
   /**
    * Auth resolution: gate by default, `false` opts out, a handler object
-   * installs a custom scheme. The `external` tier has no local transport to
-   * gate (the server behind `ws.url` owns auth) so it resolves to nothing.
+   * installs a custom scheme, a function builds one from `ctx`. The `external`
+   * tier has no local transport to gate (the server behind `ws.url` owns
+   * auth) so it resolves to nothing.
    */
   function resolveAuth(): boolean | DevframeAuthHandler {
     if (options.auth === false)
       return false
+    if (typeof options.auth === 'function') {
+      authHandler = options.auth(ctx)
+      return authHandler
+    }
     if (typeof options.auth === 'object') {
       authHandler = options.auth
       return options.auth
