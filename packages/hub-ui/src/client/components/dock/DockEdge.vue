@@ -504,7 +504,7 @@ const dragPreviewStyle = computed<CSSProperties | undefined>(() => {
       class="absolute inset-0 flex items-center justify-center transition-opacity duration-300"
       :class="isCollapsed ? 'opacity-100' : 'opacity-0 pointer-events-none'"
     >
-      <BrandMark class="w-4 h-4" :class="isVertical ? 'rotate-270' : 'rotate-0'" />
+      <BrandMark class="w-4 h-4" />
     </div>
   </div>
 
