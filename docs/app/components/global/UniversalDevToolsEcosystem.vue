@@ -139,19 +139,14 @@ function moduleSupportsFramework(module: ModuleItem, framework: Framework) {
 
     <div
       aria-label="Preview host framework compositions"
-      class="flex flex-wrap items-center gap-1.5 border-b border-default px-4 py-4 sm:px-6"
+      class="flex flex-wrap items-center border-b border-default px-4 py-4 sm:px-6"
       @mouseleave="hoveredFramework = undefined"
     >
       <button
         v-for="option of frameworkOptions"
         :key="option.id"
+        class="p-0.75 group"
         type="button"
-        class="inline-flex items-center gap-1.5 rounded-full border border-default bg-elevated/50 px-2.5 py-1.5 text-xs text-muted outline-none transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-elevated hover:text-highlighted focus-visible:ring-2 focus-visible:ring-primary/40"
-        :class="[
-          selectedFramework === option.id && 'bg-accented text-highlighted',
-          activeModule && moduleSupportsFramework(activeModule, option.id) && '-translate-y-0.5 shadow-lg',
-          activeModule && !moduleSupportsFramework(activeModule, option.id) && 'opacity-25',
-        ]"
         :aria-label="option.description"
         :aria-pressed="selectedFramework === option.id"
         @pointerover="hoveredFramework = option.id"
@@ -161,18 +156,27 @@ function moduleSupportsFramework(module: ModuleItem, framework: Framework) {
         @blur="focusedFramework = undefined"
         @click="toggleFramework(option.id)"
       >
-        <img
-          v-if="option.image"
-          :src="option.image"
-          alt=""
-          class="size-3.5 object-contain"
+        <div
+          class="inline-flex items-center gap-1.5 rounded-full border border-default bg-elevated/50 px-2.5 py-1.5 text-xs text-muted outline-none transition-all duration-300 ease-out group-hover:-translate-y-0.5 group-hover:bg-elevated group-hover:text-highlighted focus-visible:ring-2 focus-visible:ring-primary/40"
+          :class="[
+            selectedFramework === option.id && 'bg-accented text-highlighted',
+            activeModule && moduleSupportsFramework(activeModule, option.id) && '-translate-y-0.5 shadow-lg',
+            activeModule && !moduleSupportsFramework(activeModule, option.id) && 'opacity-25',
+          ]"
         >
-        <UIcon
-          v-else
-          :name="option.icon!"
-          class="size-3.5"
-        />
-        {{ option.label }}
+          <img
+            v-if="option.image"
+            :src="option.image"
+            alt=""
+            class="size-3.5 object-contain"
+          >
+          <UIcon
+            v-else
+            :name="option.icon!"
+            class="size-3.5"
+          />
+          {{ option.label }}
+        </div>
       </button>
     </div>
 
