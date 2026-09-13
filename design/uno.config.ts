@@ -66,6 +66,10 @@ export function createDesignConfig(options: CreateDesignConfigOptions = {}) {
       colors: { devframe: resolvePrimary('#3a6a45') },
     },
     shortcuts: {
+      /** Fixed semantic colors stay independent of the panel's primary accent. */
+      'color-status-positive': 'color-devframe-600 dark:color-devframe-300',
+      'color-preview-accent': 'color-devframe-600 dark:color-devframe-300',
+      'bg-preview-accent': 'bg-devframe',
       /** Fixed navbar height, shared by every surface's top nav. */
       'h-nav': 'h-10',
       /** Named z-index layers, shared across every surface. */
