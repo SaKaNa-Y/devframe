@@ -1,6 +1,6 @@
 import type { Preset } from 'unocss'
 import { fileURLToPath } from 'node:url'
-import { presetAnthonyDesign } from '@antfu/design/unocss'
+import { presetAnthonyDesign, resolvePrimary } from '@antfu/design/unocss'
 import {
   defineConfig,
   presetIcons,
@@ -60,6 +60,11 @@ export function createDesignConfig(options: CreateDesignConfigOptions = {}) {
      * shared border color (matching `border-base`) for unqualified borders.
      */
     preflights: [{ getCSS: () => '*,::before,::after{border-color:#8882}' }],
+    theme: {
+      // Stable palette for status marks and preview content that intentionally
+      // keeps the default accent when the surrounding panel adopts a theme.
+      colors: { devframe: resolvePrimary('#3a6a45') },
+    },
     shortcuts: {
       /** Fixed navbar height, shared by every surface's top nav. */
       'h-nav': 'h-10',
