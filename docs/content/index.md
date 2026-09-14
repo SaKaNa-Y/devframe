@@ -54,19 +54,18 @@ A framework-neutral foundation for devtools. One definition becomes a Web Standa
   :::
 ::
 
-<!-- 
+
 ::u-page-section
   :::callout
   ---
   icon: i-lucide-newspaper
-  to: https://antfu.me/posts/pluggable-extensible-playful-devtools
+  to: /posts/pluggable-extensible-playful-devtools
   target: _blank
   class: 'max-w-3xl mx-auto mt-[-10]'
   ---
   Read the announcement, **Pluggable, Extensible, and Playful DevTools**, for the vision behind devframe.
   :::
 ::
--->
 
 ::landing-features
 #headline
@@ -341,17 +340,6 @@ When several devtools run at once, discovery becomes the problem. `@devframes/hu
   ```
 ::
 
-
-<!--
-  - label: Read the announcement
-    to: https://antfu.me/posts/pluggable-extensible-playful-devtools
-    target: _blank
-    color: neutral
-    variant: subtle
-    size: lg
-    icon: i-lucide-newspaper
--->
-
 ::landing-cta
 ---
 links:
@@ -359,6 +347,13 @@ links:
     to: /guide
     trailingIcon: i-lucide-arrow-right
     size: lg
+  - label: Read the announcement
+    to: /posts/pluggable-extensible-playful-devtools
+    target: _blank
+    color: neutral
+    variant: subtle
+    size: lg
+    icon: i-lucide-newspaper
 ---
 #title
 Ship your devtool everywhere
