@@ -6,6 +6,10 @@ import { build } from 'esbuild'
 import { afterEach, describe, expect, it } from 'vitest'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
+// `packages/devframe/dist/adapters/mcp.mjs` is deliberately absent: that
+// entry is a static re-export of `@devframes/agentic/mcp` (like
+// `adapters/cac` with its optional `cac` peer), so it resolves the peer by
+// design; only implicit paths must stay lazy.
 const entries = [
   'packages/devframe/dist/adapters/cac.mjs',
   'packages/devframe/dist/adapters/initiate.mjs',
@@ -23,12 +27,15 @@ afterEach(() => {
 describe('the MCP SDK stays out of consumer bundles', () => {
   it.each(entries)('bundles %s without resolving the MCP SDK', async (entry) => {
     const resolvedMcpImports: string[] = []
+    // Both the SDK and `@devframes/agentic` (the optional peer wrapping it)
+    // must stay behind `importRuntimeModule`, never statically resolvable
+    // from a consumer entry.
     const rejectMcpSdk: Plugin = {
       name: 'reject-mcp-sdk',
       setup(context) {
-        context.onResolve({ filter: /^@modelcontextprotocol\// }, (args) => {
+        context.onResolve({ filter: /^(?:@modelcontextprotocol|@devframes\/agentic)(?:\/|$)/ }, (args) => {
           resolvedMcpImports.push(args.path)
-          return { errors: [{ text: `Unexpected MCP SDK import: ${args.path}` }] }
+          return { errors: [{ text: `Unexpected MCP import: ${args.path}` }] }
         })
       },
     }

@@ -116,7 +116,7 @@ const serverEntries = {
   'adapters/build': 'src/adapters/build.ts',
   'adapters/embedded': 'src/adapters/embedded.ts',
   'adapters/initiate': 'src/adapters/initiate.ts',
-  'adapters/mcp': 'src/adapters/mcp/index.ts',
+  'adapters/mcp': 'src/adapters/mcp.ts',
   'cli/main': 'src/cli/main.ts',
   'recipes/common-rpc-functions': 'src/recipes/common-rpc-functions.ts',
   'recipes/interactive-auth': 'src/recipes/interactive-auth.ts',
