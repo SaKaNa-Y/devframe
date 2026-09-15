@@ -46,7 +46,6 @@
   },
   "dependencies": {
     "@json-render/core": "catalog:deps",
-    "@standard-schema/spec": "catalog:deps",
     "zod": "catalog:deps"
   },
   "devDependencies": {

@@ -67,6 +67,9 @@
       "devframe/utils/crypto-token": [
         "./packages/devframe/src/utils/crypto-token.ts"
       ],
+      "devframe/utils/debounce": [
+        "./packages/devframe/src/utils/debounce.ts"
+      ],
       "devframe/utils/events": [
         "./packages/devframe/src/utils/events.ts"
       ],
@@ -105,6 +108,9 @@
       ],
       "devframe/utils/structured-clone": [
         "./packages/devframe/src/utils/structured-clone.ts"
+      ],
+      "devframe/utils/url": [
+        "./packages/devframe/src/utils/url.ts"
       ],
       "devframe/utils/when": [
         "./packages/devframe/src/utils/when.ts"

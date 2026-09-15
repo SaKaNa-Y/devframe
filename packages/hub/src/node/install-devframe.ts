@@ -3,8 +3,8 @@ import type { ClientScriptEntry, DevframeViewIframe } from '../types/docks'
 import type { DevframeHubContext, HubMountedFrame } from './context'
 import { existsSync } from 'node:fs'
 import { resolveBasePath } from 'devframe/node/hub-internals'
+import { joinURL, withTrailingSlash } from 'devframe/utils/url'
 import { basename, dirname, isAbsolute, resolve } from 'pathe'
-import { joinURL, withTrailingSlash } from 'ufo'
 import { diagnostics } from './diagnostics'
 
 export interface InstallDevframeOptions {

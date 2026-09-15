@@ -16,64 +16,9 @@ export declare function createJsonRenderView<SpecType extends DevframeJsonRender
 // #endregion
 
 // #region Variables
-export declare const jsonRenderDiagnostics: Diagnostics<{
-  readonly DF0038: {
-    readonly why: (p: {
-      id: string;
-      key: string;
-      issues: string;
-    }) => string;
-    readonly fix: "Match the element props to the base catalog's prop schema for that component. See the component reference for the expected shape.";
-  };
-  readonly DF0039: {
-    readonly why: (p: {
-      id: string;
-      scope: string;
-    }) => string;
-    readonly fix: "Give each view a stable id unique within its scope, or dispose the previous view before recreating it.";
-  };
-  readonly DF0040: {
-    readonly why: (p: {
-      id: string;
-    }) => string;
-    readonly fix: "Create a fresh view with `createJsonRenderView` instead of reusing a disposed handle.";
-  };
-  readonly DF0041: {
-    readonly why: (p: {
-      id: string;
-      reason: string;
-    }) => string;
-    readonly fix: "Specs and state travel as strict JSON, so remove functions, symbols, class instances, Map/Set, or circular references.";
-  };
-  readonly DF0073: {
-    readonly why: (p: {
-      id: string;
-      issues: string;
-    }) => string;
-    readonly fix: "Match the authored spec to the Standard Schema passed to `createJsonRenderView`.";
-  };
-  readonly DF0074: {
-    readonly why: (p: {
-      id: string;
-    }) => string;
-    readonly fix: "Use a synchronous Standard Schema so initial creation and updates remain synchronous.";
-  };
-}, readonly [(d: Diagnostic, { method }?: {
-  method?: "log" | "warn" | "error";
-}) => void]>;
+export declare const jsonRenderDiagnostics: DevframeDiagnostics<typeof codes>;
 // #endregion
 
 // #region Referenced (internal)
 type AnyContext = DevframeNodeContext | DevframeScopedNodeContext<string>;
-declare class Diagnostic extends Error {
-  name: string;
-  code: string;
-  docs?: string;
-  fix?: string;
-  sources?: string[];
-  get why(): string;
-  constructor(_: DiagnosticInit, _?: Function);
-  toJSON(): object;
-}
-type Diagnostics<Codes extends Record<string, DiagnosticDefinition>, Reporters extends readonly AnyDiagnosticReporter[]> = { [Code in keyof Codes]: DiagnosticHandle<InferCodeParams<Codes[Code]>, Prettify<ExtractReportersOptions<Reporters>>>; };
 // #endregion

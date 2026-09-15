@@ -70,9 +70,7 @@
     "chokidar": "catalog:deps",
     "image-meta": "catalog:deps",
     "pathe": "catalog:deps",
-    "perfect-debounce": "catalog:deps",
-    "tinyglobby": "catalog:deps",
-    "ufo": "catalog:deps"
+    "tinyglobby": "catalog:deps"
   },
   "devDependencies": {
     "@antfu/design": "catalog:frontend",

@@ -297,9 +297,6 @@ catalogs:
     tinyglobby:
       specifier: ^0.2.17
       version: 0.2.17
-    ufo:
-      specifier: ^1.6.4
-      version: 1.6.4
     valibot:
       specifier: ^1.5.0
       version: 1.5.0
@@ -733,9 +730,6 @@ importers:
       shiki:
         specifier: catalog:deps
         version: 4.4.3
-      ufo:
-        specifier: catalog:deps
-        version: 1.6.4
     devDependencies:
       '@types/d3-shape':
         specifier: catalog:types
@@ -1575,19 +1569,16 @@ importers:
       '@modelcontextprotocol/server':
         specifier: catalog:deps
         version: 2.0.0
-      '@standard-schema/spec':
-        specifier: catalog:deps
-        version: 1.1.0
       h3:
         specifier: catalog:deps
         version: 2.0.1-rc.31(crossws@0.4.12(srvx@0.12.7))
       pathe:
         specifier: catalog:deps
         version: 2.0.3
-      ufo:
-        specifier: catalog:deps
-        version: 1.6.4
     devDependencies:
+      '@standard-schema/spec':
+        specifier: catalog:deps
+        version: 1.1.0
       '@types/node':
         specifier: catalog:types
         version: 26.5.1
@@ -1603,34 +1594,28 @@ importers:
 
   packages/devframe:
     dependencies:
-      '@standard-schema/spec':
-        specifier: catalog:deps
-        version: 1.1.0
-      birpc:
-        specifier: catalog:deps
-        version: 4.2.0
       crossws:
         specifier: ^0.4.12
         version: 0.4.12(srvx@0.12.7)
       h3:
         specifier: catalog:deps
         version: 2.0.1-rc.31(crossws@0.4.12(srvx@0.12.7))
-      mrmime:
-        specifier: catalog:deps
-        version: 2.0.1
       nostics:
         specifier: catalog:deps
         version: 1.2.0
       pathe:
         specifier: catalog:deps
         version: 2.0.3
-      ufo:
-        specifier: catalog:deps
-        version: 1.6.4
     devDependencies:
       '@devframes/agentic':
         specifier: workspace:*
         version: link:../agentic
+      '@standard-schema/spec':
+        specifier: catalog:deps
+        version: 1.1.0
+      birpc:
+        specifier: catalog:deps
+        version: 4.2.0
       cac:
         specifier: catalog:deps
         version: 7.0.0
@@ -1646,6 +1631,9 @@ importers:
       mlly:
         specifier: catalog:build
         version: 1.8.2
+      mrmime:
+        specifier: catalog:deps
+        version: 2.0.1
       obug:
         specifier: catalog:deps
         version: 3.0.0
@@ -1685,9 +1673,6 @@ importers:
 
   packages/hub:
     dependencies:
-      '@standard-schema/spec':
-        specifier: catalog:deps
-        version: 1.1.0
       destr:
         specifier: catalog:deps
         version: 2.0.5
@@ -1697,15 +1682,9 @@ importers:
       pathe:
         specifier: catalog:deps
         version: 2.0.3
-      perfect-debounce:
-        specifier: catalog:deps
-        version: 2.1.0
       tinyexec:
         specifier: catalog:deps
         version: 1.3.1
-      ufo:
-        specifier: catalog:deps
-        version: 1.6.4
       zigpty:
         specifier: catalog:deps
         version: 0.2.1
@@ -1713,6 +1692,9 @@ importers:
       '@devframes/agentic':
         specifier: workspace:*
         version: link:../agentic
+      '@standard-schema/spec':
+        specifier: catalog:deps
+        version: 1.1.0
       '@types/node':
         specifier: catalog:types
         version: 26.5.1
@@ -1722,9 +1704,6 @@ importers:
       get-port-please:
         specifier: catalog:deps
         version: 3.2.0
-      mlly:
-        specifier: catalog:build
-        version: 1.8.2
       tsdown:
         specifier: catalog:build
         version: 0.23.0(@volar/typescript@2.4.28(typescript@6.0.3))(oxc-resolver@11.24.2)(tsx@4.23.13)(typescript@6.0.3)
@@ -1803,9 +1782,6 @@ importers:
       '@json-render/core':
         specifier: catalog:deps
         version: 0.20.0(zod@4.6.5)
-      '@standard-schema/spec':
-        specifier: catalog:deps
-        version: 1.1.0
       zod:
         specifier: catalog:deps
         version: 4.6.5
@@ -2053,15 +2029,9 @@ importers:
       pathe:
         specifier: catalog:deps
         version: 2.0.3
-      perfect-debounce:
-        specifier: catalog:deps
-        version: 2.1.0
       tinyglobby:
         specifier: catalog:deps
         version: 0.2.17
-      ufo:
-        specifier: catalog:deps
-        version: 1.6.4
     devDependencies:
       '@antfu/design':
         specifier: catalog:frontend
