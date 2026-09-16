@@ -7,6 +7,7 @@ Upgrade guides for devframe and `@devframes/hub`, newest first. Each one lists e
 
 | Version | What changed |
 | ------- | ------------ |
+| [Migrating to 1.0](/migrations/migration-1.0) | Stabilizes the public API established in 0.10.1; no breaking changes, no code changes required. |
 | [Migrating to 0.10](/migrations/migration-0.10) | Moves the MCP implementation and the MCP SDK into `@devframes/agentic`, a new optional peer; imports are unchanged. |
 | [Migrating to 0.9](/migrations/migration-0.9) | Removes the compatibility shims deprecated across the 0.7 series, trims the public API, and moves the MCP surface to the stateless MCP 2026-07-28 protocol. |
 | [Migrating to 0.8](/migrations/migration-0.8) | Makes RPC schemas validator-neutral and runtime-validated, and adds the agent-native MCP API. |
