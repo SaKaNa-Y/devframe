@@ -33,7 +33,7 @@ interface RelayConnection {
   retryTimer?: ReturnType<typeof setTimeout>
 }
 
-function validHandshake(data: unknown, kind: 'hello' | 'grant'): data is InPageChannelHandshakeMessage {
+function validHandshake(data: unknown, kind: InPageChannelHandshakeMessage['kind']): data is InPageChannelHandshakeMessage {
   return isHandshakeMessage(data)
     && data.v === IN_PAGE_CHANNEL_VERSION
     && data.kind === kind
@@ -137,8 +137,8 @@ export function createInPageChannelRelay(options: InPageChannelRelayOptions): ()
       && (!hello.instanceId || grant.instanceId === hello.instanceId)
   }
 
-  function onPanelHello(event: MessageEvent): void {
-    if (!validHandshake(event.data, 'hello') || !event.source
+  function onPanelHandshake(event: MessageEvent): void {
+    if ((!validHandshake(event.data, 'hello') && !validHandshake(event.data, 'cancel')) || !event.source
       || !isDescendant(event.source as Window, win)) {
       return
     }
@@ -147,12 +147,18 @@ export function createInPageChannelRelay(options: InPageChannelRelayOptions): ()
     for (const [key, connection] of connections) {
       if (connection.source === event.source && connection.hello.panelId === hello.panelId
         && connection.hello.name === hello.name && connection.hello.instanceId === hello.instanceId) {
+        if (hello.kind === 'cancel') {
+          close(key)
+          return
+        }
         if (connection.port)
           return
         id = key
         break
       }
     }
+    if (hello.kind === 'cancel')
+      return
     id ??= nanoid()
     connections.set(id, { hello, source: event.source as Window })
     send({ id, kind: 'open', handshake: hello })
@@ -187,7 +193,7 @@ export function createInPageChannelRelay(options: InPageChannelRelayOptions): ()
     if (disposed || event.origin !== origin)
       return
     if (options.role === 'panel')
-      onPanelHello(event)
+      onPanelHandshake(event)
     else
       onPageGrant(event)
   }

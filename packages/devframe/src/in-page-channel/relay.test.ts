@@ -308,3 +308,80 @@ it('leaves direct in-page grants available to their own panel', async () => {
   await expect(direct.call('highlight', '#direct')).resolves.toBe('/:#direct')
   expect(s.pageScript.panels).toHaveLength(2)
 })
+
+it('stops pending handshakes when the panel closes before the page script loads', async () => {
+  const s = session('/')
+  s.pageScript.close()
+  const post = vi.spyOn(s.page.win, 'postMessage')
+  await vi.waitFor(() => expect(post).toHaveBeenCalled())
+  expect(s.panel.status).toBe('connecting')
+  s.panel.close()
+  await new Promise(resolve => setTimeout(resolve, 0))
+  post.mockClear()
+
+  const pageScript = createPageScriptChannel<Protocol>({
+    name: 'devframes:relay-test',
+    window: s.page.window,
+    heartbeat: false,
+    functions: { highlight: { handler: s.highlight } },
+  })
+  cleanup.push(() => pageScript.close())
+  await new Promise(resolve => setTimeout(resolve, 1200))
+  expect(s.panel.status).toBe('closed')
+  expect(pageScript.panels).toHaveLength(0)
+  expect(post).not.toHaveBeenCalled()
+})
+
+it.each(['page', 'transport'] as const)('cleans a pending %s grant when only the panel closes', async (boundary) => {
+  const s = session('/')
+  let release!: () => void
+  if (boundary === 'page') {
+    const post = s.page.win.postMessage
+    s.page.win.postMessage = (data, origin, ports) => {
+      if ((data as { kind: string }).kind === 'grant')
+        release = () => post(data, origin, ports)
+      else
+        post(data, origin, ports)
+    }
+  }
+  else {
+    const send = s.transport.page.postMessage
+    s.transport.page.postMessage = (data) => {
+      if ((data as { kind: string }).kind === 'grant')
+        release = () => send(data)
+      else
+        send(data)
+    }
+  }
+  await vi.waitFor(() => expect(release).toBeTypeOf('function'))
+  expect(s.panel.status).toBe('connecting')
+  s.panel.close()
+  await new Promise(resolve => setTimeout(resolve, 0))
+  release()
+  await vi.waitFor(() => expect(s.pageScript.panels).toHaveLength(0))
+})
+
+it('only cancels a handshake from its owning window and matching identity', async () => {
+  const s = session('/')
+  s.pageScript.close()
+  const send = vi.spyOn(s.transport.panel, 'postMessage')
+  await vi.waitFor(() => expect(send).toHaveBeenCalled())
+  const open = send.mock.calls[0]![0] as { id: string, handshake: object }
+  const cancel = { ...open.handshake, kind: 'cancel' }
+  const sibling = fakeWindow()
+  sibling.win.parent = s.viewer.window
+  const dispatch = (data: object, source = s.panelWindow.window, origin = 'https://app.test') => {
+    s.viewer.win.dispatch({ data, source, origin })
+  }
+  dispatch(cancel, sibling.window)
+  dispatch(cancel, s.panelWindow.window, 'https://other.test')
+  dispatch({ ...cancel, v: 99 })
+  dispatch({ ...cancel, name: 'another-channel' })
+  dispatch({ ...cancel, panelId: 'another-panel' })
+  dispatch({ ...cancel, instanceId: 'another-instance' })
+  await new Promise(resolve => setTimeout(resolve, 0))
+  expect(send.mock.calls.some(([data]) => (data as { kind: string }).kind === 'close')).toBe(false)
+
+  s.panel.close()
+  await vi.waitFor(() => expect(send).toHaveBeenCalledWith(expect.objectContaining({ id: open.id, kind: 'close' })))
+})
