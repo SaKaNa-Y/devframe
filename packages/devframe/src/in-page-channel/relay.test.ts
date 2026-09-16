@@ -202,3 +202,109 @@ describe('in-page channel relay', () => {
     await vi.waitFor(() => expect(send).toHaveBeenCalledOnce())
   })
 })
+
+it('deduplicates panel retries while the transport grant is delayed', async () => {
+  const s = session('/')
+  const send = s.transport.page.postMessage
+  const grants: unknown[] = []
+  s.transport.page.postMessage = (data) => {
+    if ((data as { kind: string }).kind === 'grant')
+      grants.push(data)
+    else
+      send(data)
+  }
+  await vi.waitFor(() => expect(grants).toHaveLength(1))
+  await new Promise(resolve => setTimeout(resolve, 80))
+  expect(grants).toHaveLength(1)
+  send(grants[0])
+  await vi.waitFor(() => expect(s.panel.status).toBe('connected'))
+  await expect(s.panel.call('highlight', '#slow')).resolves.toBe('/:#slow')
+  expect(s.pageScript.panels).toHaveLength(1)
+})
+
+it('cleans a late page grant after the relay connection was cancelled without heartbeat', async () => {
+  const s = session('/')
+  const post = s.page.win.postMessage
+  let release: (() => void) | undefined
+  s.page.win.postMessage = (data, origin, ports) => {
+    if ((data as { kind: string }).kind === 'grant')
+      release = () => post(data, origin, ports)
+    else
+      post(data, origin, ports)
+  }
+  await vi.waitFor(() => expect(s.pageScript.panels).toHaveLength(1))
+  s.stopPanel()
+  await new Promise(resolve => setTimeout(resolve, 0))
+  release!()
+  await vi.waitFor(() => expect(s.pageScript.panels).toHaveLength(0))
+})
+
+it('keeps one peer when a pending open is repeated before the local grant arrives', async () => {
+  const s = session('/')
+  const post = s.page.win.postMessage
+  const grants: (() => void)[] = []
+  s.page.win.postMessage = (data, origin, ports) => {
+    if ((data as { kind: string }).kind === 'grant')
+      grants.push(() => post(data, origin, ports))
+    else
+      post(data, origin, ports)
+  }
+  await vi.waitFor(() => expect(grants.length).toBeGreaterThan(0))
+  await new Promise(resolve => setTimeout(resolve, 80))
+  expect(grants).toHaveLength(1)
+  grants[0]!()
+  await vi.waitFor(() => expect(s.panel.status).toBe('connected'))
+  await expect(s.panel.call('highlight', '#pending')).resolves.toBe('/:#pending')
+})
+
+it('retries a timed-out local handshake and rejects its late grant', async () => {
+  const s = session('/')
+  const post = s.page.win.postMessage
+  const grants: (() => void)[] = []
+  s.page.win.postMessage = (data, origin, ports) => {
+    if ((data as { kind: string }).kind === 'grant')
+      grants.push(() => post(data, origin, ports))
+    else
+      post(data, origin, ports)
+  }
+  await vi.waitFor(() => expect(grants).toHaveLength(2), { timeout: 2500 })
+  grants[1]!()
+  await vi.waitFor(() => expect(s.panel.status).toBe('connected'))
+  grants[0]!()
+  await vi.waitFor(() => expect(s.pageScript.panels).toHaveLength(1))
+  await expect(s.panel.call('highlight', '#new-attempt')).resolves.toBe('/:#new-attempt')
+})
+
+it('connects when the page script starts after the first handshake', async () => {
+  const s = session('/')
+  s.pageScript.close()
+  await new Promise(resolve => setTimeout(resolve, 50))
+  const pageScript = createPageScriptChannel<Protocol>({
+    name: 'devframes:relay-test',
+    window: s.page.window,
+    heartbeat: false,
+    functions: { highlight: { handler: s.highlight } },
+  })
+  cleanup.push(() => pageScript.close())
+  await vi.waitFor(() => expect(s.panel.status).toBe('connected'), { timeout: 2500 })
+  await expect(s.panel.call('highlight', '#late-script')).resolves.toBe('/:#late-script')
+  expect(pageScript.panels).toHaveLength(1)
+})
+
+it('leaves direct in-page grants available to their own panel', async () => {
+  const s = session('/')
+  const direct = connectPanelChannel<Protocol>({
+    name: 'devframes:relay-test',
+    window: s.page.window,
+    targets: [s.page.window],
+    heartbeat: false,
+    functions: {},
+  })
+  cleanup.push(() => direct.close())
+  await vi.waitFor(() => {
+    expect(s.panel.status).toBe('connected')
+    expect(direct.status).toBe('connected')
+  })
+  await expect(direct.call('highlight', '#direct')).resolves.toBe('/:#direct')
+  expect(s.pageScript.panels).toHaveLength(2)
+})

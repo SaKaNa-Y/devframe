@@ -29,6 +29,8 @@ interface RelayConnection {
   source?: Window
   port?: MessagePort
   detach?: () => void
+  forwardedHello?: InPageChannelHandshakeMessage
+  retryTimer?: ReturnType<typeof setTimeout>
 }
 
 function validHandshake(data: unknown, kind: 'hello' | 'grant'): data is InPageChannelHandshakeMessage {
@@ -77,6 +79,10 @@ export function createInPageChannelRelay(options: InPageChannelRelayOptions): ()
     throw new Error('An in-page channel relay requires a document with an origin')
   const connections = new Map<string, RelayConnection>()
   let disposed = false
+  const grantPrefix = `${nanoid()}:`
+  // Panel retries may arrive before the document answers. Only the page relay
+  // retries the local handshake, with a fresh identity to reject late grants.
+  const helloRetryMs = 1000
 
   function send(message: Omit<RelayMessage, 'channel' | 'relay'>): void {
     try {
@@ -92,6 +98,7 @@ export function createInPageChannelRelay(options: InPageChannelRelayOptions): ()
     if (!connection)
       return
     connections.delete(id)
+    clearTimeout(connection.retryTimer)
     connection.detach?.()
     // Endpoints recognize bye immediately, including browsers where closing
     // the other port does not dispatch a close event.
@@ -107,6 +114,7 @@ export function createInPageChannelRelay(options: InPageChannelRelayOptions): ()
   }
 
   function attach(id: string, connection: RelayConnection, port: MessagePort): void {
+    clearTimeout(connection.retryTimer)
     connection.port = port
     const onMessage = (event: MessageEvent): void => {
       send({ id, kind: 'data', data: event.data })
@@ -127,10 +135,6 @@ export function createInPageChannelRelay(options: InPageChannelRelayOptions): ()
     return grant.name === hello.name && grant.panelId === hello.panelId
       && typeof grant.instanceId === 'string'
       && (!hello.instanceId || grant.instanceId === hello.instanceId)
-  }
-
-  function sameHello(left: InPageChannelHandshakeMessage, right: InPageChannelHandshakeMessage): boolean {
-    return left.name === right.name && left.panelId === right.panelId && left.instanceId === right.instanceId
   }
 
   function onPanelHello(event: MessageEvent): void {
@@ -155,14 +159,27 @@ export function createInPageChannelRelay(options: InPageChannelRelayOptions): ()
   }
 
   function onPageGrant(event: MessageEvent): void {
-    if (event.source !== win || !validHandshake(event.data, 'grant') || !event.ports[0])
+    if (event.source !== win || !validHandshake(event.data, 'grant') || !event.ports[0]
+      || !event.data.panelId.startsWith(grantPrefix)) {
       return
+    }
     for (const [id, connection] of connections) {
-      if (!connection.port && matches(event.data, connection.hello)) {
+      if (!connection.port && connection.forwardedHello && matches(event.data, connection.forwardedHello)) {
         attach(id, connection, event.ports[0])
-        send({ id, kind: 'grant', handshake: event.data })
+        send({ id, kind: 'grant', handshake: { ...event.data, panelId: connection.hello.panelId } })
         return
       }
+    }
+    // The page script has already registered its opposite endpoint. Explicitly
+    // end it even when heartbeat is disabled or peer close events are unavailable.
+    try {
+      event.ports[0].postMessage({ __dfIpc: 'bye' })
+    }
+    catch {
+      // A detached port is already disconnected.
+    }
+    finally {
+      event.ports[0].close()
     }
   }
 
@@ -176,11 +193,20 @@ export function createInPageChannelRelay(options: InPageChannelRelayOptions): ()
   }
 
   function forwardHello(id: string, hello: InPageChannelHandshakeMessage): void {
-    const connection = connections.get(id)
-    if (connection?.port || (connection && !sameHello(connection.hello, hello)))
+    if (connections.has(id))
       return
-    connections.set(id, { hello })
-    win.postMessage(hello, origin)
+    const connection: RelayConnection = { hello }
+    connections.set(id, connection)
+    const requestPort = (): void => {
+      if (disposed || connections.get(id) !== connection || connection.port)
+        return
+      // Scope grants to this attempt so a timed-out reply cannot replace a
+      // newer connection, or be confused with a direct in-page panel's grant.
+      connection.forwardedHello = { ...hello, panelId: `${grantPrefix}${nanoid()}` }
+      connection.retryTimer = setTimeout(requestPort, helloRetryMs)
+      win.postMessage(connection.forwardedHello, origin)
+    }
+    requestPort()
   }
 
   const unsubscribe = options.transport.onMessage((data) => {
