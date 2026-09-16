@@ -21,7 +21,7 @@ Devframe moves that boundary. A capability is defined once against a stable inte
 
 With a coding agent to scaffold the boilerplate, Devframe is also a fast foundation for standing up a bespoke, specific-need, or even one-off devtool.
 
-New here? [Answer a few questions about your devtool](/guide/getting-started) and get a reading list tailored to it.
+New here? [Answer a few questions about your devtool](/guide/getting-started) and get a reading list tailored to it. For the story behind Devframe, read [Pluggable, Extensible, and Playful DevTools](/posts/pluggable-extensible-playful-devtools).
 
 ## One definition, one standard handler
 
@@ -178,3 +178,4 @@ The CLI adapter serves the SPA at `/`; embedded in a host framework (`vite`, `em
 - [The Standard Handler](/adapters/initiate): mount into any host framework
 - [Adapters](/adapters): convenience entry points
 - [Hub](/guide/hub): compose many devframes
+- [Pluggable, Extensible, and Playful DevTools](/posts/pluggable-extensible-playful-devtools): the vision and story behind Devframe

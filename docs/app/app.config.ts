@@ -39,6 +39,20 @@ export default defineAppConfig({
         ],
       },
     ],
+    links: [
+      {
+        'icon': 'i-simple-icons-github',
+        'to': 'https://github.com/devframes/devframe',
+        'target': '_blank',
+        'aria-label': 'Devframe on GitHub',
+      },
+      {
+        'icon': 'i-simple-icons-discord',
+        'to': 'https://discord.gg/bnH3KPzfpr',
+        'target': '_blank',
+        'aria-label': 'Devframe on Discord',
+      },
+    ],
   },
 
   github: {
@@ -61,6 +75,12 @@ export default defineAppConfig({
         'to': 'https://github.com/devframes/devframe',
         'target': '_blank',
         'aria-label': 'Devframe on GitHub',
+      },
+      {
+        'icon': 'i-simple-icons-discord',
+        'to': 'https://discord.gg/bnH3KPzfpr',
+        'target': '_blank',
+        'aria-label': 'Devframe on Discord',
       },
     ],
   },

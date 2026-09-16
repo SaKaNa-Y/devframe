@@ -32,13 +32,6 @@ const navigation = useMainNavigation()
         @click="assistantOpen = true"
       />
 
-      <UColorModeButton
-        color="neutral"
-        variant="outline"
-        :ui="{ leadingIcon: 'size-4' }"
-        class="p-2"
-      />
-
       <!-- <UButton
         icon="i-lucide-history"
         :color="content.mode === 'prod' ? 'neutral' : 'warning'"
@@ -53,10 +46,18 @@ const navigation = useMainNavigation()
         <UButton
           v-for="(link, index) of header?.links"
           :key="index"
-          v-bind="{ color: 'neutral', variant: 'ghost', ...link }"
-          class="hidden lg:inline-flex"
+          :ui="{ leadingIcon: 'size-4' }"
+          v-bind="{ color: 'neutral', variant: 'outline', ...link }"
+          class="hidden lg:inline-flex p-2"
         />
       </template>
+
+      <UColorModeButton
+        color="neutral"
+        variant="outline"
+        :ui="{ leadingIcon: 'size-4' }"
+        class="p-2"
+      />
     </template>
 
     <template #toggle="{ open, toggle }">

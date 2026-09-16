@@ -34,7 +34,7 @@ A framework-neutral foundation for devtools. One definition becomes a Web Standa
 #links
   :::u-button
   ---
-  to: /guide
+  to: /guide/getting-started
   size: lg
   trailing-icon: i-lucide-arrow-right
   ---
@@ -51,6 +51,18 @@ A framework-neutral foundation for devtools. One definition becomes a Web Standa
   target: _blank
   ---
   View on GitHub
+  :::
+
+  :::u-button
+  ---
+  icon: i-simple-icons-discord
+  color: neutral
+  variant: ghost
+  size: lg
+  to: https://discord.gg/bnH3KPzfpr
+  target: _blank
+  ---
+  Join Discord
   :::
 ::
 
