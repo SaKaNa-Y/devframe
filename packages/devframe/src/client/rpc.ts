@@ -356,6 +356,8 @@ export async function getDevframeRpcClient(
   const clientRpc: DevframeClientRpcHost = new RpcFunctionsCollectorBase<DevframeRpcClientFunctions, DevframeRpcContext>(context)
   // No-op when the browser provides no WebMCP model context.
   const disposeWebMcp = options.webmcp === false ? undefined : registerWebMcpTools(clientRpc)
+  let disposeBrowserAgentBridge: (() => void) | undefined
+  let closed = false
 
   async function fetchJsonFromBases(path: string): Promise<any> {
     const candidates = [
@@ -447,7 +449,9 @@ export async function getDevframeRpcClient(
 
   /** Release authentication and transport resources even if another disposer fails. */
   function closeRpcClient(): void {
+    closed = true
     try {
+      disposeBrowserAgentBridge?.()
       disposeWebMcp?.()
     }
     finally {
@@ -595,6 +599,18 @@ export async function getDevframeRpcClient(
     () => { bootstrapAuthSettled = true },
     () => { bootstrapAuthSettled = true },
   )
+
+  // Only when the node advertises an MCP endpoint (`connectionMeta.mcp`) is the
+  // browser-agent bridge useful, so load it from its own chunk on demand and
+  // keep it out of the main client bundle for every non-MCP connection.
+  if (connectionMeta.mcp) {
+    void import('./browser-agent-rpc')
+      .then(({ setupBrowserAgentRpcBridge }) => {
+        if (!closed)
+          disposeBrowserAgentBridge = setupBrowserAgentRpcBridge(rpc)
+      })
+      .catch(() => {})
+  }
 
   // Listen for auth updates from other tabs (e.g., the auth page, or another
   // tab that just completed a code exchange).
