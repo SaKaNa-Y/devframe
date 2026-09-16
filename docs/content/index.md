@@ -59,7 +59,7 @@ A framework-neutral foundation for devtools. One definition becomes a Web Standa
   color: neutral
   variant: ghost
   size: lg
-  to: https://discord.gg/bnH3KPzfpr
+  to: /chat
   target: _blank
   ---
   Join Discord

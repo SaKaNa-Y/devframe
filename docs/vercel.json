@@ -5,6 +5,7 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "ignoreCommand": "git diff --quiet HEAD^ HEAD -- ':!content'",
   "redirects": [
+    { "source": "/chat", "destination": "https://discord.com/invite/bnH3KPzfpr", "permanent": false },
     { "source": "/guide/terms", "destination": "/references/terms", "permanent": true },
     { "source": "/guide/when-clauses", "destination": "/references/when-clauses", "permanent": true },
     { "source": "/guide/events", "destination": "/references/events", "permanent": true },

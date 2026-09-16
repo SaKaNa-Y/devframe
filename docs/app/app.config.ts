@@ -48,7 +48,7 @@ export default defineAppConfig({
       },
       {
         'icon': 'i-simple-icons-discord',
-        'to': 'https://discord.gg/bnH3KPzfpr',
+        'to': '/chat',
         'target': '_blank',
         'aria-label': 'Devframe on Discord',
       },
@@ -78,7 +78,7 @@ export default defineAppConfig({
       },
       {
         'icon': 'i-simple-icons-discord',
-        'to': 'https://discord.gg/bnH3KPzfpr',
+        'to': '/chat',
         'target': '_blank',
         'aria-label': 'Devframe on Discord',
       },
