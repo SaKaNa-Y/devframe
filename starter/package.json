@@ -1,9 +1,9 @@
 {
   "name": "devframe-starter",
   "type": "module",
-  "version": "0.9.18",
+  "version": "0.10.1",
   "private": true,
-  "packageManager": "pnpm@12.3.4",
+  "packageManager": "pnpm@12.4.1",
   "description": "Self-contained starter for a single devframe integration: a vanilla-TS Vite client, single + hub playgrounds, and unit + e2e tests.",
   "author": "Anthony Fu <anthonyfu117@hotmail.com>",
   "license": "MIT",
@@ -37,20 +37,20 @@
     "release": "bumpp"
   },
   "dependencies": {
-    "@devframes/hub": "^0.9.18",
-    "@devframes/hub-ui": "^0.9.18",
-    "@devframes/vite": "^0.9.18",
-    "devframe": "^0.9.18"
+    "@devframes/hub": "^0.10.1",
+    "@devframes/hub-ui": "^0.10.1",
+    "@devframes/vite": "^0.10.1",
+    "devframe": "^0.10.1"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.5.1",
     "@playwright/test": "^1.63.0",
-    "@types/node": "^26.5.0",
+    "@types/node": "^26.5.1",
     "@types/ws": "^8.18.1",
     "bumpp": "^12.3.0",
     "eslint": "^10.10.0",
     "typescript": "^6.0.3",
-    "vite": "^8.2.2",
+    "vite": "^8.3.0",
     "vitest": "^5.0.0",
     "ws": "^8.21.3"
   }

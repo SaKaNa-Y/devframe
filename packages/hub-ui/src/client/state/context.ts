@@ -19,7 +19,7 @@ import { installInspectedPageHost } from './inspected-page'
 import { createClientMessagesClient } from './messages-client'
 import { dockCommandId } from './palette'
 import { registerMainFrameDockActionHandler, triggerMainFrameDockAction, useIsDockPopupOpen } from './popup'
-import { executeSetupScript } from './setup-script'
+import { clientScriptOf, executeSetupScript } from './setup-script'
 
 const docksContextByRpc = new WeakMap<DevframeRpcClient, DocksContext>()
 export async function createDocksContext(
@@ -232,22 +232,47 @@ export async function createDocksContext(
     return null
   }
 
-  const runDockSetupScript = async (entry: DevframeDockEntry) => {
-    const hasScript = entry.type === 'action' || entry.type === 'custom-render' || (entry.type === 'iframe' && entry.clientScript)
-    if (!hasScript)
+  function scriptContext(entry: DevframeDockEntry): DockClientScriptContext {
+    return reactive({
+      ...toRefs(docksContext) as any,
+      current: dockEntryStateMap.get(entry.id)!,
+      messages: createClientMessagesClient(rpc),
+    })
+  }
+
+  async function runPageScript(entry: DevframeDockEntry): Promise<void> {
+    if (entry.type !== 'iframe' || !entry.clientScript)
       return
-    if (inspectedPage && entry.type !== 'custom-render') {
-      if (entry.type === 'iframe' && !await inspectedPage.prepare(entry.id))
+    if (inspectedPage) {
+      if (!await inspectedPage.prepare(entry.id))
         throw new Error(`The inspected page could not prepare dock "${entry.id}".`)
       return
     }
-    const messagesClient = createClientMessagesClient(rpc)
-    const scriptContext: DockClientScriptContext = reactive({
-      ...toRefs(docksContext) as any,
-      current: dockEntryStateMap.get(entry.id)!,
-      messages: messagesClient,
-    })
-    await executeSetupScript(entry, scriptContext)
+    await executeSetupScript(entry, scriptContext(entry))
+  }
+
+  async function runActivationScript(entry: DevframeDockEntry): Promise<void> {
+    if (entry.type === 'custom-render')
+      await executeSetupScript(entry, scriptContext(entry))
+  }
+
+  /** Only explicitly eager descriptors run before activation, after the RPC connection is trusted. */
+  function startPageScripts(): void {
+    if (!rpc.isTrusted)
+      return
+    for (const entry of entries.value) {
+      // A `custom-render` renderer needs its mounted panel, so it stays
+      // activation-gated; only panel-independent page and action scripts run eagerly.
+      if (entry.type !== 'iframe' && entry.type !== 'action')
+        continue
+      if (!clientScriptOf(entry)?.eager)
+        continue
+      /** Setup reports failures and allows the next activation or publication to retry. */
+      const setup = inspectedPage
+        ? inspectedPage.prepare(entry.id)
+        : executeSetupScript(entry, scriptContext(entry), true)
+      void setup.catch(() => {})
+    }
   }
 
   // Remember selection redirects: a member tab as its frame's live tab, and a
@@ -287,7 +312,7 @@ export async function createDocksContext(
         return false
       // Import/setup must finish before activation is emitted. Page scripts
       // such as Vue Tracer install their activation listener during setup.
-      await runDockSetupScript(entry)
+      await executeSetupScript(entry, scriptContext(entry))
     }
     return generation === selectionGeneration
   }
@@ -322,15 +347,22 @@ export async function createDocksContext(
     if (redirect !== null)
       return switchEntry(redirect)
 
+    if (!rpc.isTrusted)
+      return false
     if (entry.type === 'action' && !await prepareAction(entry, generation))
+      return false
+
+    if (!rpc.isTrusted)
+      return false
+    await runPageScript(entry)
+    if (!rpc.isTrusted || generation !== selectionGeneration)
       return false
 
     initialRestorePending.value = false
     selectedDockId.value = entry.id
     sessionStore.value.open = true
 
-    if (entry.type !== 'action')
-      await runDockSetupScript(entry)
+    await runActivationScript(entry)
     rememberEntrySelection(entry)
     return true
   }
@@ -412,8 +444,10 @@ export async function createDocksContext(
     name: HUB_EVENTS.broadcast.docksActivate satisfies keyof DevframeRpcClientFunctions,
     type: 'action',
     handler: (activation: { dockId: string, params?: Record<string, unknown> }) => {
+      // `switchEntry` rejects when a lazy client script fails so its cache entry
+      // stays retryable; the failure is already logged, so swallow it here.
       if (activation?.dockId)
-        switchEntry(activation.dockId)
+        void switchEntry(activation.dockId).catch(() => {})
     },
   })
 
@@ -700,10 +734,12 @@ export async function createDocksContext(
         if (!rpc.isTrusted)
           return false
         const entry = entries.value.find(entry => entry.id === id)
-        if (!entry || entry.type !== 'iframe' || !entry.clientScript)
+        if (!entry || !((entry.type === 'iframe' && entry.clientScript)
+          || (entry.type === 'action' && entry.action.eager))) {
           return false
-        await runDockSetupScript(entry)
-        return true
+        }
+        await executeSetupScript(entry, scriptContext(entry), true)
+        return rpc.isTrusted
       },
       async activate(id) {
         if (!rpc.isTrusted || entries.value.find(entry => entry.id === id)?.type !== 'action')
@@ -781,6 +817,9 @@ export async function createDocksContext(
     { flush: 'post' },
   )
   void restoreAfterInitialization()
+
+  watch(entries, startPageScripts, { immediate: true })
+  rpc.events.on(DEVFRAME_EVENTS.client.isTrustedUpdated, startPageScripts)
 
   docksContextByRpc.set(rpc, docksContext)
   return docksContext

@@ -1,7 +1,7 @@
 {
   "name": "@devframes/plugin-assets",
   "type": "module",
-  "version": "0.9.18",
+  "version": "0.10.1",
   "description": "Devframe plugin for browsing, previewing, uploading, and managing static assets in a directory.",
   "author": "Anthony Fu <anthonyfu117@hotmail.com>",
   "license": "MIT",
@@ -70,9 +70,7 @@
     "chokidar": "catalog:deps",
     "image-meta": "catalog:deps",
     "pathe": "catalog:deps",
-    "perfect-debounce": "catalog:deps",
-    "tinyglobby": "catalog:deps",
-    "ufo": "catalog:deps"
+    "tinyglobby": "catalog:deps"
   },
   "devDependencies": {
     "@antfu/design": "catalog:frontend",

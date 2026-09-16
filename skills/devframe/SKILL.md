@@ -30,7 +30,7 @@ Two layers, one boundary:
 
 Devframe is framework- and build-tool-agnostic - it has zero dependency on Vite or any `@vitejs/*` package and makes no UI-framework assumption. [Vite DevTools](https://devtools.vite.dev/) is the first flagship hub UI provider built on it; the built-in devframes deliberately span Vue, Svelte, Solid, React, and Next to prove the point.
 
-High-level concept: [Pluggable, Extensible, and Playful DevTools](https://antfu.me/posts/pluggable-extensible-playful-devtools). Full reference: [devfra.me](https://devfra.me/).
+High-level concept: [Pluggable, Extensible, and Playful DevTools](https://devfra.me/posts/pluggable-extensible-playful-devtools). Full reference: [devfra.me](https://devfra.me/).
 
 ## Deployment map — pick by how it's served, not by what it does
 

@@ -1,0 +1,54 @@
+{
+  "name": "@devframes/agentic",
+  "type": "module",
+  "version": "0.10.1",
+  "description": "Agent-surface implementation for devframe: installing it next to devframe enables the MCP adapter (devframe/adapters/mcp) and the devframe connect gateway.",
+  "author": "Anthony Fu <anthonyfu117@hotmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/devframes/devframe#readme",
+  "repository": {
+    "directory": "packages/agentic",
+    "type": "git",
+    "url": "git+https://github.com/devframes/devframe.git"
+  },
+  "bugs": "https://github.com/devframes/devframe/issues",
+  "keywords": [
+    "devtools",
+    "devframe",
+    "mcp",
+    "agent"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./mcp": "./dist/mcp/index.mjs",
+    "./connect": "./dist/connect/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "watch": "tsdown --watch",
+    "typecheck": "tsc --noEmit",
+    "prepack": "turbo run build --filter=@devframes/agentic"
+  },
+  "peerDependencies": {
+    "devframe": "workspace:*"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "catalog:deps",
+    "@modelcontextprotocol/server": "catalog:deps",
+    "h3": "catalog:deps",
+    "pathe": "catalog:deps"
+  },
+  "devDependencies": {
+    "@standard-schema/spec": "catalog:deps",
+    "@types/node": "catalog:types",
+    "devframe": "workspace:*",
+    "tsdown": "catalog:build",
+    "valibot": "catalog:deps"
+  }
+}

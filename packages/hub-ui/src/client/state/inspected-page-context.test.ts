@@ -11,7 +11,8 @@ import { connectInspectedPage, installInspectedPageHost } from './inspected-page
 import { fakeWindow } from './inspected-page.test-utils'
 import { executeSetupScript } from './setup-script'
 
-vi.mock('./setup-script', () => ({
+vi.mock('./setup-script', async importOriginal => ({
+  ...await importOriginal<typeof import('./setup-script')>(),
   executeSetupScript: vi.fn(async () => {}),
 }))
 
@@ -96,6 +97,31 @@ function createRemoteContext(target: InspectedPageTarget) {
 describe('dock scripts in an inspected page', () => {
   beforeEach(() => {
     vi.mocked(executeSetupScript).mockReset()
+  })
+
+  it('prepares eager page and action scripts in the inspected document', async () => {
+    const { target } = createInspectedPage()
+    const context = await createRemoteContext(target)
+    context.docks.register({ ...a11yEntry, id: 'eager-a11y', clientScript: { ...a11yEntry.clientScript, eager: true } })
+    context.docks.register({ ...tracerEntry, id: 'eager-tracer', action: { ...tracerEntry.action, eager: true } })
+    await nextTick()
+    expect(target.prepare).toHaveBeenCalledWith('eager-a11y')
+    expect(target.prepare).toHaveBeenCalledWith('eager-tracer')
+    expect(target.activate).not.toHaveBeenCalled()
+    expect(executeSetupScript).not.toHaveBeenCalled()
+  })
+
+  it('preserves newer navigation while remote page preparation is pending', async () => {
+    const { target } = createInspectedPage()
+    const context = await createRemoteContext(target)
+    let finish!: (value: boolean) => void
+    target.prepare.mockImplementationOnce(() => new Promise(resolve => finish = resolve))
+    const opening = context.docks.switchEntry(a11yEntry.id)
+    await vi.waitFor(() => expect(target.prepare).toHaveBeenCalledOnce())
+    await context.docks.switchEntry('~settings')
+    finish(true)
+    await expect(opening).resolves.toBe(false)
+    expect(context.docks.selected?.id).toBe('~settings')
   })
 
   it('activates Vue Tracer in the inspected page and selects its dock in the panel', async () => {

@@ -14,6 +14,7 @@ import {
   createLocalFunctionRegistry,
   DEFAULT_CALL_TIMEOUT_MS,
   deserializeResult,
+  registerInPageAgentTools,
   resolveHeartbeat,
   resolveLocalHandler,
   serializeArgs,
@@ -69,6 +70,7 @@ export function createPageScriptChannel<P extends InPageChannelProtocol>(
     registry.register({ ...definition, name: fnName })
   for (const [eventName, definition] of Object.entries(options.events ?? {}))
     registry.register({ ...definition, name: eventName, type: 'event' })
+  const disposeAgentTools = registerInPageAgentTools(name, registry)
 
   const stateHost = createPageScriptStateHost<P>(function* () {
     for (const peer of peers.values()) {
@@ -201,7 +203,6 @@ export function createPageScriptChannel<P extends InPageChannelProtocol>(
     },
     events: { on: events.on, once: events.once },
     emit,
-    callEvent: emit,
     on: (fnName, listener) => registry.on(fnName, listener as (...args: unknown[]) => void),
     sharedState: stateHost,
     addPanelPort: port => addPeer(port, `transport:${nanoid(8)}`),
@@ -209,6 +210,7 @@ export function createPageScriptChannel<P extends InPageChannelProtocol>(
       if (closed)
         return
       closed = true
+      disposeAgentTools()
       win?.removeEventListener('message', onWindowMessage)
       for (const id of [...peers.keys()])
         removePeer(id, { bye: true, reason: 'the page script closed the channel' })

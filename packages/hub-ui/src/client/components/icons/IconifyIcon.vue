@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { CSSProperties } from 'vue'
 import { computed, ref, watchEffect } from 'vue'
 import { getIconifySvg } from '../../utils/iconify'
 
@@ -6,7 +7,17 @@ const props = defineProps<{
   icon: string
 }>()
 
-const isUrlIcon = computed(() => props.icon.includes('/') || props.icon.startsWith('data:') || props.icon.startsWith('builtin:'))
+const maskUrl = computed(() => props.icon.startsWith('mask:') ? props.icon.slice(5).trim() : undefined)
+const maskStyle = computed<CSSProperties | undefined>(() => {
+  if (!maskUrl.value)
+    return undefined
+  return {
+    backgroundColor: 'currentColor',
+    mask: `url(${JSON.stringify(maskUrl.value)}) center / contain no-repeat`,
+    maskMode: 'alpha',
+  }
+})
+const isUrlIcon = computed(() => maskUrl.value !== undefined || props.icon.includes('/') || props.icon.startsWith('data:') || props.icon.startsWith('builtin:'))
 const iconifyParsed = computed(() => {
   if (isUrlIcon.value)
     return undefined
@@ -20,29 +31,46 @@ const iconifyParsed = computed(() => {
 })
 
 const iconifyLoaded = ref<string | undefined>(undefined)
-watchEffect(async () => {
-  if (!iconifyParsed.value) {
-    iconifyLoaded.value = undefined
+const failed = ref(false)
+watchEffect(async (onCleanup) => {
+  let active = true
+  onCleanup(() => {
+    active = false
+  })
+  iconifyLoaded.value = undefined
+  failed.value = false
+  if (!iconifyParsed.value)
     return
-  }
   try {
-    iconifyLoaded.value = await getIconifySvg(iconifyParsed.value.collection, iconifyParsed.value.icon)
+    const svg = await getIconifySvg(iconifyParsed.value.collection, iconifyParsed.value.icon)
+    if (active)
+      iconifyLoaded.value = svg
   }
   catch {
-    // A failed icon fetch (offline / flaky CDN) should degrade to a blank icon,
-    // not throw out of the async effect and crash the surrounding panel.
-    iconifyLoaded.value = undefined
+    /** Keep fetch failures local to the icon so the surrounding panel remains usable. */
+    if (active)
+      failed.value = true
   }
 })
 </script>
 
 <template>
+  <div v-if="failed" class="i-ph:warning-duotone w-full h-full" aria-hidden="true" />
   <div
-    v-if="iconifyParsed"
+    v-else-if="maskUrl !== undefined"
+    aria-hidden="true"
+    class="w-full h-full"
+    :style="maskStyle"
+  />
+  <div
+    v-else-if="iconifyParsed"
+    aria-hidden="true"
     v-html="iconifyLoaded"
   />
   <img
     v-else :src="icon"
+    alt=""
+    aria-hidden="true"
     class="w-full h-full m-auto"
     draggable="false"
   >

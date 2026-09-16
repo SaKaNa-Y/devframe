@@ -14,11 +14,6 @@ export interface RpcWireCodec {
 }
 // #endregion
 
-// #region Types
-/** @deprecated */
-export type AgentArgsFallback = 'wrap' | 'drop';
-// #endregion
-
 // #region Classes
 export declare class DevframeAgentHost implements DevframeAgentHost$1 {
   readonly context: DevframeNodeContext;
@@ -49,17 +44,18 @@ export declare class DevframeAgentHost implements DevframeAgentHost$1 {
 // #endregion
 
 // #region Functions
-/** @deprecated */
-export declare function coerceAgentPositionalArgs(_: unknown, _: readonly unknown[] | undefined, _?: AgentArgsFallback): unknown[];
+export declare function argsToJsonSchema(_: readonly StandardSchemaV1[] | undefined): unknown;
 export declare function createH3DevframeHost(_: CreateH3DevframeHostOptions): DevframeHost;
 export declare function createRpcWireCodec(_?: ReadonlyMap<string, Pick<RpcFunctionDefinitionAny, 'jsonSerializable'>>): RpcWireCodec;
+export declare function formatMcpError(_: unknown): string;
 export declare function importRuntimeModule<T = unknown>(_: string): Promise<T>;
 export declare function normalizeHttpServerUrl(_: string, _: number | string): string;
 export declare function peekRpcWireFrame(_: string): {
   t?: string;
   i?: string;
 };
-export declare function resolveClientAssets(_: DevframeDefinition): StaticAssetsSource | undefined;
+export declare function returnToJsonSchema(_: StandardSchemaV1 | undefined): unknown;
+export declare function stringifyForMcp(_: unknown): string;
 export declare function toolInputToCommandArgs(_: unknown, _?: number): unknown[];
 // #endregion
 
@@ -188,7 +184,7 @@ export declare const diagnostics: import("nostics").Diagnostics<{
     readonly why: (p: {
       reason: string;
     }) => string;
-    readonly fix: "Install it next to devframe (e.g. `npm install @modelcontextprotocol/client`) and run `devframe connect` again.";
+    readonly fix: "Install it next to devframe (e.g. `npm install @devframes/agentic`) and run `devframe connect` again.";
   };
   readonly DF0047: {
     readonly why: (p: {
@@ -218,7 +214,7 @@ export declare const diagnostics: import("nostics").Diagnostics<{
     readonly why: (p: {
       port: number;
     }) => string;
-    readonly fix: "Restart the instance with the --mcp flag (or set `cli.mcp: true` on its definition) to expose its tools, then list instances again.";
+    readonly fix: "Restart the instance with the --mcp flag to expose its tools, then list instances again.";
   };
   readonly DF0052: {
     readonly why: (p: {
@@ -365,12 +361,23 @@ export declare const diagnostics: import("nostics").Diagnostics<{
     }) => string;
     readonly fix: "On Bun/Deno, serve the advertised `__ws` route from `Bun.serve` / `Deno.serve` with `attachBunWsTransport` / `attachDenoWsTransport` (see the hub-deno example), or connect over the SSE endpoint instead.";
   };
+  readonly DF0078: {
+    readonly why: "This devframe exposes agent tools, but the MCP endpoint stays off: the optional peer \"@devframes/agentic\" is not installed.";
+    readonly fix: "Install `@devframes/agentic` next to devframe to serve the MCP endpoint, or set `mcp: false` to opt out silently.";
+  };
+  readonly DF0079: {
+    readonly why: (p: {
+      reason: string;
+    }) => string;
+    readonly fix: "Install `@devframes/agentic` next to devframe (the MCP adapter and the MCP SDK live there), or remove the explicit `mcp` setting.";
+  };
 }, readonly [(d: import("nostics").Diagnostic, { method }?: {
   method?: "log" | "warn" | "error";
 }) => void]>;
 // #endregion
 
 // #region Other
+export { AgenticMcpModule }
 export { ContextRpcServer }
 export { createContextRpcServer }
 export { CreateContextRpcServerOptions }
@@ -378,6 +385,7 @@ export { createInstanceShell }
 export { CreateInstanceShellOptions }
 export { DevframeInstanceRecord }
 export { DevframeInstanceRegistration }
+export { importAgenticMcp }
 export { InstanceRegisterConfig }
 export { InstanceShell }
 export { InstanceShellApi }
@@ -386,7 +394,10 @@ export { InstanceShellInternals }
 export { InstanceWsTier }
 export { listLiveDevframeInstances }
 export { loadAutoMcpAdapter }
+export { MountedMcpHttp }
+export { MountMcpHttpOptions }
 export { normalizeBasePath }
+export { probeDevframeOrigin }
 export { registerDevframeInstance }
 export { resolveBasePath }
 export { ResolvedMcpConfig }

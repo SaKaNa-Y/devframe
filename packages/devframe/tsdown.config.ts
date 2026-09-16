@@ -26,7 +26,7 @@ const deps = {
     '@jridgewell/trace-mapping',
   ],
   /**
-   * `whenexpr` is runtime-only bundled (see `onlyBundle` below); its
+   * `whenexpr` is a devDependency, so its runtime is bundled in; its
    * declaration file mixes type-only and value named exports
    * (`export { type WhenExpression, evaluateWhen, ... }`) in a way that
    * trips up rolldown's dts bundler when it tries to inline the type
@@ -38,24 +38,6 @@ const deps = {
   dts: {
     neverBundle: ['whenexpr'],
   },
-  onlyBundle: [
-    'acorn',
-    'get-port-please',
-    'immer',
-    'launch-editor',
-    'mlly',
-    'obug',
-    'ohash',
-    'p-limit',
-    'perfect-debounce',
-    'picocolors',
-    'shell-quote',
-    'structured-clone-es',
-    'tinyexec',
-    'ua-parser-modern',
-    'whenexpr',
-    'yocto-queue',
-  ],
 }
 
 // The node build reaches `devframe/utils/shared-state` through the same
@@ -75,6 +57,7 @@ const clientEntries = {
   'utils/agent-tool-name': 'src/utils/agent-tool-name.ts',
   'utils/colors': 'src/utils/colors.ts',
   'utils/crypto-token': 'src/utils/crypto-token.ts',
+  'utils/debounce': 'src/utils/debounce.ts',
   'utils/events': 'src/utils/events.ts',
   'utils/hash': 'src/utils/hash.ts',
   'utils/nanoid': 'src/utils/nanoid.ts',
@@ -83,6 +66,7 @@ const clientEntries = {
   'utils/shared-state': 'src/utils/shared-state.ts',
   'utils/streaming-channel': 'src/utils/streaming-channel.ts',
   'utils/structured-clone': 'src/utils/structured-clone.ts',
+  'utils/url': 'src/utils/url.ts',
   'utils/when': 'src/utils/when.ts',
 }
 
@@ -116,9 +100,8 @@ const serverEntries = {
   'adapters/build': 'src/adapters/build.ts',
   'adapters/embedded': 'src/adapters/embedded.ts',
   'adapters/initiate': 'src/adapters/initiate.ts',
-  'adapters/mcp': 'src/adapters/mcp/index.ts',
+  'adapters/mcp': 'src/adapters/mcp.ts',
   'cli/main': 'src/cli/main.ts',
-  'recipes/common-rpc-functions': 'src/recipes/common-rpc-functions.ts',
   'recipes/interactive-auth': 'src/recipes/interactive-auth.ts',
 }
 
@@ -161,6 +144,7 @@ export default defineConfig([
             resolve(distDir, 'utils/agent-tool-name.mjs'),
             resolve(distDir, 'utils/colors.mjs'),
             resolve(distDir, 'utils/crypto-token.mjs'),
+            resolve(distDir, 'utils/debounce.mjs'),
             resolve(distDir, 'utils/events.mjs'),
             resolve(distDir, 'utils/hash.mjs'),
             resolve(distDir, 'utils/nanoid.mjs'),
@@ -169,6 +153,7 @@ export default defineConfig([
             resolve(distDir, 'utils/shared-state.mjs'),
             resolve(distDir, 'utils/streaming-channel.mjs'),
             resolve(distDir, 'utils/structured-clone.mjs'),
+            resolve(distDir, 'utils/url.mjs'),
             resolve(distDir, 'utils/when.mjs'),
           ],
           cwd: here,

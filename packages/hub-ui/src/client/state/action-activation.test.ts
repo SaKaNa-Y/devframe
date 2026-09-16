@@ -8,7 +8,8 @@ import { nextTick } from 'vue'
 import { createDocksContext } from './context'
 import { executeSetupScript } from './setup-script'
 
-vi.mock('./setup-script', () => ({
+vi.mock('./setup-script', async importOriginal => ({
+  ...await importOriginal<typeof import('./setup-script')>(),
   executeSetupScript: vi.fn(async () => {}),
 }))
 
@@ -62,6 +63,25 @@ function delayActionSetup() {
 describe('action setup and activation ordering', () => {
   beforeEach(() => {
     vi.mocked(executeSetupScript).mockReset()
+  })
+
+  it('runs an action on each activation without caching its execution', async () => {
+    const context = await createDocksContext('embedded', createStubRpc())
+    const action = vi.fn()
+    vi.mocked(executeSetupScript).mockImplementation(action)
+    for (let index = 0; index < 3; index++) {
+      await context.docks.switchEntry(tracerEntry.id)
+      await context.docks.switchEntry(null)
+    }
+    expect(action).toHaveBeenCalledTimes(3)
+  })
+
+  it('does not run an action while the RPC connection is untrusted', async () => {
+    const rpc = createStubRpc()
+    Object.assign(rpc, { isTrusted: false })
+    const context = await createDocksContext('embedded', rpc)
+    await expect(context.docks.switchEntry(tracerEntry.id)).resolves.toBe(false)
+    expect(executeSetupScript).not.toHaveBeenCalled()
   })
 
   it('delivers the first activation to a listener installed after an async import', async () => {

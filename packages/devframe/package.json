@@ -1,7 +1,7 @@
 {
   "name": "devframe",
   "type": "module",
-  "version": "0.9.18",
+  "version": "0.10.1",
   "description": "Framework for building one portable devtool integration that runs in any viewer.",
   "author": "Anthony Fu <anthonyfu117@hotmail.com>",
   "license": "MIT",
@@ -33,7 +33,6 @@
     "./node": "./dist/node/index.mjs",
     "./node/auth": "./dist/node/auth.mjs",
     "./node/hub-internals": "./dist/node/hub-internals.mjs",
-    "./recipes/common-rpc-functions": "./dist/recipes/common-rpc-functions.mjs",
     "./recipes/interactive-auth": "./dist/recipes/interactive-auth.mjs",
     "./rpc": "./dist/rpc/index.mjs",
     "./rpc/client": "./dist/rpc/client.mjs",
@@ -49,6 +48,7 @@
     "./utils/agent-tool-name": "./dist/utils/agent-tool-name.mjs",
     "./utils/colors": "./dist/utils/colors.mjs",
     "./utils/crypto-token": "./dist/utils/crypto-token.mjs",
+    "./utils/debounce": "./dist/utils/debounce.mjs",
     "./utils/events": "./dist/utils/events.mjs",
     "./utils/get-port": "./dist/utils/get-port.mjs",
     "./utils/hash": "./dist/utils/hash.mjs",
@@ -63,6 +63,7 @@
     "./utils/shared-state": "./dist/utils/shared-state.mjs",
     "./utils/streaming-channel": "./dist/utils/streaming-channel.mjs",
     "./utils/structured-clone": "./dist/utils/structured-clone.mjs",
+    "./utils/url": "./dist/utils/url.mjs",
     "./utils/when": "./dist/utils/when.mjs",
     "./package.json": "./package.json"
   },
@@ -82,11 +83,11 @@
     "prepack": "turbo run build --filter=devframe && mkdir -p ./skills && cp -r ../../skills/devframe ./skills/devframe"
   },
   "peerDependencies": {
-    "@modelcontextprotocol/client": "^2.0.0",
+    "@devframes/agentic": "workspace:*",
     "cac": "^7.0.0"
   },
   "peerDependenciesMeta": {
-    "@modelcontextprotocol/client": {
+    "@devframes/agentic": {
       "optional": true
     },
     "cac": {
@@ -94,23 +95,21 @@
     }
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "catalog:deps",
-    "@standard-schema/spec": "catalog:deps",
-    "birpc": "catalog:deps",
     "crossws": "catalog:deps",
     "h3": "catalog:deps",
-    "mrmime": "catalog:deps",
     "nostics": "catalog:deps",
-    "pathe": "catalog:deps",
-    "ufo": "catalog:deps"
+    "pathe": "catalog:deps"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "catalog:deps",
+    "@devframes/agentic": "workspace:*",
+    "@standard-schema/spec": "catalog:deps",
+    "birpc": "catalog:deps",
     "cac": "catalog:deps",
     "get-port-please": "catalog:deps",
     "immer": "catalog:deps",
     "launch-editor": "catalog:deps",
     "mlly": "catalog:build",
+    "mrmime": "catalog:deps",
     "obug": "catalog:deps",
     "ohash": "catalog:deps",
     "p-limit": "catalog:deps",

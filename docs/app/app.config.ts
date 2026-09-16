@@ -23,7 +23,7 @@ export default defineAppConfig({
       { label: 'Add-ons', sections: ['add-ons'], link: 'section' as const },
       { label: 'Reference', sections: ['references'], link: 'section' as const },
       { label: 'Errors', sections: ['errors'], link: 'section' as const },
-      // { label: 'Blog', sections: ['posts'], link: 'section' as const },
+      { label: 'Blog', sections: ['posts'], link: 'section' as const },
       {
         label: `v${devframePkg.version}`,
         to: '/migrations',
@@ -37,6 +37,20 @@ export default defineAppConfig({
           { label: 'Release notes', to: 'https://github.com/devframes/devframe/releases' },
           { label: 'Contributing', to: 'https://github.com/devframes/devframe/blob/main/CONTRIBUTING.md' },
         ],
+      },
+    ],
+    links: [
+      {
+        'icon': 'i-simple-icons-github',
+        'to': 'https://github.com/devframes/devframe',
+        'target': '_blank',
+        'aria-label': 'Devframe on GitHub',
+      },
+      {
+        'icon': 'i-simple-icons-discord',
+        'to': 'https://discord.gg/bnH3KPzfpr',
+        'target': '_blank',
+        'aria-label': 'Devframe on Discord',
       },
     ],
   },
@@ -61,6 +75,12 @@ export default defineAppConfig({
         'to': 'https://github.com/devframes/devframe',
         'target': '_blank',
         'aria-label': 'Devframe on GitHub',
+      },
+      {
+        'icon': 'i-simple-icons-discord',
+        'to': 'https://discord.gg/bnH3KPzfpr',
+        'target': '_blank',
+        'aria-label': 'Devframe on Discord',
       },
     ],
   },

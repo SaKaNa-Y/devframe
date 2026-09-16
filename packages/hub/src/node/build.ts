@@ -11,8 +11,8 @@ import { createH3DevframeHost } from 'devframe/internal'
 import { collectStaticRpcDump, writeStaticRpcDump } from 'devframe/rpc/dump'
 import { colors as c } from 'devframe/utils/colors'
 import { resolveStaticAssetsSource } from 'devframe/utils/remote-assets'
+import { joinURL } from 'devframe/utils/url'
 import { dirname, resolve } from 'pathe'
-import { joinURL } from 'ufo'
 import { DEVFRAMES_HUB_BASE, DOCK_RENDERERS_STATE_KEY, normalizeHubBase } from '../constants'
 import { mountDevframes, renderClientImportsModule, resolveDevframesInput, resolveRendererRegistrations } from './assemble'
 import { createHubContext } from './context'
@@ -183,7 +183,7 @@ async function createAndMountContext(options: BuildHubOptions, base: string, cwd
   const devframes = await resolveDevframesInput(options.devframes ?? [])
   for (const input of options.services ?? [])
     void ctx.services.install(input)
-  const setups = await mountDevframes(ctx, devframes, base, false)
+  const setups = await mountDevframes(ctx, devframes, base)
 
   await ctx.services.ready()
   for (const run of setups)

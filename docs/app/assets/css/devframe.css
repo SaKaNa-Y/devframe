@@ -118,3 +118,10 @@
   border-color: color-mix(in oklab, var(--ui-primary) 50%, transparent);
   outline: none;
 }
+
+.prose-date {
+  font-size: 0.875rem;
+  color: var(--ui-text-muted);
+  margin-bottom: 1rem;
+  margin-top: -3rem;
+}

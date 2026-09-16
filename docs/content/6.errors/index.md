@@ -54,7 +54,7 @@ Emitted by `devframe`: the framework-neutral host, RPC, streaming, assets, servi
 | [DF0043](/errors/DF0043) | error | Invalid RPC Argument |
 | [DF0044](/errors/DF0044) | error | Invalid RPC Return Value |
 | [DF0045](/errors/DF0045) | warn | Instance Registry Update Failed |
-| [DF0046](/errors/DF0046) | error | Connector Requires the MCP SDK |
+| [DF0046](/errors/DF0046) | error | Connector Requires @devframes/agentic |
 | [DF0047](/errors/DF0047) | warn | Agent Tool Wire-Name Collision |
 | [DF0048](/errors/DF0048) | error | Unknown Shared-State Key |
 | [DF0049](/errors/DF0049) | error | Connector Call Requires Port and Tool |
@@ -84,6 +84,8 @@ Emitted by `devframe`: the framework-neutral host, RPC, streaming, assets, servi
 | [DF0075](/errors/DF0075) | warn | No RPC Transport On This Runtime |
 | [DF0076](/errors/DF0076) | error | WebSocket Upgrade Unsupported On This Runtime |
 | [DF0077](/errors/DF0077) | error | In-Page Channel Function Not Registered |
+| [DF0078](/errors/DF0078) | warn | Agent Surface Without @devframes/agentic |
+| [DF0079](/errors/DF0079) | error | MCP Enabled Without @devframes/agentic |
 
 ## Hub: context & lifecycle (DF80xx)
 
@@ -95,7 +97,6 @@ Emitted by `@devframes/hub` while assembling and mounting the unified surface.
 | [DF8002](/errors/DF8002) | error | Both devframes and context Passed to initHub |
 | [DF8003](/errors/DF8003) | error | connectionMeta() Before Hub Instance Ready |
 | [DF8004](/errors/DF8004) | error | Devframe Id Is Not a Mountable URL Segment |
-| [DF8005](/errors/DF8005) | warning | Devframe MCP Ignored While Hub MCP Is Off |
 
 ## Hub: docks & mounting (DF81xx)
 

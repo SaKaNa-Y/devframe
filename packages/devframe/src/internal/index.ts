@@ -29,22 +29,29 @@
 // - `resolveBasePath` / `normalizeBasePath`: the mount-base resolution
 //   `initDevframe` itself uses; a bridge (`@devframes/vite`) that mounts a
 //   devframe onto a host it doesn't own reuses the exact same defaulting.
-// - `resolveClientAssets`: the definition → static-assets-source
-//   resolution every UI-serving adapter uses (`clientAssets`, falling back to
-//   the legacy `cli.distDir`), so a bridge that serves a devframe's SPA itself
-//   (`@devframes/vite`, `@devframes/next`, the hub's `ctx.install`) resolves it
-//   identically.
 // - `diagnostics`: devframe core's structured diagnostics instance
 //   (`DF00xx`), so a first-party integration built outside this package can
 //   report against the same registered codes instead of minting its own.
+// - `importAgenticMcp`: the loader for the optional `@devframes/agentic`
+//   peer's MCP adapter (thrown `DF0079` when absent); the hub's aggregate
+//   endpoint and the Next host mount through it.
+// - `argsToJsonSchema` / `returnToJsonSchema` / `stringifyForMcp` /
+//   `formatMcpError`: the pure agent-surface projections shared between the
+//   browser WebMCP registration and `@devframes/agentic/mcp`, so the two
+//   surfaces cannot drift.
+// - `probeDevframeOrigin`: the registry's origin-candidate probe,
+//   `@devframes/agentic/connect` reuses it for explicit `--port` probes.
 export { loadAutoMcpAdapter, normalizeBasePath, resolveBasePath, resolveMcpConfig } from '../adapters/_shared'
 export type { ResolvedMcpConfig } from '../adapters/_shared'
-export { resolveClientAssets } from '../client-assets'
+export { formatMcpError, stringifyForMcp } from '../agent/stringify'
+export { argsToJsonSchema, returnToJsonSchema } from '../agent/to-json-schema'
+export { importAgenticMcp } from '../node/agentic'
+export type { AgenticMcpModule, MountedMcpHttp, MountMcpHttpOptions } from '../node/agentic'
 export { diagnostics } from '../node/diagnostics'
 export { DevframeAgentHost } from '../node/host-agent'
 export * from '../node/host-h3'
 export { importRuntimeModule } from '../node/import-runtime-module'
-export { listLiveDevframeInstances, registerDevframeInstance } from '../node/instance-registry'
+export { listLiveDevframeInstances, probeDevframeOrigin, registerDevframeInstance } from '../node/instance-registry'
 export type { DevframeInstanceRecord, DevframeInstanceRegistration } from '../node/instance-registry'
 export { createInstanceShell, resolveInstanceRegister, samePath } from '../node/instance-shell'
 export type {
@@ -62,5 +69,4 @@ export type { ContextRpcServer, CreateContextRpcServerOptions } from '../node/rp
 export { normalizeHttpServerUrl } from '../node/utils'
 export { createRpcWireCodec, peekRpcWireFrame } from '../rpc/wire-codec'
 export type { RpcWireCodec } from '../rpc/wire-codec'
-export { coerceAgentPositionalArgs, toolInputToCommandArgs } from '../tool-input'
-export type { AgentArgsFallback } from '../tool-input'
+export { toolInputToCommandArgs } from '../tool-input'

@@ -106,17 +106,20 @@ export type McpAuthorization
 
 /**
  * The route-based MCP setting accepted everywhere a host mounts a devframe
- * (`cli.mcp`, `initDevframe` / `initHub` / `createDevServer` options, the
- * framework kits):
+ * (`initDevframe` / `initHub` / `createDevServer` options, `createCac` /
+ * `--mcp`, the framework kits):
  *
  * - `'auto'`, the default: mount the route when the devframe exposes an
  *   agent surface (an `agent`-flagged RPC function, or a tool / resource /
- *   provider registered on `ctx.agent`). An empty agent surface mounts
- *   nothing and loads no MCP code.
- * - `true`: always mount at the default `__mcp` route.
- * - `false`: never mount.
- * - {@link McpRouteOptions}: always mount, with a custom route path, origin
- *   allow-list, or {@link McpAuthorization} identity check.
+ *   provider registered on `ctx.agent`) AND the optional `@devframes/agentic`
+ *   peer (the MCP adapter and SDK) is installed. An empty agent surface
+ *   mounts nothing and loads no MCP code; a non-empty one without the peer
+ *   warns once (DF0078) and mounts nothing.
+ * - `true`: always mount at the default `__mcp` route; a missing
+ *   `@devframes/agentic` throws DF0079.
+ * - `false`: never mount, and never probe or warn.
+ * - {@link McpRouteOptions}: always mount (like `true`), with a custom route
+ *   path, origin allow-list, or {@link McpAuthorization} identity check.
  *
  * A mounted route trusts same-machine callers by default (the loopback
  * origin gate), exactly like `mcp: true`.
@@ -202,36 +205,6 @@ export interface DevframeCliOptions {
    * @default true
    */
   auth?: boolean | DevframeAuthHandler
-  /**
-   * Expose a route-based MCP server alongside the standalone dev server,
-   * speaking the MCP Streamable-HTTP transport at `/__mcp` (relative to the
-   * base path). It surfaces the same `ctx.agent` tools + shared-state
-   * resources as the stdio `mcp` command, but against the live server.
-   *
-   * Defaults to `'auto'`: the route mounts once the devframe exposes an
-   * agent surface (an `agent`-flagged RPC, a registered tool / resource).
-   * See {@link McpSetting} for the full contract, and
-   * {@link McpRouteOptions} for the route path, origin allow-list, and
-   * {@link McpAuthorization} identity check.
-   *
-   * The `--mcp` / `--no-mcp` CLI flags override this per run. Whether to expose
-   * MCP is a hosting decision, so programmatic hosts pass it to
-   * `initDevframe` / `initHub` / `createDevServer` instead.
-   *
-   * @deprecated Whether to expose MCP is a hosting decision, not a capability
-   * of the tool. Pass `mcp` to `createCac` (or the programmatic host) instead.
-   * This field is still read as a fallback, and will be removed in a future
-   * release.
-   */
-  mcp?: McpSetting
-  /**
-   * Author's SPA dist, served as the devframe's UI.
-   *
-   * @deprecated Moved to the top-level {@link DevframeDefinition.clientAssets}.
-   * Set `clientAssets` on the definition instead. This field is still read as a
-   * fallback when `clientAssets` is unset, so existing definitions keep working.
-   */
-  distDir?: StaticAssetsSource
   /**
    * How the browser reaches the RPC WebSocket. Defaults to sharing the HTTP
    * port on the `__ws` route. See {@link DevframeWsOptions} for the
@@ -329,6 +302,11 @@ export interface DevframeDockDefaults {
    * host wiring; a URL or bare specifier passes through untouched.
    */
   clientScript?: {
+    /**
+     * Initialize after RPC trust without waiting for dock activation.
+     * @default false
+     */
+    eager?: boolean
     /** An absolute filesystem path, a served URL, or a bare npm specifier. */
     importFrom: string
     /**
@@ -446,8 +424,7 @@ export interface DevframeDefinition {
    * ship inside the node package.
    *
    * Consumed by every adapter that serves the UI (`dev`, `build`, `vite`,
-   * `next`, and the hub install path). When unset, the deprecated
-   * {@link DevframeCliOptions.distDir} is read as a fallback.
+   * `next`, and the hub install path).
    */
   clientAssets?: StaticAssetsSource
   /** RPC-level configuration for this devframe (see {@link DevframeRpcOptions}). */

@@ -12,7 +12,7 @@ import type { DevframeDefinition, McpSetting } from '../types/devframe'
 import process from 'node:process'
 import cac from 'cac'
 import { colors as c } from 'devframe/utils/colors'
-import { importRuntimeModule } from '../node/import-runtime-module'
+import { importAgenticMcp } from '../node/agentic'
 import { createBuild } from './build'
 import { createDevServer, resolveDevServerPort } from './dev'
 import { flagKeyToOption, isBooleanFlag, parseCliFlags } from './flags'
@@ -27,9 +27,8 @@ export interface CreateCacOptions {
    * Expose a route-based MCP server alongside the dev server, speaking the
    * MCP Streamable-HTTP transport at `<base>__mcp`. Whether to expose MCP is
    * a hosting decision made at the CLI assembly stage, so it lives here rather
-   * than on the definition. When unset, falls back to the definition's
-   * deprecated `cli.mcp`, then to the `'auto'` default (mount once the agent
-   * surface is non-empty). See {@link McpSetting}.
+   * than on the definition. When unset, falls back to the `'auto'` default
+   * (mount once the agent surface is non-empty). See {@link McpSetting}.
    *
    * The `--mcp` / `--no-mcp` flags override this per run.
    */
@@ -82,8 +81,8 @@ export function createCac(d: DevframeDefinition, options: CreateCacOptions = {})
     // Only `--mcp` is declared: CAC's `--no-*` auto-negation would inject a
     // `true` default, forcing the route on. Declaring just `--mcp` keeps the
     // tri-state: absent → `undefined` (falls through to `options.mcp`, then
-    // `cli.mcp`, then the `'auto'` default), `--mcp` → `true` (mount
-    // unconditionally), `--no-mcp` → `false` (handled by CAC's `--no-` prefix).
+    // the `'auto'` default), `--mcp` → `true` (mount unconditionally),
+    // `--no-mcp` → `false` (handled by CAC's `--no-` prefix).
     .option('--mcp', 'Force the MCP route on (use --no-mcp to disable; default mounts it once agent tools exist)')
 
   // Register typed flags from the definition ahead of `cli.configure`
@@ -107,8 +106,8 @@ export function createCac(d: DevframeDefinition, options: CreateCacOptions = {})
     const port = (flags.port as number | undefined) ?? await resolveDevServerPort(d, { host, defaultPort })
     // `--mcp` / `--no-mcp` map to a boolean override; when neither is passed
     // CAC leaves `mcp` undefined so we fall back to the assembly-stage
-    // `options.mcp`, and `createDevServer` falls through to `def.cli?.mcp`,
-    // then to the `'auto'` default.
+    // `options.mcp`, and `createDevServer` falls through to the `'auto'`
+    // default.
     const mcp = (flags.mcp as boolean | undefined) ?? options.mcp
     await createDevServer(d, {
       host,
@@ -138,7 +137,8 @@ export function createCac(d: DevframeDefinition, options: CreateCacOptions = {})
       // MCP clients expect JSON-RPC on stdout, so route welcome/logging
       // noise out of the way. Logs-SDK diagnostics land on stderr by
       // default, so nothing extra needed beyond not printing here.
-      const { createMcpServer } = await importRuntimeModule<typeof import('./mcp')>('devframe/adapters/mcp')
+      // Explicit invocation: a missing `@devframes/agentic` throws DF0079.
+      const { createMcpServer } = await importAgenticMcp()
       await createMcpServer(d, {
         transport: 'stdio',
         /** Deliberately go to stderr: stdout is the MCP transport. */

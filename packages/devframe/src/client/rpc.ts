@@ -10,7 +10,7 @@ import type { DevframeScopedClientContext } from './scope'
 import { DEVFRAME_OTP_URL_PARAM } from 'devframe/constants'
 import { RpcCacheManager, RpcFunctionsCollectorBase } from 'devframe/rpc'
 import { createEventEmitter } from 'devframe/utils/events'
-import { withBase } from 'ufo'
+import { withBase } from 'devframe/utils/url'
 import { setupDevframeConnection } from './connection'
 import { storeAuthToken } from './connection-storage'
 import { authenticateWithUrlOtp } from './otp'
@@ -356,6 +356,8 @@ export async function getDevframeRpcClient(
   const clientRpc: DevframeClientRpcHost = new RpcFunctionsCollectorBase<DevframeRpcClientFunctions, DevframeRpcContext>(context)
   // No-op when the browser provides no WebMCP model context.
   const disposeWebMcp = options.webmcp === false ? undefined : registerWebMcpTools(clientRpc)
+  let disposeBrowserAgentBridge: (() => void) | undefined
+  let closed = false
 
   async function fetchJsonFromBases(path: string): Promise<any> {
     const candidates = [
@@ -445,6 +447,23 @@ export async function getDevframeRpcClient(
     }) as F
   }
 
+  /** Release authentication and transport resources even if another disposer fails. */
+  function closeRpcClient(): void {
+    closed = true
+    try {
+      disposeBrowserAgentBridge?.()
+      disposeWebMcp?.()
+    }
+    finally {
+      try {
+        authChannel?.close()
+      }
+      finally {
+        mode.close?.()
+      }
+    }
+  }
+
   const rpc: DevframeRpcClient = {
     events,
     get isTrusted() {
@@ -495,10 +514,7 @@ export async function getDevframeRpcClient(
     streaming: undefined!,
     cacheManager,
     scope: undefined!,
-    close: () => {
-      disposeWebMcp?.()
-      mode.close?.()
-    },
+    close: closeRpcClient,
   }
 
   rpc.sharedState = createRpcSharedStateClientHost(rpc)
@@ -583,6 +599,18 @@ export async function getDevframeRpcClient(
     () => { bootstrapAuthSettled = true },
     () => { bootstrapAuthSettled = true },
   )
+
+  // Only when the node advertises an MCP endpoint (`connectionMeta.mcp`) is the
+  // browser-agent bridge useful, so load it from its own chunk on demand and
+  // keep it out of the main client bundle for every non-MCP connection.
+  if (connectionMeta.mcp) {
+    void import('./browser-agent-rpc')
+      .then(({ setupBrowserAgentRpcBridge }) => {
+        if (!closed)
+          disposeBrowserAgentBridge = setupBrowserAgentRpcBridge(rpc)
+      })
+      .catch(() => {})
+  }
 
   // Listen for auth updates from other tabs (e.g., the auth page, or another
   // tab that just completed a code exchange).

@@ -87,6 +87,22 @@ export interface ConnectionMetaWebsocket {
   port?: number;
   host?: string;
 }
+export interface CreateMcpFetchHandlerOptions {
+  serverName: string;
+  serverVersion: string;
+  exposeSharedState: boolean | ((_: string) => boolean);
+  authorization?: McpAuthorization;
+  allowedOrigins?: readonly string[] | false;
+}
+export interface CreateMcpServerOptions {
+  transport?: 'stdio';
+  exposeSharedState?: boolean | ((_: string) => boolean);
+  serverName?: string;
+  serverVersion?: string;
+  onReady?: (_: {
+    transport: 'stdio';
+  }) => void;
+}
 export interface DevframeAgentHost {
   readonly events: EventEmitter<DevframeAgentHostEvents>;
   registerTool: (_: AgentToolInput) => AgentHandle;
@@ -120,8 +136,6 @@ export interface DevframeCliOptions {
   host?: string;
   open?: boolean | string;
   auth?: boolean | DevframeAuthHandler;
-  mcp?: McpSetting;
-  distDir?: StaticAssetsSource;
   ws?: DevframeWsOptions | false;
   sse?: boolean | DevframeSseOptions;
   configure?: (_: CAC) => void;
@@ -171,6 +185,7 @@ export interface DevframeDockDefaults {
   badge?: string;
   groupId?: string;
   clientScript?: {
+    eager?: boolean;
     importFrom: string;
     importName?: string;
   };
@@ -211,6 +226,7 @@ export interface DevframeNodeRpcSessionMeta {
   uploadingStreams?: Set<string>;
 }
 export interface DevframeRpcClientFunctions {
+  'devframe:agent:invoke-client-tool': (_: string, _: Record<string, unknown>) => Promise<unknown>;
   'devframe:auth:revoked': () => Promise<void>;
   'devframe:streaming:chunk': (_: string, _: string, _: number, _: any) => Promise<void>;
   'devframe:streaming:end': (_: string, _: string, _?: {
@@ -239,6 +255,7 @@ export interface DevframeRpcOptions {
   snapshot?: DevframeSnapshotRpcEntry[];
 }
 export interface DevframeRpcServerFunctions {
+  'devframe:agent:sync-client-tools': (_: string, _: BrowserAgentToolManifest[]) => Promise<void>;
   'anonymous:devframe:auth': (_: {
     authToken: string;
     ua: string;
@@ -415,10 +432,20 @@ export interface EventsMap {
 export interface EventUnsubscribe {
   (): void;
 }
+export interface McpConnectionInfo {
+  remoteAddress?: string;
+}
+export interface McpFetchHandler {
+  fetch: (_: Request, _?: McpConnectionInfo) => Promise<Response>;
+  dispose: () => Promise<void>;
+}
 export interface McpRouteOptions {
   path?: string;
   authorization?: McpAuthorization;
   allowedOrigins?: readonly string[] | false;
+}
+export interface McpServerHandle {
+  stop: () => Promise<void>;
 }
 export interface RemoteAssets {
   package: string;
@@ -541,8 +568,6 @@ export type StaticAssetsSource = string | RemoteAssets;
 
 // #region Functions
 export declare function defineDevframe(_: DevframeDefinition): DevframeDefinition;
-/** @deprecated */
-export declare function resolveClientAssets(_: DevframeDefinition): StaticAssetsSource | undefined;
 // #endregion
 
 // #region Variables

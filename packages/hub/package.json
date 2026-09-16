@@ -1,7 +1,7 @@
 {
   "name": "@devframes/hub",
   "type": "module",
-  "version": "0.9.18",
+  "version": "0.10.1",
   "description": "Hub layer that orchestrates devframe docks, terminals, messages, and commands on any host.",
   "author": "Anthony Fu <anthonyfu117@hotmail.com>",
   "license": "MIT",
@@ -41,23 +41,27 @@
     "prepack": "turbo run build --filter=@devframes/hub"
   },
   "peerDependencies": {
+    "@devframes/agentic": "workspace:*",
     "devframe": "workspace:*"
   },
+  "peerDependenciesMeta": {
+    "@devframes/agentic": {
+      "optional": true
+    }
+  },
   "dependencies": {
-    "@standard-schema/spec": "catalog:deps",
     "destr": "catalog:deps",
     "h3": "catalog:deps",
     "pathe": "catalog:deps",
-    "perfect-debounce": "catalog:deps",
     "tinyexec": "catalog:deps",
-    "ufo": "catalog:deps",
     "zigpty": "catalog:deps"
   },
   "devDependencies": {
+    "@devframes/agentic": "workspace:*",
+    "@standard-schema/spec": "catalog:deps",
     "@types/node": "catalog:types",
     "devframe": "workspace:*",
     "get-port-please": "catalog:deps",
-    "mlly": "catalog:build",
     "tsdown": "catalog:build",
     "valibot": "catalog:deps"
   }

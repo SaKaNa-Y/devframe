@@ -15,6 +15,7 @@ import {
   DEFAULT_CALL_TIMEOUT_MS,
   deserializeResult,
   InPageChannelError,
+  registerInPageAgentTools,
   resolveHeartbeat,
   resolveLocalHandler,
   serializeArgs,
@@ -38,7 +39,7 @@ const DEFAULT_EVENT_BUFFER_LIMIT = 64
  * Connect the panel endpoint of an in-page channel.
  *
  * The panel initiates: it posts a versioned hello to every window a
- * same-tab page script can live in (its ancestor chain and its `opener`),
+ * page script can live in (its ancestor chain and those windows' openers),
  * retrying with backoff until one answers with a dedicated port, so boot
  * order never matters, and a reload of either side is just a re-handshake
  * (`WindowProxy` references survive navigations). While `connecting`,
@@ -68,6 +69,7 @@ export function connectPanelChannel<P extends InPageChannelProtocol>(
     registry.register({ ...definition, name: fnName })
   for (const [eventName, definition] of Object.entries(options.events ?? {}))
     registry.register({ ...definition, name: eventName, type: 'event' })
+  const disposeAgentTools = registerInPageAgentTools(name, registry)
 
   let status: InPageChannelStatus = 'connecting'
   let attached: AttachedChannelPort | undefined
@@ -292,13 +294,13 @@ export function connectPanelChannel<P extends InPageChannelProtocol>(
     },
     call: (fnName, ...args) => enqueueCall(channelMethod('function', fnName), serializeArgs(codec, args)) as Promise<any>,
     emit: (fnName, ...args) => sendEvent(channelMethod('event', fnName), serializeArgs(codec, args)),
-    callEvent: (fnName, ...args) => sendEvent(channelMethod('event', fnName), serializeArgs(codec, args)),
     on: (fnName, listener) => registry.on(fnName, listener as (...args: unknown[]) => void),
     sharedState: stateHost,
     close: () => {
       if (status === 'closed')
         return
       setStatus('closed')
+      disposeAgentTools()
       stopTimers()
       win?.removeEventListener('message', onWindowMessage)
       attached?.dispose({ bye: true, reason: 'the panel closed the channel' })
