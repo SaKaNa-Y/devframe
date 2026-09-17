@@ -3,11 +3,12 @@
 /* @refresh reload */
 
 import { render } from 'solid-js/web'
-import { syncPanelTheme } from '../../../design/panel-theme'
+import { applyPanelBranding } from '../../../design/panel-theme'
 import { App } from './app.tsx'
 import 'virtual:uno.css'
 import '@antfu/design/styles.css'
 import './styles.css'
+import '../../../packages/hub-ui/src/client/primary-ramp.css'
 
 // Shared design tokens flip on the `.dark` class; mirror the OS preference onto
 // <html> (the other devframe plugins follow the same approach).
@@ -25,5 +26,5 @@ if (!root)
 
 render(() => <App />, root)
 
-const stopPanelTheme = syncPanelTheme()
+const stopPanelTheme = applyPanelBranding()
 import.meta.hot?.dispose(stopPanelTheme)

@@ -70,7 +70,6 @@ export const DEVFRAME_EVENTS = {
   },
   /** `postMessage` channels the runtime posts across window boundaries. */
   postMessage: {
-    theme: 'devframe:theme',
     remoteAssetsError: 'devframe:remote-assets-error',
     inPageChannel: 'devframe:in-page-channel',
   },

@@ -1,50 +1,35 @@
-import { watchDevframeTheme } from 'devframe/client'
+import type { DevframeBranding } from '../packages/hub-ui/src/types'
+import { setupDevframeConnection } from 'devframe/client'
 
-// Match the reference dock's primary ramp. Only accent tokens change; semantic
-// success/error/warning colors and each SPA's chart palettes stay independent.
-const primaryStops = {
-  DEFAULT: 0,
-  50: 95,
-  100: 90,
-  200: 75,
-  600: 9,
-  500: 18,
-  400: 34,
-  300: 54,
-  700: -8,
-  800: -25,
-  900: -45,
-  950: -70,
-} as const
+/** Apply startup branding to a built-in devframe's iframe SPA. */
+export function applyPanelBranding(): () => void {
+  if (window.parent === window)
+    return () => {}
 
-/** Opt a built-in devframe SPA into the hub UI provider's primary accent. */
-export function syncPanelTheme(): () => void {
-  const style = document.documentElement.style
-  const previous = Object.keys(primaryStops).map((stop) => {
-    const name = `--colors-primary-${stop}`
-    return { name, value: style.getPropertyValue(name), priority: style.getPropertyPriority(name) }
-  })
-  function restore() {
-    for (const { name, value, priority } of previous) {
-      if (value)
-        style.setProperty(name, value, priority)
-      else
-        style.removeProperty(name)
-    }
-  }
-  const stop = watchDevframeTheme(({ primaryColor }) => {
-    if (!primaryColor || !CSS.supports('color', primaryColor)) {
-      restore()
+  const root = document.documentElement
+  const previous = root.style.getPropertyValue('--devframe-primary')
+  const priority = root.style.getPropertyPriority('--devframe-primary')
+  let disposed = false
+  let applied = false
+
+  void setupDevframeConnection().then(({ connectionMeta }) => {
+    const configs = connectionMeta.configs as { ui?: { branding?: DevframeBranding } } | undefined
+    const color = configs?.ui?.branding?.primaryColor
+    if (disposed || !color || !CSS.supports('color', color))
       return
-    }
-    for (const [stop, white] of Object.entries(primaryStops)) {
-      style.setProperty(`--colors-primary-${stop}`, white
-        ? `color-mix(in oklab, ${primaryColor}, ${white > 0 ? 'white' : 'black'} ${Math.abs(white)}%)`
-        : primaryColor)
-    }
+    root.style.setProperty('--devframe-primary', color)
+    applied = true
+  }).catch(() => {
+    // Connection failures leave the SPA's default palette intact.
   })
+
   return () => {
-    stop()
-    restore()
+    disposed = true
+    if (!applied)
+      return
+    if (previous)
+      root.style.setProperty('--devframe-primary', previous, priority)
+    else
+      root.style.removeProperty('--devframe-primary')
   }
 }
