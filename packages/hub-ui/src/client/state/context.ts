@@ -12,7 +12,7 @@ import { computed, markRaw, reactive, ref, toRefs, watch, watchEffect } from 'vu
 import { BUILTIN_ENTRIES, BUILTIN_ENTRY_SETTINGS, DEFAULT_CATEGORIES_ORDER, HUB_UI_HIDE_EVENT } from '../constants'
 import { useBranding } from './branding'
 import { createCommandsContext } from './commands'
-import { docksGroupByCategories, getGroupMembers, getRegisteredGroupIds, resolveCommandIcon, resolveGroupPreferredChild } from './dock-settings'
+import { docksGroupByCategories, getGroupMembers, getRegisteredGroupIds, resolveCommandIcon, resolveGroupDefaultChild, resolveGroupPreferredChild } from './dock-settings'
 import { createDockEntryState, DEFAULT_DOCK_PANEL_STORE, DEFAULT_DOCK_SESSION_STORE, sharedStateToRef, useDocksEntries, waitForInitialSharedStateSync } from './docks'
 import { createClientMessagesClient } from './messages-client'
 import { dockCommandId } from './palette'
@@ -277,6 +277,41 @@ export async function createDocksContext(
       sessionStore.value.selectedDockRoute = null
   }
 
+  /**
+   * Groups whose `defaultChildId` already loaded this session. A group can mix
+   * server and client docks, and the default member is what mounts the client
+   * ones. The first time any member of the group is opened, `switchEntry` loads
+   * the default member too, then returns to the requested member. The
+   * last-opened memory is kept, so the group still navigates to where the
+   * developer left off.
+   */
+  const loadedGroupDefaults = new Set<string>()
+  /** Returns a promise only when a load is needed, so other selections stay synchronous. */
+  const loadGroupDefaultChild = (
+    entry: DevframeDockEntry,
+    open: (id: string) => Promise<boolean>,
+  ): Promise<void> | undefined => {
+    const groupId = entry.groupId
+    if (!groupId || loadedGroupDefaults.has(groupId))
+      return undefined
+    const group = entries.value.find(e => e.type === 'group' && e.id === groupId)
+    const target = group?.type === 'group'
+      ? resolveGroupDefaultChild(entries.value, groupId, group.defaultChildId, getWhenContext())
+      : undefined
+    if (!target)
+      return undefined
+    loadedGroupDefaults.add(groupId)
+    if (target.id === entry.id)
+      return undefined
+    const lastChildId = sessionStore.value.groupLastChildIds?.[groupId]
+    return open(target.id).then(() => {
+      if (lastChildId)
+        (sessionStore.value.groupLastChildIds ??= {})[groupId] = lastChildId
+      else
+        delete sessionStore.value.groupLastChildIds?.[groupId]
+    })
+  }
+
   const switchEntry = async (id: string | null = null): Promise<boolean> => {
     if (id == null) {
       initialRestorePending.value = false
@@ -300,6 +335,10 @@ export async function createDocksContext(
       return false
     if (redirect !== null)
       return switchEntry(redirect)
+
+    const loading = loadGroupDefaultChild(entry, switchEntry)
+    if (loading)
+      await loading
 
     // If the action is in a popup, delegate to the main frame
     if (entry.type === 'action') {
