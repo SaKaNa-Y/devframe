@@ -171,6 +171,7 @@ catalogs:
   docs:
     '@nuxt/devtools-kit': *nuxtDevtools
     comark-docs: github:comarkdown/comark-docs#f97dc864b0aa702d54c600f868589b7a2c185b3a
+    satori: ^0.35.0
   frontend:
     '@antfu/design': ^0.6.0
     '@discoveryjs/discovery': 1.0.0-beta.99

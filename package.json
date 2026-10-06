@@ -63,6 +63,7 @@
     "nano-staged": "catalog:tooling",
     "pathe": "catalog:deps",
     "prompts": "catalog:tooling",
+    "satori": "catalog:docs",
     "simple-git-hooks": "catalog:tooling",
     "skills-npm": "catalog:tooling",
     "tinyexec": "catalog:deps",
