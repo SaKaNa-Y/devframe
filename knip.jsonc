@@ -10,7 +10,7 @@
   // (scanning `i-ph:*` classes against the installed collection), never
   // imported in source - the same false-positive class knip's own docs
   // describe for icon-collection dependencies.
-  "ignoreDependencies": ["@iconify-json/.+", "@unocss/preset-icons", "@antfu/skills"],
+  "ignoreDependencies": ["@iconify-json/.+", "@unocss/preset-icons", "@antfu/skills", "satori"],
   // Every built-in plugin's `src/index.ts` aliases its `create<X>Devframe`
   // factory as both the named and default export (AGENTS.md § "A plugin's
   // default export is its `create<X>Devframe` factory") - `export default
