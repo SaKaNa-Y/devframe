@@ -427,6 +427,11 @@ export async function getDevframeRpcClient(
             cacheFunctions = mode.callOptional('devframe:rpc:cacheable-functions').then((functions) => {
               if (generation === cacheGeneration)
                 cacheManager.updateOptions({ functions: functions ?? [] })
+            }).catch((error) => {
+              // Retry on a later call without resetting discovery after invalidation.
+              if (generation === cacheGeneration)
+                cacheFunctions = undefined
+              throw error
             })
             await cacheFunctions
           }

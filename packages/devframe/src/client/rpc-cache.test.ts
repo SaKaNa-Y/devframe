@@ -132,6 +132,79 @@ describe.each(['websocket', 'sse'] as const)('automatic RPC cache over %s', (tra
     expect(counts.query).toBe(2)
   })
 
+  it('retries discovery after a rejected request without blocking actions', async () => {
+    const { ctx, client, call, counts } = await setup(transport)
+    await call('test:query', 1)
+    const clear = vi.spyOn(client.cacheManager, 'clear')
+    const discovery = vi.fn()
+      .mockRejectedValueOnce(new Error('temporary discovery failure'))
+      .mockResolvedValue(['test:query'])
+    ctx.rpc.update(defineRpcFunction({ name: 'devframe:rpc:cacheable-functions', type: 'query', handler: discovery }))
+    await vi.waitFor(() => expect(clear).toHaveBeenCalled())
+
+    await expect(call('test:action', 1)).rejects.toThrow('temporary discovery failure')
+    expect(counts.action).toBeUndefined()
+    await expect(call('test:action', 2)).resolves.toBe(2)
+    await expect(call('test:action', 2)).resolves.toBe(2)
+    await call('test:query', 1)
+    await call('test:query', 1)
+    expect(counts).toEqual({ action: 2, query: 2 })
+    expect(discovery).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries discovery after a timeout and ignores its late response', async () => {
+    const { ctx, client, call, counts } = await setup(transport)
+    await call('test:query', 1)
+    const clear = vi.spyOn(client.cacheManager, 'clear')
+    const pending = Promise.withResolvers<string[]>()
+    const discovery = vi.fn()
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValue(['test:query'])
+    const timedOut = Promise.withResolvers<void>()
+    client.events.on(DEVFRAME_EVENTS.client.error, (_error, method) => {
+      if (method === 'devframe:rpc:cacheable-functions')
+        timedOut.resolve()
+    })
+    ctx.rpc.update(defineRpcFunction({ name: 'devframe:rpc:cacheable-functions', type: 'query', handler: discovery }))
+    await vi.waitFor(() => expect(clear).toHaveBeenCalled())
+
+    await expect(call('test:action', 1)).rejects.toMatchObject({ kind: 'timeout' })
+    await timedOut.promise
+    // The error event fires before the discovery promise rejects.
+    await new Promise(resolve => setTimeout(resolve, 0))
+    pending.resolve(['test:action'])
+    expect(counts.action).toBeUndefined()
+    await expect(call('test:action', 2)).resolves.toBe(2)
+    await expect(call('test:action', 2)).resolves.toBe(2)
+    await call('test:query', 1)
+    await call('test:query', 1)
+    expect(counts).toEqual({ action: 2, query: 2 })
+    expect(discovery).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps refreshed discovery when an invalidated request rejects', async () => {
+    const { ctx, client, call } = await setup(transport)
+    await call('test:query', 1)
+    const clear = vi.spyOn(client.cacheManager, 'clear')
+    const pending = Promise.withResolvers<string[]>()
+    const discovery = vi.fn()
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValue(['test:query'])
+    ctx.rpc.update(defineRpcFunction({ name: 'devframe:rpc:cacheable-functions', type: 'query', handler: discovery }))
+    await vi.waitFor(() => expect(clear).toHaveBeenCalled())
+
+    const rejected = expect(call('test:action', 1)).rejects.toThrow('outdated discovery')
+    await vi.waitFor(() => expect(discovery).toHaveBeenCalledTimes(1))
+    clear.mockClear()
+    await ctx.rpc.broadcast({ method: DEVFRAME_EVENTS.broadcast.cacheInvalidate, args: [] })
+    await vi.waitFor(() => expect(clear).toHaveBeenCalled())
+    await call('test:query', 1)
+    pending.reject(new Error('outdated discovery'))
+    await rejected
+    await call('test:query', 1)
+    expect(discovery).toHaveBeenCalledTimes(2)
+  })
+
   it('refreshes eligibility when a function is registered or updated', async () => {
     const { ctx, client, call } = await setup(transport)
     await call('test:query', 1)
