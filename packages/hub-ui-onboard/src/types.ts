@@ -58,7 +58,7 @@ export type OnboardingState = 'idle' | 'installing' | 'installed' | 'ready' | 'e
 export interface OnboardingStatus {
   state: OnboardingState
   /** The exact command Install runs, for the panel's preview line. */
-  command: string
+  command: string[]
   branding: OnboardingBranding
   messages: OnboardingMessages
   error?: { code: string, message: string }

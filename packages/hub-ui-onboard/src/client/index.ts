@@ -29,11 +29,23 @@ async function handOff(): Promise<void> {
   await import(/* @vite-ignore */ new URL(`embedded.js?onboard=${Date.now()}`, base).href)
 }
 
+const darkQuery = matchMedia('(prefers-color-scheme: dark)')
+
+/**
+ * The scheme to render, in priority order: the choice the hub saved, then
+ * a `.dark` or `.light` class on the host page's `<html>`, then the operating
+ * system preference.
+ */
 function isDark(): boolean {
   const stored = localStorage.getItem('devframes-color-scheme')
   if (stored === 'dark' || stored === 'light')
     return stored === 'dark'
-  return matchMedia('(prefers-color-scheme: dark)').matches
+  const { classList } = document.documentElement
+  if (classList.contains('dark'))
+    return true
+  if (classList.contains('light'))
+    return false
+  return darkQuery.matches
 }
 
 function logoFor(branding: OnboardingBranding): string | undefined {
@@ -43,9 +55,7 @@ function logoFor(branding: OnboardingBranding): string | undefined {
   return isDark() ? (logo.dark ?? logo.light) : logo.light
 }
 
-function mark(branding: OnboardingBranding, className: string): HTMLElement {
-  const el = document.createElement('span')
-  el.className = `${className} flex items-center justify-center`
+function fillMark(el: HTMLElement, branding: OnboardingBranding): void {
   const src = logoFor(branding)
   if (src) {
     const img = document.createElement('img')
@@ -53,11 +63,17 @@ function mark(branding: OnboardingBranding, className: string): HTMLElement {
     img.alt = ''
     img.draggable = false
     img.className = 'w-full h-full object-contain'
-    el.append(img)
+    el.replaceChildren(img)
   }
   else {
     el.innerHTML = DEVFRAME_LOGO
   }
+}
+
+function mark(branding: OnboardingBranding, className: string): HTMLElement {
+  const el = document.createElement('span')
+  el.className = `${className} flex items-center justify-center`
+  fillMark(el, branding)
   return el
 }
 
@@ -76,16 +92,14 @@ function mount(initial: OnboardingStatus): void {
   const style = document.createElement('style')
   style.textContent = css
   const scheme = document.createElement('div')
-  scheme.className = [
-    isDark() ? 'dark' : 'light',
-    'devframes-onboard-root',
-  ].join(' ')
+  scheme.className = 'devframes-onboard-root'
   scheme.style.display = 'contents'
   root.append(style, scheme)
   if (initial.branding.primaryColor)
     host.style.setProperty('--devframe-primary', initial.branding.primaryColor)
 
   const { messages, branding } = initial
+  const productName = branding.productName ?? 'Devframes'
 
   const pill = document.createElement('button')
   pill.type = 'button'
@@ -95,7 +109,11 @@ function mount(initial: OnboardingStatus): void {
   pill.setAttribute('aria-expanded', 'false')
   const glow = document.createElement('span')
   glow.className = 'devframes-onboard-glow'
-  pill.append(mark(branding, 'w-3 h-3'))
+  const pillMark = mark(branding, 'w-3 h-3')
+  // While installing, the spinner takes the logo's place in the pill.
+  const pillSpinner = document.createElement('span')
+  pillSpinner.className = 'devframes-onboard-spinner i-ph-spinner animate-spin'
+  pill.append(pillMark)
 
   const panel = document.createElement('div')
   panel.className = 'devframes-onboard-panel'
@@ -106,7 +124,21 @@ function mount(initial: OnboardingStatus): void {
   heading.className = 'flex items-center gap-2 font-medium'
   const title = document.createElement('span')
   title.textContent = messages.title
-  heading.append(mark(branding, 'w-5 h-5'), title)
+  const headingMark = mark(branding, 'w-5 h-5')
+  heading.append(headingMark, title)
+
+  // Follow the scheme live: the host page can flip `.dark` or the system can
+  // change, and a logo can have a different file per scheme.
+  const applyScheme = () => {
+    const dark = isDark()
+    scheme.classList.toggle('dark', dark)
+    scheme.classList.toggle('light', !dark)
+    fillMark(pillMark, branding)
+    fillMark(headingMark, branding)
+  }
+  applyScheme()
+  darkQuery.addEventListener('change', applyScheme)
+  new MutationObserver(applyScheme).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
 
   const description = document.createElement('p')
   description.className = 'color-muted m-0'
@@ -114,13 +146,61 @@ function mount(initial: OnboardingStatus): void {
 
   const command = document.createElement('code')
   command.className = 'devframes-onboard-command'
-  command.textContent = initial.command
+  initial.command.forEach((part, index) => {
+    const span = document.createElement('span')
+    span.textContent = part
+    if (index > 2) {
+      span.style.color = 'var(--devframe-primary)'
+      span.style.fontWeight = 'medium'
+    }
+    else {
+      span.style.opacity = '0.75'
+    }
+    command.append(span)
+    if (index < initial.command.length - 1)
+      command.append(document.createTextNode(' '))
+  })
+  const copy = document.createElement('button')
+  copy.type = 'button'
+  copy.className = 'devframes-onboard-copy'
+  copy.title = 'Copy command'
+  copy.setAttribute('aria-label', 'Copy command')
+  const copyIcon = document.createElement('span')
+  copyIcon.className = 'i-ph-copy'
+  copy.append(copyIcon)
+  let copyTimer: ReturnType<typeof setTimeout> | undefined
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(initial.command.join(' '))
+      copyIcon.className = 'i-ph-check'
+      copy.title = 'Copied'
+    }
+    catch {
+      // Clipboard access needs a secure context; the text stays selectable.
+      return
+    }
+    clearTimeout(copyTimer)
+    copyTimer = setTimeout(() => {
+      copyIcon.className = 'i-ph-copy'
+      copy.title = 'Copy command'
+    }, 1500)
+  })
+  const commandRow = document.createElement('div')
+  commandRow.className = 'devframes-onboard-command-row'
+  commandRow.append(command, copy)
 
   const note = document.createElement('p')
   note.className = 'm-0 text-xs'
   note.hidden = true
 
-  const install = button('btn-primary text-sm justify-center', messages.install, () => void startInstall())
+  const install = button('btn-primary text-sm justify-center gap-1', messages.install, () => void startInstall())
+  // The spinner takes its space from the line height, so the button keeps its size.
+  const spinner = document.createElement('span')
+  spinner.className = 'devframes-onboard-spinner i-ph-spinner animate-spin'
+  spinner.hidden = true
+  const installLabel = document.createElement('span')
+  installLabel.textContent = messages.install
+  install.replaceChildren(spinner, installLabel)
   const hide = button('btn-action justify-center text-sm color-muted', messages.hide, () => {
     sessionStorage.setItem(HIDDEN_KEY, '1')
     host.remove()
@@ -133,7 +213,7 @@ function mount(initial: OnboardingStatus): void {
   actions.className = 'flex flex-col gap-2'
   actions.append(secondary, install)
 
-  panel.append(heading, description, command, note, actions)
+  panel.append(heading, description, commandRow, note, actions)
   scheme.append(glow, pill, panel)
 
   let open = false
@@ -154,18 +234,23 @@ function mount(initial: OnboardingStatus): void {
 
   function render(status: OnboardingStatus): void {
     const { state } = status
-    install.disabled = state === 'installing'
-    install.textContent = state === 'error' ? messages.retry : messages.install
-    install.hidden = state === 'installed'
-    note.hidden = !(state === 'installing' || state === 'installed' || state === 'error')
-    note.className = `m-0 text-xs ${state === 'error' ? 'text-red-600 dark:text-red-400' : 'color-muted'}`
-    note.textContent = state === 'installing'
-      ? messages.installing
+    const busy = state === 'installing' || state === 'installed'
+    install.disabled = busy
+    hide.disabled = busy
+    disable.disabled = busy
+    spinner.hidden = state !== 'installing'
+    pill.replaceChildren(state === 'installing' ? pillSpinner : pillMark)
+    // The button itself shows the installing and installed states.
+    installLabel.textContent = state === 'installing'
+      ? `Installing ${productName}...`
       : state === 'installed'
         ? messages.restart
-        : state === 'error'
-          ? `${status.error?.code}: ${status.error?.message}`
-          : ''
+        : state === 'error' ? messages.retry : messages.install
+    note.hidden = state !== 'error'
+    note.className = 'm-0 text-xs text-red-600 dark:text-red-400'
+    note.textContent = state === 'error'
+      ? `${status.error?.code}: ${status.error?.message}`
+      : ''
   }
 
   async function poll(): Promise<void> {

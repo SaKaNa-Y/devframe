@@ -36,7 +36,7 @@ export interface OnboardingMessages {
 }
 export interface OnboardingStatus {
   state: OnboardingState;
-  command: string;
+  command: string[];
   branding: OnboardingBranding;
   messages: OnboardingMessages;
   error?: {

@@ -34,7 +34,7 @@
 }
 
 .devframes-onboard-panel {
-  --uno: fixed bottom-12 left-4 z-floating-anchor w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-base bg-base color-base shadow-lg;
+  --uno: fixed bottom-12 left-4 z-floating-anchor w-100 max-w-[calc(100vw-2rem)] rounded-lg border border-base bg-base color-base shadow-lg;
   --uno: p-4 flex flex-col gap-3 font-sans text-sm leading-normal;
   --uno: transition-all duration-200 origin-bottom-left;
 }
@@ -44,7 +44,21 @@
 }
 
 .devframes-onboard-command {
-  --uno: block font-mono text-xs px-2 py-1.5 rounded bg-secondary color-muted break-all select-all;
+  --uno: block font-mono text-xs py-1.5 pl-2 pr-8 rounded bg-secondary color-muted break-all select-all;
+}
+
+.devframes-onboard-command-row {
+  --uno: relative;
+}
+
+.devframes-onboard-copy {
+  --uno: absolute right-1 top-1 w-6 h-6 flex items-center justify-center rounded p-0 bg-transparent border-none cursor-pointer;
+  --uno: color-muted op60 hover:op100 focus-visible:op100 outline-none focus-visible:ring-2 ring-primary-400;
+  --uno: transition-opacity duration-200;
+}
+
+.devframes-onboard-spinner[hidden] {
+  --uno: hidden;
 }
 
 @media print {
@@ -59,5 +73,9 @@
   .devframes-onboard-panel,
   .devframes-onboard-glow {
     transition: none;
+  }
+
+  .devframes-onboard-spinner.animate-spin {
+    animation-duration: 3s;
   }
 }

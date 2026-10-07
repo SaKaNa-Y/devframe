@@ -21,10 +21,6 @@ export async function resolveInstallCommand(plan: InstallPlan): Promise<Resolved
   return resolveCommand(agent, 'add', args)!
 }
 
-export function formatCommand(command: ResolvedCommand): string {
-  return [command.command, ...command.args].join(' ')
-}
-
 /**
  * Run the install and make sure that each named package landed in
  * `<cwd>/node_modules`. Throws a `DF9001` / `DF9002` diagnostic on failure.
@@ -36,7 +32,7 @@ export async function runInstall(plan: InstallPlan, command: ResolvedCommand): P
   })
   if (result.exitCode !== 0) {
     throw diagnostics.DF9001({
-      command: formatCommand(command),
+      command: [command.command, ...command.args].join(' '),
       exitCode: result.exitCode,
       stderr: result.stderr.trim().slice(-2048),
     })

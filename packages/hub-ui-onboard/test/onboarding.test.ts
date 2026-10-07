@@ -76,7 +76,7 @@ describe('createOnboarding', () => {
 
     const current = await status(origin)
     expect(current.state).toBe('idle')
-    expect(current.command).toBe('npm i -D @nuxt/devtools')
+    expect(current.command).toEqual(['npm', 'i', '-D', '@nuxt/devtools'])
     expect(current.messages.install).toBe('Install Nuxt DevTools')
     expect(current.messages.disable).toBe('Disable entirely')
     expect(current.branding.productName).toBe('Nuxt DevTools')

@@ -4,6 +4,6 @@
     "lib": ["esnext", "dom", "dom.iterable"],
     "types": ["node", "vite/client"]
   },
-  "include": ["src", "scripts", "test", "*.config.ts"],
+  "include": ["src", "scripts", "test", "playground", "*.config.ts"],
   "exclude": ["dist", "node_modules"]
 }

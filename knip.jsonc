@@ -37,6 +37,11 @@
       // one a standalone, runnable example, not imported by anything else.
       "entry": ["design/*.ts", "skills/devframe/templates/*.ts", "scripts/smoke-bun.ts"]
     },
+    "packages/hub-ui-onboard": {
+      // The playground is a dev-only Vite app (`pnpm play`); its config is
+      // loaded by the Vite CLI, not imported.
+      "entry": ["playground/vite.config.ts"]
+    },
     "docs": {
       // Nuxt auto-registers `app/components` and `app/composables`; the files
       // here shadow same-named pieces of the comark-docs layer (AppHeaderBrand,

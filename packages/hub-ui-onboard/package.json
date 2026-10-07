@@ -32,7 +32,8 @@
     "build:css": "tsx scripts/build-css.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "prepack": "turbo run build --filter=@devframes/hub-ui-onboard"
+    "prepack": "turbo run build --filter=@devframes/hub-ui-onboard",
+    "play": "pnpm run build:css && pnpm -C playground play"
   },
   "dependencies": {
     "nostics": "catalog:deps",

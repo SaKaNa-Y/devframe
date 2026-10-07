@@ -11,7 +11,7 @@ import { pipeline } from 'node:stream/promises'
 import { fileURLToPath } from 'node:url'
 import { Diagnostic } from 'nostics'
 import { diagnostics } from './diagnostics'
-import { formatCommand, packagesInstalled, resolveInstallCommand, runInstall } from './install'
+import { packagesInstalled, resolveInstallCommand, runInstall } from './install'
 
 export type * from './types'
 
@@ -33,12 +33,12 @@ function clientFile(): string {
   return existsSync(sibling) ? sibling : join(here, '../dist/client/embedded.js')
 }
 
-function defaultMessages(productName: string): OnboardingMessages {
+export function defaultMessages(productName: string): OnboardingMessages {
   return {
     title: productName,
     description: `${productName} enables development features in your project. Install it with:`,
     install: `Install ${productName}`,
-    hide: 'Hide for now',
+    hide: 'Hide in this session',
     disable: 'Disable entirely',
     installing: 'Installing...',
     restart: `Installed. Restart your dev server to open ${productName}.`,
@@ -155,8 +155,14 @@ export function createOnboarding(options: CreateOnboardingOptions): Onboarding {
       await runInstall(plan, resolved)
     }
     catch (cause) {
-      const command = resolved ? formatCommand(resolved) : plan.packages.join(' ')
-      fail(cause, () => diagnostics.DF9001({ command, exitCode: undefined, stderr: String(cause) }))
+      const command = resolved
+        ? [resolved.command, ...resolved.args].join(' ')
+        : plan.packages.join(' ')
+      fail(cause, () => diagnostics.DF9001({
+        command,
+        exitCode: undefined,
+        stderr: String(cause),
+      }))
       return
     }
     await activate()
@@ -180,7 +186,8 @@ export function createOnboarding(options: CreateOnboardingOptions): Onboarding {
   }
 
   async function status(): Promise<OnboardingStatus> {
-    return { state, command: formatCommand(await getCommand()), branding, messages, error }
+    const command = await getCommand()
+    return { state, command: [command.command, ...command.args], branding, messages, error }
   }
 
   const handler: OnboardingHandler = async (request) => {
