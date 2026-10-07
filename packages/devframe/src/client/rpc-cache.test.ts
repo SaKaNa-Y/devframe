@@ -19,7 +19,7 @@ afterEach(() => {
   for (const key of connectionGlobals) delete (globalThis as any)[key]
 })
 
-async function setup(transport: 'websocket' | 'sse', cacheOptions: DevframeRpcClientOptions['cacheOptions'] = true, legacy = false) {
+async function setup(transport: 'websocket' | 'sse', cacheOptions: DevframeRpcClientOptions['cacheOptions'] = true, legacy = false, callTimeout = 3000) {
   const devframe = initDevframe(defineDevframe({
     id: 'cache-test',
     name: 'Cache test',
@@ -67,7 +67,7 @@ async function setup(transport: 'websocket' | 'sse', cacheOptions: DevframeRpcCl
     otpParam: false,
     simpleAuth: false,
     webmcp: false,
-    callTimeout: 3000,
+    callTimeout,
   })
   onTestFinished(() => client.close?.())
   return { ctx, client, counts, call: client.call as (name: string, value?: unknown) => Promise<unknown> }
@@ -179,6 +179,36 @@ describe.each(['websocket', 'sse'] as const)('automatic RPC cache over %s', (tra
     await call('test:query', 1)
     await call('test:query', 1)
     expect(counts).toEqual({ action: 2, query: 2 })
+    expect(discovery).toHaveBeenCalledTimes(2)
+  })
+
+  it.each(['call', 'callOptional'] as const)('does not send an expired %s after rediscovery, but allows a later retry', async (method) => {
+    const { ctx, client, call, counts } = await setup(transport, true, false, 800)
+    await call('test:query', 1)
+    const clear = vi.spyOn(client.cacheManager, 'clear')
+    const first = Promise.withResolvers<string[]>()
+    const second = Promise.withResolvers<string[]>()
+    const discovery = vi.fn()
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise)
+    ctx.rpc.update(defineRpcFunction({ name: 'devframe:rpc:cacheable-functions', type: 'query', handler: discovery }))
+    await vi.waitFor(() => expect(clear).toHaveBeenCalled())
+
+    const expired = expect(client[method]('test:action' as any, 1)).rejects.toMatchObject({ kind: 'timeout' })
+    await vi.waitFor(() => expect(discovery).toHaveBeenCalledTimes(1))
+    clear.mockClear()
+    await ctx.rpc.broadcast({ method: DEVFRAME_EVENTS.broadcast.cacheInvalidate, args: [] })
+    await vi.waitFor(() => expect(clear).toHaveBeenCalled())
+    await new Promise(resolve => setTimeout(resolve, 400))
+    first.resolve(['test:query'])
+    await vi.waitFor(() => expect(discovery).toHaveBeenCalledTimes(2))
+
+    await expired
+    expect(counts.action).toBeUndefined()
+    const retry = client[method]('test:action' as any, 1)
+    second.resolve(['test:query'])
+    await expect(retry).resolves.toBe(1)
+    expect(counts.action).toBe(1)
     expect(discovery).toHaveBeenCalledTimes(2)
   })
 

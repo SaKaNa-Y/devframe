@@ -11,7 +11,7 @@ import { DEVFRAME_EVENTS, DEVFRAME_OTP_URL_PARAM } from 'devframe/constants'
 import { RpcCacheManager, RpcFunctionsCollectorBase } from 'devframe/rpc'
 import { createEventEmitter } from 'devframe/utils/events'
 import { withBase } from 'devframe/utils/url'
-import { setupDevframeConnection } from './connection'
+import { DevframeConnectionError, setupDevframeConnection } from './connection'
 import { storeAuthToken } from './connection-storage'
 import { authenticateWithUrlOtp } from './otp'
 import { createDevframeServicesClient } from './rpc-services'
@@ -406,6 +406,8 @@ export async function getDevframeRpcClient(
     })
   }
 
+  const timeout = options.callTimeout ?? 0
+  const requestBudget = timeout > 0 ? timeout : Infinity
   let mode: DevframeRpcClientMode
   const liveModeOptions = {
     authToken,
@@ -417,10 +419,17 @@ export async function getDevframeRpcClient(
     rpcOptions: {
       ...rpcOptions,
       async onRequest(req, next, resolve) {
+        const deadline = performance.now() + requestBudget
         await rpcOptions.onRequest?.call(this, req, next, resolve)
         // Auth and protocol calls must be able to run before cache discovery.
         if (cacheOptions === true && req.i && mode.isTrusted && !req.m.startsWith('anonymous:') && req.m !== 'devframe:rpc:cacheable-functions') {
+          // Rediscovery shares this call's deadline, even when another call keeps waiting.
+          function checkDeadline(): void {
+            if (performance.now() >= deadline)
+              throw new DevframeConnectionError('timeout', `[devframe] RPC call "${req.m}" timed out after ${timeout}ms`)
+          }
           while (!cacheFunctions) {
+            checkDeadline()
             if (closed || mode.status !== 'connected')
               break
             const generation = cacheGeneration
@@ -436,6 +445,7 @@ export async function getDevframeRpcClient(
             await cacheFunctions
           }
           await cacheFunctions
+          checkDeadline()
         }
         const generation = cacheGeneration
         if (cacheOptions && req.i && !closed && mode.isTrusted && cacheManager.validate(req.m)) {
