@@ -100,17 +100,21 @@ export function createRpcSharedStateClientHost(rpc: DevframeRpcClient): RpcShare
           sharedState.set(key, state)
           for (const fn of keyAddedListeners)
             fn(key)
-          const initialState = state.value()
+          let stateUpdated = false
+          const stopTrackingUpdates = state.on('updated', () => {
+            stateUpdated = true
+          })
           const initialSyncId = nanoid()
           rpc.call('devframe:rpc:server-state:get', key)
             .then((serverState) => {
               // A pending read must not replace a newer update or a deleted state.
-              if (serverState !== undefined && sharedState.get(key) === state && state.value() === initialState)
+              if (serverState !== undefined && sharedState.get(key) === state && !stateUpdated)
                 state.mutate(() => mergeWithInitialValue(key, serverState), initialSyncId)
             })
             .catch((error) => {
               console.error('Error getting server state', error)
             })
+            .finally(stopTrackingUpdates)
           stateDisposers.set(key, registerSharedState(key, state, initialSyncId))
           return state
         }

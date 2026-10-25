@@ -98,6 +98,35 @@ describe('initial shared-state snapshots', () => {
     expect(setCalls).toHaveLength(1)
   })
 
+  it('keeps a local undo that restores the initial object while the snapshot is pending', async () => {
+    const { host, snapshot, setCalls } = setup()
+    const state = await host.get('k', { initialValue: { count: 0 } })
+    const initialValue = state.value()
+    state.mutate((draft) => {
+      draft.count = 2
+    })
+    state.mutate(() => initialValue)
+    expect(state.value()).toBe(initialValue)
+    expect(setCalls.map(([, value]) => value)).toEqual([{ count: 2 }, { count: 0 }])
+
+    snapshot.resolve({ count: 1 })
+    await snapshot.promise
+    expect(state.value()).toBe(initialValue)
+    expect(setCalls).toHaveLength(2)
+  })
+
+  it('applies the initial snapshot after a mutation that leaves the value unchanged', async () => {
+    const { host, snapshot, setCalls } = setup()
+    const state = await host.get('k', { initialValue: { count: 0 } })
+    state.mutate((draft) => {
+      draft.count = 0
+    })
+    snapshot.resolve({ count: 1 })
+    await snapshot.promise
+    expect(state.value()).toEqual({ count: 1 })
+    expect(setCalls).toEqual([])
+  })
+
   it('forwards a local write triggered by the initial snapshot', async () => {
     const { host, snapshot, setCalls } = setup()
     const state = await host.get('k', { initialValue: { count: 0 } })
