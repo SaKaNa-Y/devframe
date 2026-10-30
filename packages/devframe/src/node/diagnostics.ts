@@ -230,5 +230,10 @@ export const diagnostics = defineDiagnostics({
         `Tool "${p.tool}" was addressed to client "${p.clientId}", but no connected browser tab has that id and the tool.${p.live.length ? ` Connected clients: ${p.live.join(', ')}.` : ' No browser tab is connected.'}`,
       fix: 'Re-list the connected clients (`devframe:agent:list-clients`) and retry with a live `client_id`, or omit `client_id` to target the most recently focused tab.',
     },
+    DF0084: {
+      why: (p: { name: string, uriTemplate: string, reason: string }) =>
+        `MCP resource template "${p.name}" has an invalid \`uriTemplate\` "${p.uriTemplate}": ${p.reason}`,
+      fix: 'Use RFC 6570 level 1 only: plain `{name}` expressions made of letters, digits, `_` and `.`, with no operator (`+`, `#`, `/`, `?`, …), modifier (`:n`, `*`) or list of names, and no `{` or `}` outside an expression.',
+    },
   },
 })

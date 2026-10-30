@@ -89,6 +89,7 @@ Emitted by `devframe`: the framework-neutral host, RPC, streaming, assets, servi
 | [DF0080](/errors/DF0080) | error | In-Page Channel Agent Function Not JSON-Serializable |
 | [DF0081](/errors/DF0081) | error | Invalid MCP Content Blocks |
 | [DF0082](/errors/DF0082) | error | Addressed Client Not Connected |
+| [DF0084](/errors/DF0084) | error | Invalid MCP Resource Template |
 
 ## Hub: context & lifecycle (DF80xx)
 

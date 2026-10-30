@@ -391,6 +391,14 @@ export declare const diagnostics: import("nostics").Diagnostics<{
     }) => string;
     readonly fix: "Re-list the connected clients (`devframe:agent:list-clients`) and retry with a live `client_id`, or omit `client_id` to target the most recently focused tab.";
   };
+  readonly DF0084: {
+    readonly why: (p: {
+      name: string;
+      uriTemplate: string;
+      reason: string;
+    }) => string;
+    readonly fix: "Use RFC 6570 level 1 only: plain `{name}` expressions made of letters, digits, `_` and `.`, with no operator (`+`, `#`, `/`, `?`, …), modifier (`:n`, `*`) or list of names, and no `{` or `}` outside an expression.";
+  };
 }, readonly [(d: import("nostics").Diagnostic, { method }?: {
   method?: "log" | "warn" | "error";
 }) => void], never>;
